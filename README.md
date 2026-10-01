@@ -328,7 +328,7 @@ Implemented in `src/lib/authPipeline.ts`, `src/lib/auth.ts`, and `middleware.ts`
 
 1. **Clone Repository**:
    ```bash
-   git clone https://github.com/MohammadHasan1604/Cosko.git
+   git clone https://github.com/hasanudyavar/Cosko.git
    cd Cosko
    ```
 
@@ -508,7 +508,7 @@ For high-volume retail deployments on an Ubuntu 22.04+ VPS:
 
 2. **Clone and Install**:
    ```bash
-   git clone https://github.com/MohammadHasan1604/Cosko.git /var/www/cosko
+   git clone https://github.com/hasanudyavar/Cosko.git /var/www/cosko
    cd /var/www/cosko
    npm install --production=false
    ```
@@ -738,7 +738,7 @@ COSKO is configured for zero-configuration Netlify deployments via `@netlify/plu
 
 ## Proprietary License & Intellectual Property
 
-**Copyright © 2026 Mohammad Hasan — All Rights Reserved.**
+**Copyright © 2026 Mohammad Hasan (@hasanudyavar) — All Rights Reserved.**
 
 This repository, source code, system architecture, database design, user interface components, and all accompanying documentation (collectively, the "Software") are the exclusive intellectual property and proprietary assets of **Mohammad Hasan** ("Author", "Licensor", "Owner").
 
@@ -762,6 +762,7 @@ This repository, source code, system architecture, database design, user interfa
    No license, immunity, or right is granted, whether by implication, estoppel, or otherwise, except as expressly stated in a valid written contract executed by Mohammad Hasan.
 
 For commercial licensing, enterprise deployment inquiries, or authorization requests, please contact:  
-**Mohammad Hasan** — [mohammadhasan16114@gmail.com](mailto:mohammadhasan16114@gmail.com)
+**Mohammad Hasan** — [mohammadhasan16114@gmail.com](mailto:mohammadhasan16114@gmail.com)  
+**Official Repository**: [https://github.com/hasanudyavar/Cosko](https://github.com/hasanudyavar/Cosko)
 
 *Refer to the root [`LICENSE`](file:///c:/Users/admin/Downloads/storecommand/LICENSE) file for the full legal terms and conditions.*
