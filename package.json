@@ -66,7 +66,14 @@
     "test:responsive": "npx tsx tests/responsive-form-modal.test.ts",
     "test:hotfix": "npx tsx tests/four-issue-hotfix.test.ts",
     "test:closure": "npx tsx tests/final-closure-proof-whatsapp.test.ts",
-    "test:all": "npx tsx tests/phase1-security.test.ts && npx tsx tests/phase1-security-matrix.ts && npx tsx tests/phase2.test.ts && npx tsx tests/phase2-realtime.test.ts && npx tsx tests/phase3.test.ts && npx tsx tests/phase3-deep-verification.test.ts && npx tsx tests/phase4-security-closure.test.ts && npx tsx tests/final-closure-phase2.test.ts && npx tsx tests/responsive-form-modal.test.ts && npx tsx tests/four-issue-hotfix.test.ts && npx tsx tests/final-closure-proof-whatsapp.test.ts"
+    "init:sequences": "npx tsx scripts/migrate-remediation-tables.ts",
+    "test:concurrent-sequence": "npx tsx scripts/test-concurrent-sequence.ts",
+    "test:password-policy": "npx tsx scripts/test-password-policy.ts",
+    "test:latency-benchmark": "npx tsx scripts/test-latency-benchmark.ts",
+    "test:password-reset": "npx tsx scripts/test-password-reset.ts",
+    "test:remediation": "npx tsx tests/remediation.test.ts",
+    "test:load-1000-concurrent": "npx tsx scripts/test-load-1000-concurrent.ts",
+    "test:all": "npx tsx tests/phase1-security.test.ts && npx tsx tests/phase1-security-matrix.ts && npx tsx tests/phase2.test.ts && npx tsx tests/phase2-realtime.test.ts && npx tsx tests/phase3.test.ts && npx tsx tests/phase3-deep-verification.test.ts && npx tsx tests/phase4-security-closure.test.ts && npx tsx tests/final-closure-phase2.test.ts && npx tsx tests/responsive-form-modal.test.ts && npx tsx tests/four-issue-hotfix.test.ts && npx tsx tests/final-closure-proof-whatsapp.test.ts && npx tsx tests/remediation.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1121.0",

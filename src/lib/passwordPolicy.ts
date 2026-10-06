@@ -1,0 +1,111 @@
+/**
+ * Enterprise Password Policy Validator & Entropy Scorer
+ * Enforces NIST SP 800-63B standards:
+ * - Minimum 12 characters
+ * - Uppercase letters (A-Z)
+ * - Lowercase letters (a-z)
+ * - Decimal numbers (0-9)
+ * - Special characters (!@#$%^&* etc.)
+ * - Rejection of common weak sequences (qwerty, 123456, admin, cosko, repeating chars)
+ */
+
+export interface PasswordValidationResult {
+  valid: boolean;
+  errors: string[];
+  score: number; // 0-100 (entropy score)
+}
+
+export function validatePassword(password: string): PasswordValidationResult {
+  const errors: string[] = [];
+  let score = 0;
+
+  if (!password || typeof password !== 'string') {
+    return {
+      valid: false,
+      errors: ['Password must be at least 12 characters long'],
+      score: 0,
+    };
+  }
+
+  // 1. Length Check (Minimum 12 characters)
+  if (password.length < 12) {
+    errors.push('Password must be at least 12 characters long');
+  } else {
+    score += 20;
+  }
+
+  // 2. Uppercase Letters
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter (A-Z)');
+  } else {
+    score += 15;
+  }
+
+  // 3. Lowercase Letters
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter (a-z)');
+  } else {
+    score += 15;
+  }
+
+  // 4. Numbers
+  if (!/[0-9]/.test(password)) {
+    errors.push('Password must contain at least one number (0-9)');
+  } else {
+    score += 15;
+  }
+
+  // 5. Special Characters
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`^]/.test(password)) {
+    errors.push('Password must contain at least one special character (!@#$%^&* etc.)');
+  } else {
+    score += 15;
+  }
+
+  // 6. Common Weak Patterns
+  const weakPatterns: Array<{ pattern: RegExp; desc: string }> = [
+    { pattern: /123456/, desc: 'sequential numbers' },
+    { pattern: /qwerty/i, desc: 'keyboard pattern "qwerty"' },
+    { pattern: /password/i, desc: 'the word "password"' },
+    { pattern: /admin/i, desc: 'the word "admin"' },
+    { pattern: /cosko/i, desc: 'brand name "cosko"' },
+    { pattern: /(.)\1{4,}/, desc: '5 or more repeated identical characters' },
+  ];
+
+  for (const { pattern, desc } of weakPatterns) {
+    if (pattern.test(password)) {
+      errors.push(`Password contains an easily guessable pattern (${desc})`);
+      score -= 20;
+      break;
+    }
+  }
+
+  // Length Bonuses for high entropy
+  if (password.length >= 15) {
+    score += 10;
+  }
+  if (password.length >= 18) {
+    score += 10;
+  }
+
+  const finalScore = Math.max(0, Math.min(100, score));
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    score: finalScore,
+  };
+}
+
+/**
+ * Generates password strength visual feedback display string.
+ * @example "Password strength: ████████░░ 85% (Strong)"
+ */
+export function getPasswordStrengthDisplay(score: number): string {
+  const clamped = Math.max(0, Math.min(100, score));
+  const filled = Math.round(clamped / 10);
+  const empty = 10 - filled;
+  const strength = clamped < 40 ? 'Weak' : clamped < 70 ? 'Fair' : clamped < 90 ? 'Good' : 'Strong';
+
+  return `${'█'.repeat(filled)}${'░'.repeat(empty)} ${clamped}% (${strength})`;
+}

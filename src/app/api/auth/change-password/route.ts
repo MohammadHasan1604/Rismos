@@ -8,6 +8,7 @@ import {
   isValidAuthOrigin,
 } from '@/lib/auth';
 import { authenticateRequest, invalidateUserSessions, createAuditLog } from '@/lib/authPipeline';
+import { validatePassword } from '@/lib/passwordPolicy';
 
 /**
  * POST /api/auth/change-password
@@ -55,9 +56,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (newPassword.length < 8) {
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
       return NextResponse.json(
-        { success: false, message: 'Password must be at least 8 characters long' },
+        {
+          success: false,
+          error: passwordValidation.errors[0] || 'Password does not meet security requirements',
+          message: passwordValidation.errors[0] || 'Password does not meet security requirements',
+          details: passwordValidation.errors,
+          strength: passwordValidation.score,
+        },
         { status: 400 }
       );
     }

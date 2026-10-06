@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useApp } from '@/context/AppContext';
 import Icon from '@/components/ui/AppIcon';
 import { toast } from 'sonner';
+import { validatePassword, getPasswordStrengthDisplay } from '@/lib/passwordPolicy';
 
 export default function ForcePasswordChangeModal() {
   const { currentUser, changeUserPassword, setCurrentUser, logoutUser } = useApp();
@@ -34,8 +35,9 @@ export default function ForcePasswordChangeModal() {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters long');
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
+      setError(passwordValidation.errors[0] || 'Password does not meet enterprise security requirements');
       return;
     }
 
@@ -117,13 +119,13 @@ export default function ForcePasswordChangeModal() {
 
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1.5">
-              New Personal Password (Min 8 Characters) *
+              New Personal Password (12+ chars, uppercase, lowercase, numbers, symbols) *
             </label>
             <div className="relative">
               <input
                 type={showNew ? 'text' : 'password'}
                 required
-                placeholder="Create new secure password"
+                placeholder="Enter 12+ chars strong password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="input-field text-xs pr-10"
@@ -136,6 +138,22 @@ export default function ForcePasswordChangeModal() {
                 <Icon name={showNew ? 'EyeSlashIcon' : 'EyeIcon'} size={15} />
               </button>
             </div>
+            {newPassword.length > 0 && (() => {
+              const res = validatePassword(newPassword);
+              return (
+                <div className="mt-1.5 space-y-1">
+                  <div className="text-3xs font-mono font-semibold text-muted-foreground">
+                    {getPasswordStrengthDisplay(res.score)}
+                  </div>
+                  {res.errors.length > 0 && (
+                    <p className="text-3xs text-danger">⚠️ {res.errors[0]}</p>
+                  )}
+                  {res.valid && (
+                    <p className="text-3xs text-emerald-500 font-semibold">✅ Password meets all requirements</p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div>

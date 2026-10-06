@@ -59,6 +59,7 @@ model UserAccount {
   fileAssets          FileAsset[]
   presence            UserPresence?
   permissionOverrides UserPermissionOverride[]
+  passwordResets      PasswordReset[]
 
   @@index([role])
   @@index([status])
@@ -981,3 +982,37 @@ model UserPresence {
   @@index([lastHeartbeat])
   @@map("user_presence")
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 25. ATOMIC SEQUENCE COUNTERS — Concurrency-Safe Sequence & Document Numbers
+// ──────────────────────────────────────────────────────────────────────────────
+model SequenceCounter {
+  id           Int      @id @default(autoincrement())
+  prefix       String   @unique @db.VarChar(32)
+  currentValue BigInt   @default(0) @map("current_value")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([prefix])
+  @@map("sequence_counters")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 26. PASSWORD RESETS — Enterprise 24-Hour Tokenized Self-Serve Reset Flow
+// ──────────────────────────────────────────────────────────────────────────────
+model PasswordReset {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  token     String    @unique @db.VarChar(128) // SHA256 hash of reset token
+  expiresAt DateTime  @map("expires_at")
+  ipAddress String?   @map("ip_address") @db.VarChar(64)
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_resets")
+}
+

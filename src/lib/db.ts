@@ -30,6 +30,8 @@ const MODELS_WITH_CREATED_AT = new Set([
   'attendanceDay',
   'fileAsset',
   'realtimeOutbox',
+  'sequenceCounter',
+  'passwordReset',
 ]);
 
 function createPrismaClient() {

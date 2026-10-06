@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import AppLogo from '@/components/ui/AppLogo';
@@ -190,16 +191,12 @@ export default function LoginForm() {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-semibold text-foreground block">Password</label>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                toast.info('Contact Super Admin to reset account password');
-              }}
-              className="text-2xs text-primary hover:underline"
+            <Link
+              href="/auth/forgot-password"
+              className="text-2xs text-primary hover:underline font-medium"
             >
               Forgot password?
-            </a>
+            </Link>
           </div>
           <div className="relative">
             <input

@@ -3,8 +3,13 @@ import jwt from 'jsonwebtoken';
 
 const publicPaths = [
   '/sign-up-login',
+  '/auth/login',
+  '/auth/forgot-password',
+  '/auth/reset-password',
   '/api/auth/login',
-  '/api/settings/branding',  // Only public branding (app name, logo)
+  '/api/auth/send-reset-link',
+  '/api/auth/reset-password',
+  '/api/settings/branding', // Only public branding (app name, logo)
 ];
 
 const AUTH_SECRET = process.env.AUTH_SECRET;
