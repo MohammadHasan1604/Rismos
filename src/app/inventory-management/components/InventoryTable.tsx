@@ -595,9 +595,8 @@ export default function InventoryTable({
                   <th
                     key={`th-${col.key}`}
                     className={`table-header ${
-                      col.key === 'name' ||
-                      (col.key === 'sku' && !visibleColumns.some((c) => c.key === 'name'))
-                        ? 'sticky left-10 z-20 bg-muted border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]'
+                      col.key === 'sku'
+                        ? 'min-w-[130px] whitespace-nowrap sticky left-10 z-20 bg-muted border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]'
                         : ''
                     }`}
                     onClick={() => handleSort(col.key as SortKey)}
@@ -657,11 +656,9 @@ export default function InventoryTable({
                           return (
                             <td
                               key={`cell-${item.id}-sku`}
-                              className={`table-cell ${
-                                !visibleColumns.some((c) => c.key === 'name')
-                                  ? `sticky left-10 z-10 ${isSelected ? 'bg-primary/10' : 'bg-card group-hover:bg-muted/40'} border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]`
-                                  : ''
-                              }`}
+                              className={`table-cell min-w-[130px] whitespace-nowrap sticky left-10 z-10 ${
+                                isSelected ? 'bg-primary/10' : 'bg-card group-hover:bg-muted/40'
+                              } border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]`}
                             >
                               <div>
                                 <span className="font-mono text-xs font-semibold text-foreground">
@@ -678,7 +675,7 @@ export default function InventoryTable({
                           return (
                             <td
                               key={`cell-${item.id}-name`}
-                              className={`table-cell max-w-[240px] sticky left-10 z-10 ${isSelected ? 'bg-primary/10' : 'bg-card group-hover:bg-muted/40'} border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]`}
+                              className="table-cell max-w-[240px]"
                             >
                               <div className="flex items-center gap-2.5">
                                 {item.primaryImage ||
