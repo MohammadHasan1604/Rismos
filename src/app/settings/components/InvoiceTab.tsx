@@ -1,9 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
-import CoskoLogo from '@/components/ui/CoskoLogo';
+import AppLogo from '@/components/ui/AppLogo';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
+import {
+  InvoiceTemplateConfig,
+  DEFAULT_INVOICE_CONFIG,
+  parseInvoiceTemplateConfig,
+  InvoiceFieldPlacement,
+} from '@/lib/invoice/invoiceTemplateSchema';
+import { InvoicePrintRenderer, InvoicePrintOrder } from '@/components/invoice/InvoicePrintRenderer';
 
 interface InvoiceTabProps {
   invoiceHeader: string;
@@ -23,9 +30,9 @@ interface InvoiceTabProps {
   showPaymentQr: boolean;
   setShowPaymentQr: (val: boolean) => void;
   paymentUpiId: string;
-  setPaymentUpiId: (val: string) => void;
   paymentBankDetails: string;
   setPaymentBankDetails: (val: string) => void;
+  setPaymentUpiId: (val: string) => void;
   handleInvoiceTemplateUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   logoUrl: string | null;
   businessAddress: string;
@@ -66,169 +73,287 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
   defaultTaxRate,
   isSuperAdmin,
 }) => {
+  const [showMapper, setShowMapper] = useState(false);
+  const [templateConfig, setTemplateConfig] = useState<InvoiceTemplateConfig>(DEFAULT_INVOICE_CONFIG);
+  const [selectedFieldKey, setSelectedFieldKey] = useState<string>('businessName');
+
+  const selectedField = templateConfig.fields.find((f) => f.key === selectedFieldKey);
+
+  const updateField = (key: string, updates: Partial<InvoiceFieldPlacement>) => {
+    setTemplateConfig((prev) => ({
+      ...prev,
+      fields: prev.fields.map((f) => (f.key === key ? { ...f, ...updates } : f)),
+    }));
+  };
+
+  // Sample order for deterministic live print preview
+  const sampleOrder: InvoicePrintOrder = {
+    id: 'DEMO-INV-001',
+    orderNo: 'INV-2026-8910',
+    createdAt: new Date().toLocaleDateString(),
+    store: 'Terminal 01 · Flagship Store',
+    customerName: 'Enterprise Client',
+    customerPhone: '+1 555 019 2834',
+    customerAddress: '450 Innovation Parkway, Suite 200',
+    customerTaxId: gstin || 'TAX-ID-9921',
+    items: [
+      {
+        name: 'Enterprise Smart POS Terminal Pro',
+        sku: 'POS-TRM-800',
+        hsn: '8471',
+        qty: 2,
+        unitPrice: 450,
+        taxRate: defaultTaxRate || 18,
+        warrantyMonths: 12,
+        lineTotal: 900,
+      },
+      {
+        name: 'Thermal Barcode Scanner & Dock',
+        sku: 'SCN-BLU-400',
+        hsn: '8471',
+        qty: 1,
+        unitPrice: 120,
+        taxRate: defaultTaxRate || 18,
+        warrantyMonths: 6,
+        lineTotal: 120,
+      },
+    ],
+    subtotal: 1020,
+    taxTotal: Math.round(1020 * ((defaultTaxRate || 18) / 100)),
+    total: Math.round(1020 * (1 + (defaultTaxRate || 18) / 100)),
+    paymentMethod: 'UPI / Card',
+    referenceNo: 'TXN-99882201',
+    cashierName: 'Alexander M.',
+    warrantyExpiryDate: '12 Months',
+  };
+
   return (
     <div className="space-y-6">
-      <div className="border-b border-border pb-3">
-        <h3 className="text-base font-bold text-foreground">
-          Digital & Print Invoice Template Designer
-        </h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Configure custom invoice headers, Canva template upload, watermark overlay, UPI payment
-          QR, and warranty terms.
-        </p>
+      <div className="border-b border-border pb-3 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-base font-bold text-foreground">
+            Print & Digital Invoice Template Engine
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Configure visual template overlay, upload Canva design exports, map custom field placements, and preview high-density tax invoices.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowMapper(!showMapper)}
+          className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+            showMapper
+              ? 'bg-primary text-white border-primary shadow-xs'
+              : 'bg-card text-foreground border-border hover:bg-muted'
+          }`}
+        >
+          {showMapper ? 'Hide Field Mapper' : 'Configure Field Placements'}
+        </button>
       </div>
 
-      {/* LIVE INVOICE PREVIEW */}
+      {/* Visual Field Mapping Designer (Collapsible) */}
+      {showMapper && (
+        <div className="p-4 rounded-2xl bg-card border border-border shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-border/70 pb-3">
+            <div>
+              <h4 className="text-xs font-bold text-foreground">Visual Field Position Mapper</h4>
+              <p className="text-2xs text-muted-foreground">
+                Tune normalized percentage coordinates and visibility for each printed field.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTemplateConfig(DEFAULT_INVOICE_CONFIG)}
+              className="text-2xs text-primary hover:underline font-semibold"
+            >
+              Reset Field Coordinates to Default
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            {/* Field Picker List */}
+            <div className="border border-border rounded-xl p-2 max-h-60 overflow-y-auto space-y-1">
+              {templateConfig.fields.map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setSelectedFieldKey(f.key)}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-2xs font-medium flex items-center justify-between transition-colors ${
+                    selectedFieldKey === f.key
+                      ? 'bg-primary text-white font-bold'
+                      : 'hover:bg-muted text-foreground'
+                  }`}
+                >
+                  <span className="truncate">{f.label}</span>
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      f.visible ? 'bg-emerald-400' : 'bg-slate-300'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+
+            {/* Field Position & Styling Controls */}
+            {selectedField ? (
+              <div className="md:col-span-2 space-y-3 bg-muted/30 p-3.5 rounded-xl border border-border">
+                <div className="flex items-center justify-between">
+                  <h5 className="font-bold text-foreground text-xs">{selectedField.label}</h5>
+                  <label className="flex items-center gap-1.5 text-2xs cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={selectedField.visible}
+                      onChange={(e) => updateField(selectedField.key, { visible: e.target.checked })}
+                      className="rounded border-input text-primary"
+                    />
+                    <span>Visible on Invoice</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-2xs font-semibold text-muted-foreground block mb-1">
+                      X Position: {selectedField.xPercent}%
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={selectedField.xPercent}
+                      onChange={(e) =>
+                        updateField(selectedField.key, { xPercent: Number(e.target.value) })
+                      }
+                      className="w-full accent-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-2xs font-semibold text-muted-foreground block mb-1">
+                      Y Position: {selectedField.yPercent}%
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={selectedField.yPercent}
+                      onChange={(e) =>
+                        updateField(selectedField.key, { yPercent: Number(e.target.value) })
+                      }
+                      className="w-full accent-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-2xs font-semibold text-muted-foreground block mb-1">
+                      Font Size (pt/px)
+                    </label>
+                    <input
+                      type="number"
+                      min="8"
+                      max="32"
+                      value={selectedField.fontSize}
+                      onChange={(e) =>
+                        updateField(selectedField.key, { fontSize: Number(e.target.value) || 11 })
+                      }
+                      className="input-field text-xs w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-2xs font-semibold text-muted-foreground block mb-1">
+                      Alignment
+                    </label>
+                    <select
+                      value={selectedField.textAlign}
+                      onChange={(e) =>
+                        updateField(selectedField.key, {
+                          textAlign: e.target.value as 'left' | 'center' | 'right',
+                        })
+                      }
+                      className="input-field text-xs w-full"
+                    >
+                      <option value="left">Left</option>
+                      <option value="center">Center</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* LIVE INVOICE PRINT PREVIEW */}
       <div className="p-4 rounded-xl bg-muted/30 border border-border space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">
-            Interactive Print / PDF Preview
+            Print-Accurate Deterministic Output Preview
           </span>
-          <span className="text-3xs font-mono text-muted-foreground">
-            Watermark: {watermarkOpacity}% opacity
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-3xs font-mono text-muted-foreground">
+              Watermark: {watermarkOpacity}% opacity
+            </span>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="text-2xs font-bold text-primary hover:underline flex items-center gap-1"
+            >
+              <Icon name="PrinterIcon" size={13} />
+              <span>Test Browser Print</span>
+            </button>
+          </div>
         </div>
 
-        {/* Printable Invoice Card */}
-        <div className="p-5 bg-card rounded-xl border border-border shadow-md max-w-lg mx-auto relative overflow-hidden text-xs">
-          {/* Canva / Custom Template Background if provided */}
-          {invoiceTemplateUrl && (
-            <div
-              className="absolute inset-0 bg-cover bg-center opacity-15 pointer-events-none z-0"
-              style={{ backgroundImage: `url(${invoiceTemplateUrl})` }}
-            />
-          )}
-
-          {/* COSKO Watermark */}
-          <div
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-            style={{ opacity: watermarkOpacity / 100 }}
-          >
-            <svg
-              width="180"
-              height="180"
-              viewBox="0 0 100 100"
-              fill="currentColor"
-              className="text-foreground"
-            >
-              <rect x="15" y="15" width="70" height="70" rx="18" />
-              <circle cx="50" cy="50" r="22" fill="white" />
-            </svg>
-          </div>
-
-          <div className="relative z-10 space-y-4">
-            {/* Header */}
-            <div className="text-center border-b border-border/80 pb-3">
-              <div className="flex justify-center mb-1">
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="h-8 object-contain" />
-                ) : (
-                  <CoskoLogo size={26} showText />
-                )}
-              </div>
-              <h4 className="font-extrabold text-foreground text-sm">{invoiceHeader}</h4>
-              {showStoreAddress && (
-                <p className="text-3xs text-muted-foreground mt-0.5">
-                  {businessAddress || '100 Feet Ring Road, Indiranagar'}, {city || 'Bengaluru'} ·
-                  Phone: {supportPhone || '+91 80 4000 8800'}
-                </p>
-              )}
-              <p className="text-3xs font-mono text-primary font-bold mt-1">
-                GSTIN: {gstin || '29AABCU9603R1ZM'}
-              </p>
-            </div>
-
-            {/* Invoice Meta */}
-            <div className="flex justify-between text-3xs text-muted-foreground border-b border-border/60 pb-2">
-              <div>
-                <p>
-                  <strong className="text-foreground">Invoice #:</strong> INV-2026-0891
-                </p>
-                <p>
-                  <strong className="text-foreground">Date:</strong> 13 Sep 2026
-                </p>
-                <p>
-                  <strong className="text-foreground">Billed To:</strong> Rajesh Sharma
-                </p>
-              </div>
-              <div className="text-right">
-                <p>
-                  <strong className="text-foreground">Store:</strong> Indiranagar (BLR)
-                </p>
-                <p>
-                  <strong className="text-foreground">POS Terminal:</strong> REG-01
-                </p>
-                <p>
-                  <strong className="text-foreground">Payment:</strong> UPI / QR
-                </p>
-              </div>
-            </div>
-
-            {/* Sample Table */}
-            <div className="space-y-1 text-3xs font-mono">
-              <div className="flex justify-between font-bold text-foreground border-b border-border/40 pb-1">
-                <span>Item Description</span>
-                <span>Amount</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Samsung Galaxy S24 256GB x 1</span>
-                <span>₹74,999.00</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>GST ({defaultTaxRate}%):</span>
-                <span>₹13,499.82</span>
-              </div>
-              <div className="flex justify-between font-bold text-foreground border-t border-border/60 pt-1 text-xs">
-                <span>Total Paid:</span>
-                <span>₹88,498.82</span>
-              </div>
-            </div>
-
-            {/* QR Code / Bank info if enabled */}
-            {showPaymentQr && (
-              <div className="p-2.5 rounded-lg bg-muted/40 border border-border/60 flex items-center gap-3">
-                <div className="w-12 h-12 bg-white p-1 rounded border border-border flex items-center justify-center">
-                  <Icon name="QrCodeIcon" size={32} className="text-slate-900" />
-                </div>
-                <div className="text-3xs space-y-0.5">
-                  <p className="font-bold text-foreground">Scan & Pay via UPI</p>
-                  <p className="font-mono text-primary font-bold">{paymentUpiId}</p>
-                  <p className="text-muted-foreground">{paymentBankDetails}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Terms & Footer */}
-            <div className="text-3xs space-y-1 pt-2 border-t border-border/60 text-muted-foreground">
-              <p className="font-semibold text-foreground">Terms & Conditions:</p>
-              <p className="whitespace-pre-line leading-relaxed">{invoiceTerms}</p>
-              <p className="italic text-center pt-2 text-foreground font-medium border-t border-border/40">
-                {invoiceFooter}
-              </p>
-            </div>
-          </div>
+        <div className="p-2 sm:p-4 bg-slate-100 rounded-xl overflow-hidden border border-slate-300 shadow-inner">
+          <InvoicePrintRenderer
+            order={sampleOrder}
+            branding={{
+              appName: invoiceHeader,
+              businessName: invoiceHeader,
+              businessAddress,
+              city,
+              supportPhone,
+              logoUrl,
+            }}
+            systemSettings={{
+              invoiceHeader,
+              invoiceFooter,
+              invoiceTerms,
+              invoiceTemplateUrl,
+              watermarkOpacity,
+              showStoreAddress,
+              showPaymentQr,
+              paymentUpiId,
+              paymentBankDetails,
+              taxRegistrationNumber: gstin,
+              defaultTaxRate,
+            }}
+            templateConfig={templateConfig}
+          />
         </div>
       </div>
 
-      {/* Controls */}
+      {/* Template Configuration Controls */}
       <div className="space-y-4 text-xs">
         {/* Upload Custom Canva / Graphic Background */}
-        <div className="p-4 rounded-xl border border-border bg-card/60 space-y-2">
+        <div className="p-4 rounded-xl border border-border bg-card space-y-2">
           <label className="font-bold text-foreground block">
-            Upload Custom Invoice Design / Background (Canva Export)
+            Custom Canva Background Template Upload
           </label>
-          <p className="text-3xs text-muted-foreground">
-            Super Admins can upload custom template designs exported from Canva (PNG, JPG, WebP,
-            SVG). The layout fields will overlay crisply.
+          <p className="text-2xs text-muted-foreground leading-relaxed">
+            Upload custom PDF/PNG/WebP designs exported from Canva or Adobe. All dynamic fiscal data and product tables will overlay accurately over your custom artwork.
           </p>
           <div className="flex items-center gap-3 pt-1">
             {isSuperAdmin && (
               <label className="btn-secondary text-xs cursor-pointer gap-2 inline-flex items-center">
                 <Icon name="ArrowUpTrayIcon" size={14} />
-                Choose Canva Template Image
+                <span>Upload Design Image / PDF</span>
                 <input
                   type="file"
-                  accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                  accept="image/png, image/jpeg, image/webp, image/svg+xml, application/pdf"
                   onChange={handleInvoiceTemplateUpload}
                   className="hidden"
                 />
@@ -240,14 +365,14 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
                 onClick={() => setInvoiceTemplateUrl(null)}
                 className="btn-ghost text-xs text-danger hover:bg-danger/10"
               >
-                Remove Custom Template
+                Remove Uploaded Background
               </button>
             )}
           </div>
         </div>
 
         <div>
-          <label className="font-bold text-foreground block mb-1">Invoice Business Header *</label>
+          <label className="font-bold text-foreground block mb-1">Invoice Header Business Title *</label>
           <input
             type="text"
             required
@@ -272,8 +397,8 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
               onChange={(e) => setWatermarkOpacity(Number(e.target.value))}
               className="w-full accent-primary"
             />
-            <p className="text-3xs text-muted-foreground mt-0.5">
-              Renders official COSKO branding emblem strictly as watermark.
+            <p className="text-2xs text-muted-foreground mt-0.5">
+              Renders authentic brand emblem watermark across invoice body.
             </p>
           </div>
 
@@ -285,7 +410,7 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
               onChange={(e) => setInvoiceAccentColor(e.target.value)}
               className="input-field text-xs"
             >
-              <option value="primary">COSKO Indigo (Default)</option>
+              <option value="primary">Brand Primary Color (Default)</option>
               <option value="emerald">Emerald Retail</option>
               <option value="navy">Classic Navy</option>
               <option value="amber">Warm Amber</option>
@@ -293,13 +418,13 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-card/60">
+        <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
           <div>
             <span className="font-bold text-foreground block text-xs">
-              Store Address on Invoices
+              Show Store Terminal Address on Invoices
             </span>
-            <span className="text-3xs text-muted-foreground block">
-              Automatically include registered store outlet address and manager contact on invoices.
+            <span className="text-2xs text-muted-foreground block">
+              Include outlet physical address and store manager contact details.
             </span>
           </div>
           <ToggleSwitch
@@ -313,15 +438,15 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
           />
         </div>
 
-        {/* UPI QR Settings */}
-        <div className="p-4 rounded-xl border border-border bg-card/60 space-y-3">
+        {/* Payment QR Settings */}
+        <div className="p-4 rounded-xl border border-border bg-card space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <span className="font-bold text-foreground block text-xs">
-                Instant UPI Payment QR Code
+                Instant Digital Payment QR Code
               </span>
-              <span className="text-3xs text-muted-foreground block">
-                Print instant UPI QR code on generated invoices and checkout thermal receipts.
+              <span className="text-2xs text-muted-foreground block">
+                Print instant payment QR code on generated A4 invoices and checkout slips.
               </span>
             </div>
             <ToggleSwitch
@@ -338,36 +463,38 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
           {showPaymentQr && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
-                <label className="font-bold text-foreground block mb-1">UPI VPA / ID</label>
+                <label className="font-bold text-foreground block mb-1">Payment ID / VPA</label>
                 <input
                   type="text"
                   disabled={!isSuperAdmin}
                   value={paymentUpiId}
                   onChange={(e) => setPaymentUpiId(e.target.value)}
-                  placeholder="cosko@icici"
+                  placeholder="pay@bank"
                   className="input-field text-xs font-mono"
                 />
               </div>
+
               <div>
                 <label className="font-bold text-foreground block mb-1">
-                  Bank Account Settlement Details
+                  Bank Settlement Details
                 </label>
                 <input
                   type="text"
                   disabled={!isSuperAdmin}
                   value={paymentBankDetails}
                   onChange={(e) => setPaymentBankDetails(e.target.value)}
-                  placeholder="HDFC Bank · A/C 50200012345678 · IFSC HDFC0001234"
-                  className="input-field text-xs"
+                  placeholder="Bank Name · A/C 00000 · Routing/IFSC"
+                  className="input-field text-xs font-mono"
                 />
               </div>
             </div>
           )}
         </div>
 
+        {/* Invoice Terms & Warranty Conditions */}
         <div>
           <label className="font-bold text-foreground block mb-1">
-            Standard Terms & Conditions
+            Terms, Conditions & Warranty Policy
           </label>
           <textarea
             rows={3}
@@ -379,7 +506,7 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
         </div>
 
         <div>
-          <label className="font-bold text-foreground block mb-1">Invoice Footer Note</label>
+          <label className="font-bold text-foreground block mb-1">Invoice Footer Greeting</label>
           <input
             type="text"
             disabled={!isSuperAdmin}

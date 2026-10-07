@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import Icon from '@/components/ui/AppIcon';
-import CoskoLogo from '@/components/ui/CoskoLogo';
+import AppLogo from '@/components/ui/AppLogo';
 import { useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
 
@@ -23,6 +24,7 @@ export default function Topbar({ onToggleSidebar, onMobileMenuOpen }: TopbarProp
     setSearchOpen,
     setNotificationsOpen,
     setUserProfileOpen,
+    setStoreSelectorOpen,
     notifications,
     currentUser,
     selectedStore,
@@ -161,21 +163,39 @@ export default function Topbar({ onToggleSidebar, onMobileMenuOpen }: TopbarProp
           <Icon name="Bars3Icon" size={16} />
         </button>
 
-        {/* Mobile: brand + store scope */}
+        {/* Mobile: brand (links to /sales) + interactive store switcher */}
         <div className="flex lg:hidden items-center gap-1.5 min-w-0">
-          <CoskoLogo size={18} showText={false} />
-          <span className="text-sm font-bold text-foreground truncate max-w-[100px]">
-            {branding.appName || 'COSKO'}
-          </span>
-          <span className="text-3xs bg-primary/8 text-primary px-1.5 py-0.5 rounded-md font-bold truncate max-w-[80px]">
-            {currentUser.role !== 'Super Admin'
-              ? currentUser.store || 'Store'
-              : selectedStore === 'All Stores'
-                ? 'All'
-                : selectedStore === 'CENTRAL'
-                  ? 'HQ'
-                  : selectedStore}
-          </span>
+          <Link
+            href="/sales"
+            className="flex items-center gap-1.5 min-w-0 hover:opacity-85 transition-opacity"
+            aria-label="Go to Sales"
+          >
+            <AppLogo size={18} showText={false} />
+            <span className="text-sm font-bold text-foreground truncate max-w-[100px]">
+              {branding.appName || 'RISMOS'}
+            </span>
+          </Link>
+
+          {currentUser.role === 'Super Admin' ? (
+            <button
+              onClick={() => setStoreSelectorOpen(true)}
+              className="text-3xs bg-primary/10 hover:bg-primary/20 text-primary px-2 py-0.5 rounded-md font-bold truncate max-w-[100px] flex items-center gap-1 border border-primary/20 active:scale-95 transition-all cursor-pointer"
+              aria-label="Switch store location"
+            >
+              <span>
+                {selectedStore === 'All Stores'
+                  ? 'All'
+                  : selectedStore === 'CENTRAL'
+                    ? 'HQ'
+                    : selectedStore}
+              </span>
+              <Icon name="ChevronUpDownIcon" size={10} className="opacity-70 flex-shrink-0" />
+            </button>
+          ) : (
+            <span className="text-3xs bg-primary/8 text-primary px-1.5 py-0.5 rounded-md font-bold truncate max-w-[80px]">
+              {currentUser.store || 'Store'}
+            </span>
+          )}
         </div>
 
         {/* Global Quick Search */}

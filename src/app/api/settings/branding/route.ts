@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { DEFAULT_BRANDING, getCachedBranding, setCachedBranding } from '@/lib/branding';
 
 /**
  * GET /api/settings/branding — PUBLIC endpoint
- * Returns ONLY non-sensitive branding information needed for the login page.
- * No GSTIN, no security settings, no UPI, no bank details, no tax config.
+ * Returns ONLY non-sensitive branding information needed for the login page and unauthenticated shells.
+ * No GSTIN, no security settings, no UPI, no bank details, no internal tax config.
  */
 
-let cachedBranding: any = null;
-let lastCacheTime = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const now = Date.now();
-    if (cachedBranding && now - lastCacheTime < CACHE_TTL) {
-      return NextResponse.json(cachedBranding, {
-        headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
-      });
+    const forceFresh = req.nextUrl.searchParams.get('fresh') === 'true';
+    if (!forceFresh) {
+      const cached = getCachedBranding();
+      if (cached) {
+        return NextResponse.json(
+          { success: true, branding: cached },
+          { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' } }
+        );
+      }
     }
 
     const branding = await (prisma as any).brandingSetting.findFirst({
@@ -27,19 +28,25 @@ export async function GET(_req: NextRequest) {
     const publicBranding = {
       success: true,
       branding: {
-        appName: branding?.appName || 'COSKO',
-        tagline: branding?.tagline || 'Retail Command Center',
-        supportEmail: branding?.supportEmail || null,
+        appName: branding?.appName || DEFAULT_BRANDING.appName,
+        tagline: branding?.tagline || DEFAULT_BRANDING.tagline,
+        supportEmail: branding?.supportEmail || DEFAULT_BRANDING.supportEmail,
+        supportPhone: branding?.supportPhone || DEFAULT_BRANDING.supportPhone,
         logoUrl: branding?.logoUrl || null,
+        logoDarkUrl: branding?.logoDarkUrl || null,
+        appIconUrl: branding?.appIconUrl || null,
         faviconUrl: branding?.faviconUrl || null,
+        primaryColor: branding?.primaryColor || DEFAULT_BRANDING.primaryColor,
+        secondaryColor: branding?.secondaryColor || DEFAULT_BRANDING.secondaryColor,
+        accentColor: branding?.accentColor || DEFAULT_BRANDING.accentColor,
+        businessName: branding?.businessName || DEFAULT_BRANDING.businessName,
       },
     };
 
-    cachedBranding = publicBranding;
-    lastCacheTime = now;
+    setCachedBranding(publicBranding.branding as any);
 
     return NextResponse.json(publicBranding, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
     });
   } catch (error: any) {
     console.error('API /api/settings/branding GET error:', error);
@@ -47,11 +54,18 @@ export async function GET(_req: NextRequest) {
       {
         success: true,
         branding: {
-          appName: 'COSKO',
-          tagline: 'Retail Command Center',
-          supportEmail: null,
+          appName: DEFAULT_BRANDING.appName,
+          tagline: DEFAULT_BRANDING.tagline,
+          supportEmail: DEFAULT_BRANDING.supportEmail,
+          supportPhone: DEFAULT_BRANDING.supportPhone,
           logoUrl: null,
+          logoDarkUrl: null,
+          appIconUrl: null,
           faviconUrl: null,
+          primaryColor: DEFAULT_BRANDING.primaryColor,
+          secondaryColor: DEFAULT_BRANDING.secondaryColor,
+          accentColor: DEFAULT_BRANDING.accentColor,
+          businessName: DEFAULT_BRANDING.businessName,
         },
       },
       { status: 200 }

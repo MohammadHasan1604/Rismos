@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
-import CoskoLogo from '@/components/ui/CoskoLogo';
+import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
 import { useApp } from '@/context/AppContext';
 import { getAuthoritativeNavGroups } from '@/lib/rbacEngine';
@@ -112,8 +112,8 @@ export default function Sidebar({
       <div
         className={`flex items-center justify-between gap-2 px-3.5 py-3 border-b border-border/60 flex-shrink-0 ${isCollapsed ? 'justify-center px-2' : ''}`}
       >
-        <Link href="/dashboard" onClick={onMobileClose} className="flex items-center gap-2 min-w-0">
-          <CoskoLogo size={24} showText={!isCollapsed} />
+        <Link href="/sales" onClick={onMobileClose} className="flex items-center gap-2 min-w-0">
+          <AppLogo size={24} showText={!isCollapsed} />
         </Link>
         {!isCollapsed && (
           <button

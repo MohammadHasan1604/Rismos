@@ -1,7 +1,7 @@
 'use client';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import Icon from '@/components/ui/AppIcon';
-import CoskoLogo from '@/components/ui/CoskoLogo';
+import AppLogo from '@/components/ui/AppLogo';
 
 interface Props {
   children: ReactNode;
@@ -54,7 +54,7 @@ export default class AppErrorBoundary extends Component<Props, State> {
             </div>
 
             <div className="space-y-1">
-              <CoskoLogo size={24} showText className="justify-center mb-2" />
+              <AppLogo size={24} showText className="justify-center mb-2" />
               <h3 className="text-base font-bold text-foreground">
                 {this.props.fallbackTitle || 'Component Recovered Safely'}
               </h3>

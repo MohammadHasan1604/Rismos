@@ -88,19 +88,24 @@ export default function SettingsPage() {
   const isSuperAdmin = currentUser?.role === 'Super Admin';
 
   // ─── Tab 1: Branding State ───
-  const [appName, setAppName] = useState(branding.appName || 'COSKO');
+  const [appName, setAppName] = useState(branding.appName || 'RISMOS');
   const [logoUrl, setLogoUrl] = useState<string | null>(branding.logoUrl || null);
+  const [logoDarkUrl, setLogoDarkUrl] = useState<string | null>(branding.logoDarkUrl || null);
+  const [appIconUrl, setAppIconUrl] = useState<string | null>(branding.appIconUrl || null);
   const [faviconUrl, setFaviconUrl] = useState<string | null>(branding.faviconUrl || null);
-  const [tagline, setTagline] = useState(branding.tagline || '');
+  const [tagline, setTagline] = useState(branding.tagline || 'Run Retail. Smarter.');
+  const [primaryColor, setPrimaryColor] = useState(branding.primaryColor || '#002E86');
+  const [secondaryColor, setSecondaryColor] = useState(branding.secondaryColor || '#009ADF');
+  const [accentColor, setAccentColor] = useState(branding.accentColor || '#2563EB');
   const [supportEmailBranding, setSupportEmailBranding] = useState(
-    branding.supportEmail || 'support@cosko.com'
+    branding.supportEmail || 'support@rismos.com'
   );
 
   // ─── Tab 2: Profile State ───
   const [businessName, setBusinessName] = useState(
-    branding.businessName || 'COSKO Retail Enterprise'
+    branding.businessName || 'RISMOS Retail Enterprise'
   );
-  const [supportEmail, setSupportEmail] = useState(branding.supportEmail || 'support@cosko.com');
+  const [supportEmail, setSupportEmail] = useState(branding.supportEmail || 'support@rismos.com');
   const [supportPhone, setSupportPhone] = useState(branding.supportPhone || '+91 80 4000 8800');
   const [businessAddress, setBusinessAddress] = useState(
     branding.businessAddress || '100 Feet Ring Road, Indiranagar'
@@ -108,23 +113,35 @@ export default function SettingsPage() {
   const [city, setCity] = useState(branding.city || 'Bengaluru');
   const [state, setState] = useState(branding.state || 'Karnataka');
   const [pincode, setPincode] = useState(branding.pincode || '560038');
+  const [country, setCountry] = useState(branding.country || 'India');
+  const [countryCode, setCountryCode] = useState(branding.countryCode || 'IN');
+  const [timezone, setTimezone] = useState(branding.timezone || 'Asia/Kolkata');
+  const [locale, setLocale] = useState(branding.locale || 'en-IN');
   const [baseCurrency, setBaseCurrency] = useState(branding.baseCurrency || 'INR (₹)');
 
   // ─── Tab 3: Tax State ───
-  const [gstin, setGstin] = useState(systemSettings.gstin || '29AABCU9603R1ZM');
+  const [taxCountryCode, setTaxCountryCode] = useState(systemSettings.countryCode || 'IN');
+  const [taxRegime, setTaxRegime] = useState(systemSettings.taxRegime || 'GST');
+  const [taxRegistrationNumber, setTaxRegistrationNumber] = useState(
+    systemSettings.taxRegistrationNumber || systemSettings.gstin || '29AABCU9603R1ZM'
+  );
+  const [taxInclusivePricing, setTaxInclusivePricing] = useState(
+    systemSettings.taxInclusivePricing !== undefined ? systemSettings.taxInclusivePricing : true
+  );
+  const [taxJurisdictionState, setTaxJurisdictionState] = useState(
+    systemSettings.taxJurisdictionState || systemSettings.gstStateCode || '29'
+  );
   const [legalBusinessName, setLegalBusinessName] = useState(
-    systemSettings.legalBusinessName || 'COSKO Retail Enterprise Private Limited'
+    systemSettings.legalBusinessName || 'RISMOS Retail Enterprise Private Limited'
   );
-  const [tradeName, setTradeName] = useState(systemSettings.tradeName || 'COSKO Stores');
-  const [gstState, setGstState] = useState(systemSettings.gstState || 'Karnataka');
-  const [gstStateCode, setGstStateCode] = useState(systemSettings.gstStateCode || '29');
-  const [gstRegistrationType, setGstRegistrationType] = useState(
-    systemSettings.gstRegistrationType || 'Regular'
-  );
+  const [tradeName, setTradeName] = useState(systemSettings.tradeName || 'RISMOS Stores');
   const [defaultTaxRate, setDefaultTaxRate] = useState(systemSettings.defaultTaxRate ?? 18);
   const [hsnMandatory, setHsnMandatory] = useState(systemSettings.hsnMandatory ?? true);
   const [enableReverseCharge, setEnableReverseCharge] = useState(
     systemSettings.enableReverseCharge ?? false
+  );
+  const [gstRegistrationType, setGstRegistrationType] = useState(
+    systemSettings.gstRegistrationType || 'Regular'
   );
   const [gstBusinessAddress, setGstBusinessAddress] = useState(
     systemSettings.gstBusinessAddress ||
@@ -133,7 +150,7 @@ export default function SettingsPage() {
 
   // ─── Tab 4: Invoice Template State ───
   const [invoiceHeader, setInvoiceHeader] = useState(
-    systemSettings.invoiceHeader || 'COSKO Retail Enterprise'
+    systemSettings.invoiceHeader || 'RISMOS Retail Enterprise'
   );
   const [invoiceFooter, setInvoiceFooter] = useState(
     systemSettings.invoiceFooter ||
@@ -158,7 +175,7 @@ export default function SettingsPage() {
   const [showPaymentQr, setShowPaymentQr] = useState(
     systemSettings.showPaymentQr !== undefined ? systemSettings.showPaymentQr : true
   );
-  const [paymentUpiId, setPaymentUpiId] = useState(systemSettings.paymentUpiId || 'cosko@icici');
+  const [paymentUpiId, setPaymentUpiId] = useState(systemSettings.paymentUpiId || 'rismos@icici');
   const [paymentBankDetails, setPaymentBankDetails] = useState(
     systemSettings.paymentBankDetails ||
       'HDFC Bank · A/C 50200012345678 · IFSC HDFC0001234 · Indiranagar Branch'
@@ -192,47 +209,64 @@ export default function SettingsPage() {
     systemSettings.securityEventAlerts ?? true
   );
   const [alertRecipientEmails, setAlertRecipientEmails] = useState(
-    systemSettings.alertRecipientEmails || 'alerts@cosko.com'
+    systemSettings.alertRecipientEmails || 'alerts@rismos.com'
   );
 
   // Sync state if branding or systemSettings change from remote reload
   useEffect(() => {
     if (branding) {
-      setAppName(branding.appName || 'COSKO');
+      setAppName(branding.appName || 'RISMOS');
       setLogoUrl(branding.logoUrl || null);
+      setLogoDarkUrl(branding.logoDarkUrl || null);
+      setAppIconUrl(branding.appIconUrl || null);
       setFaviconUrl(branding.faviconUrl || null);
-      setTagline(branding.tagline || '');
-      setSupportEmailBranding(branding.supportEmail || 'support@cosko.com');
-      setBusinessName(branding.businessName || 'COSKO Retail Enterprise');
-      setSupportEmail(branding.supportEmail || 'support@cosko.com');
+      setTagline(branding.tagline || 'Run Retail. Smarter.');
+      setPrimaryColor(branding.primaryColor || '#002E86');
+      setSecondaryColor(branding.secondaryColor || '#009ADF');
+      setAccentColor(branding.accentColor || '#2563EB');
+      setSupportEmailBranding(branding.supportEmail || 'support@rismos.com');
+      setBusinessName(branding.businessName || 'RISMOS Retail Enterprise');
+      setSupportEmail(branding.supportEmail || 'support@rismos.com');
       setSupportPhone(branding.supportPhone || '+91 80 4000 8800');
       setBusinessAddress(branding.businessAddress || '100 Feet Ring Road, Indiranagar');
       setCity(branding.city || 'Bengaluru');
       setState(branding.state || 'Karnataka');
       setPincode(branding.pincode || '560038');
+      setCountry(branding.country || 'India');
+      setCountryCode(branding.countryCode || 'IN');
+      setTimezone(branding.timezone || 'Asia/Kolkata');
+      setLocale(branding.locale || 'en-IN');
       setBaseCurrency(branding.baseCurrency || 'INR (₹)');
     }
   }, [branding]);
 
   useEffect(() => {
     if (systemSettings) {
-      setGstin(systemSettings.gstin || '29AABCU9603R1ZM');
-      setLegalBusinessName(
-        systemSettings.legalBusinessName || 'COSKO Retail Enterprise Private Limited'
+      setTaxCountryCode(systemSettings.countryCode || 'IN');
+      setTaxRegime(systemSettings.taxRegime || 'GST');
+      setTaxRegistrationNumber(
+        systemSettings.taxRegistrationNumber || systemSettings.gstin || '29AABCU9603R1ZM'
       );
-      setTradeName(systemSettings.tradeName || 'COSKO Stores');
-      setGstState(systemSettings.gstState || 'Karnataka');
-      setGstStateCode(systemSettings.gstStateCode || '29');
-      setGstRegistrationType(systemSettings.gstRegistrationType || 'Regular');
+      setTaxInclusivePricing(
+        systemSettings.taxInclusivePricing !== undefined ? systemSettings.taxInclusivePricing : true
+      );
+      setTaxJurisdictionState(
+        systemSettings.taxJurisdictionState || systemSettings.gstStateCode || '29'
+      );
+      setLegalBusinessName(
+        systemSettings.legalBusinessName || 'RISMOS Retail Enterprise Private Limited'
+      );
+      setTradeName(systemSettings.tradeName || 'RISMOS Stores');
       setDefaultTaxRate(systemSettings.defaultTaxRate ?? 18);
       setHsnMandatory(systemSettings.hsnMandatory ?? true);
       setEnableReverseCharge(systemSettings.enableReverseCharge ?? false);
+      setGstRegistrationType(systemSettings.gstRegistrationType || 'Regular');
       setGstBusinessAddress(
         systemSettings.gstBusinessAddress ||
           '100 Feet Ring Road, Indiranagar, Bengaluru, Karnataka - 560038'
       );
 
-      setInvoiceHeader(systemSettings.invoiceHeader || 'COSKO Retail Enterprise');
+      setInvoiceHeader(systemSettings.invoiceHeader || 'RISMOS Retail Enterprise');
       setInvoiceFooter(
         systemSettings.invoiceFooter ||
           'Thank you for shopping with us! Goods once sold cannot be returned without original receipt.'
@@ -273,21 +307,6 @@ export default function SettingsPage() {
     }
   }, [systemSettings]);
 
-  // Handle GSTIN change with state detection
-  const handleGstinChange = (val: string) => {
-    const upper = val.toUpperCase().trim();
-    setGstin(upper);
-    if (upper.length >= 2) {
-      const code = upper.slice(0, 2);
-      if (INDIAN_STATES[code]) {
-        setGstStateCode(code);
-        setGstState(INDIAN_STATES[code]);
-      }
-    }
-  };
-
-  const isGstinValid = !gstin || GSTIN_REGEX.test(gstin);
-
   // File Upload Handlers
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -307,10 +326,58 @@ export default function SettingsPage() {
       .then((res) => {
         if (res.url) {
           setLogoUrl(res.url);
-          toast.success('Logo uploaded! Click "Save Branding Settings" to apply permanently.');
+          toast.success('Logo uploaded! Click "Save Changes" to apply permanently.');
         }
       })
       .catch((err) => toast.error('Failed to upload logo: ' + err.message));
+  };
+
+  const handleLogoDarkUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type! Upload a PNG, JPG, WebP, or SVG logo image.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size exceeds 5MB! Please upload a smaller logo.');
+      return;
+    }
+
+    StorageService.uploadFile('branding', file, file.name)
+      .then((res) => {
+        if (res.url) {
+          setLogoDarkUrl(res.url);
+          toast.success('Dark variant logo uploaded! Click "Save Changes" to apply.');
+        }
+      })
+      .catch((err) => toast.error('Failed to upload dark logo: ' + err.message));
+  };
+
+  const handleAppIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type! Upload a square PNG, JPG, WebP, or SVG icon.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('App icon must be under 2MB.');
+      return;
+    }
+
+    StorageService.uploadFile('branding', file, file.name)
+      .then((res) => {
+        if (res.url) {
+          setAppIconUrl(res.url);
+          toast.success('App icon uploaded! Click "Save Changes" to apply.');
+        }
+      })
+      .catch((err) => toast.error('Failed to upload app icon: ' + err.message));
   };
 
   const handleFaviconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -366,10 +433,17 @@ export default function SettingsPage() {
     try {
       if (activeTab === 'branding') {
         const payload = {
-          appName: appName || 'COSKO',
+          appName: appName || 'RISMOS',
           tagline,
           supportEmail: supportEmailBranding,
+          supportPhone,
+          businessName,
+          primaryColor,
+          secondaryColor,
+          accentColor,
           logoUrl,
+          logoDarkUrl,
+          appIconUrl,
           faviconUrl,
         };
         const res = await updateSystemSettings('branding', payload);
@@ -377,11 +451,6 @@ export default function SettingsPage() {
           updateBranding(payload);
         }
       } else if (activeTab === 'profile') {
-        if (pincode && !/^[1-9][0-9]{5}$/.test(pincode)) {
-          toast.error('Invalid Indian PIN Code. Must be exactly 6 digits.');
-          setIsSaving(false);
-          return;
-        }
         await updateSystemSettings('profile', {
           businessName,
           supportEmail,
@@ -390,25 +459,27 @@ export default function SettingsPage() {
           city,
           state,
           pincode,
+          country,
+          countryCode,
+          timezone,
+          locale,
           baseCurrency,
         });
       } else if (activeTab === 'tax') {
-        if (gstin && !GSTIN_REGEX.test(gstin)) {
-          toast.error('Invalid GSTIN format! Example: 29AABCU9603R1ZM');
-          setIsSaving(false);
-          return;
-        }
         await updateSystemSettings('tax', {
-          gstin,
+          countryCode: taxCountryCode,
+          taxRegime,
+          taxRegistrationNumber,
+          taxInclusivePricing,
+          taxJurisdictionState,
           legalBusinessName,
           tradeName,
-          gstState,
-          gstStateCode,
-          gstRegistrationType,
           defaultTaxRate: Number(defaultTaxRate),
           hsnMandatory,
           enableReverseCharge,
+          gstRegistrationType,
           gstBusinessAddress,
+          gstin: taxRegistrationNumber,
         });
       } else if (activeTab === 'invoice') {
         await updateSystemSettings('invoice', {
@@ -449,11 +520,16 @@ export default function SettingsPage() {
   const handleResetBrandingTab = () => {
     if (!isSuperAdmin) return;
     resetBranding();
-    setAppName('COSKO');
+    setAppName('RISMOS');
     setLogoUrl(null);
+    setLogoDarkUrl(null);
+    setAppIconUrl(null);
     setFaviconUrl(null);
-    setTagline('Multi-Store Enterprise Retail & POS System');
-    setSupportEmailBranding('support@cosko.com');
+    setTagline('Run Retail. Smarter.');
+    setPrimaryColor('#002E86');
+    setSecondaryColor('#009ADF');
+    setAccentColor('#2563EB');
+    setSupportEmailBranding('support@rismos.com');
   };
 
   return (
@@ -464,7 +540,7 @@ export default function SettingsPage() {
           <div className="flex items-start justify-between gap-3">
             <div className="page-header">
               <h1 className="page-title">Settings</h1>
-              <p className="page-subtitle">Branding, GST, invoicing & system config</p>
+              <p className="page-subtitle">White-label branding, fiscal tax rules, invoicing & security</p>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {!isSuperAdmin && <span className="badge-warning text-3xs">Read-Only</span>}
@@ -486,7 +562,7 @@ export default function SettingsPage() {
               [
                 { id: 'branding', label: 'Branding', icon: 'SparklesIcon' },
                 { id: 'profile', label: 'Profile', icon: 'BuildingStorefrontIcon' },
-                { id: 'tax', label: 'Tax & GST', icon: 'DocumentCheckIcon' },
+                { id: 'tax', label: 'Tax & Compliance', icon: 'DocumentCheckIcon' },
                 { id: 'invoice', label: 'Invoice', icon: 'DocumentTextIcon' },
                 { id: 'security', label: 'Security', icon: 'ShieldCheckIcon' },
                 { id: 'alerts', label: 'Alerts', icon: 'BellIcon' },
@@ -518,11 +594,25 @@ export default function SettingsPage() {
                 setTagline={setTagline}
                 supportEmailBranding={supportEmailBranding}
                 setSupportEmailBranding={setSupportEmailBranding}
+                supportPhone={supportPhone}
+                setSupportPhone={setSupportPhone}
+                primaryColor={primaryColor}
+                setPrimaryColor={setPrimaryColor}
+                secondaryColor={secondaryColor}
+                setSecondaryColor={setSecondaryColor}
+                accentColor={accentColor}
+                setAccentColor={setAccentColor}
                 logoUrl={logoUrl}
                 setLogoUrl={setLogoUrl}
+                logoDarkUrl={logoDarkUrl}
+                setLogoDarkUrl={setLogoDarkUrl}
+                appIconUrl={appIconUrl}
+                setAppIconUrl={setAppIconUrl}
                 faviconUrl={faviconUrl}
                 setFaviconUrl={setFaviconUrl}
                 handleLogoUpload={handleLogoUpload}
+                handleLogoDarkUpload={handleLogoDarkUpload}
+                handleAppIconUpload={handleAppIconUpload}
                 handleFaviconUpload={handleFaviconUpload}
                 handleResetBrandingTab={handleResetBrandingTab}
                 isSuperAdmin={isSuperAdmin}
@@ -545,6 +635,14 @@ export default function SettingsPage() {
                 setState={setState}
                 pincode={pincode}
                 setPincode={setPincode}
+                country={country}
+                setCountry={setCountry}
+                countryCode={countryCode}
+                setCountryCode={setCountryCode}
+                timezone={timezone}
+                setTimezone={setTimezone}
+                locale={locale}
+                setLocale={setLocale}
                 baseCurrency={baseCurrency}
                 setBaseCurrency={setBaseCurrency}
                 isSuperAdmin={isSuperAdmin}
@@ -553,19 +651,20 @@ export default function SettingsPage() {
 
             {activeTab === 'tax' && (
               <TaxTab
-                gstin={gstin}
-                handleGstinChange={handleGstinChange}
-                isGstinValid={isGstinValid}
-                gstRegistrationType={gstRegistrationType}
-                setGstRegistrationType={setGstRegistrationType}
+                countryCode={taxCountryCode}
+                setCountryCode={setTaxCountryCode}
+                taxRegime={taxRegime}
+                setTaxRegime={setTaxRegime}
+                taxRegistrationNumber={taxRegistrationNumber}
+                setTaxRegistrationNumber={setTaxRegistrationNumber}
+                taxInclusivePricing={taxInclusivePricing}
+                setTaxInclusivePricing={setTaxInclusivePricing}
+                taxJurisdictionState={taxJurisdictionState}
+                setTaxJurisdictionState={setTaxJurisdictionState}
                 legalBusinessName={legalBusinessName}
                 setLegalBusinessName={setLegalBusinessName}
                 tradeName={tradeName}
                 setTradeName={setTradeName}
-                gstStateCode={gstStateCode}
-                setGstStateCode={setGstStateCode}
-                gstState={gstState}
-                setGstState={setGstState}
                 gstBusinessAddress={gstBusinessAddress}
                 setGstBusinessAddress={setGstBusinessAddress}
                 defaultTaxRate={defaultTaxRate}
@@ -574,8 +673,9 @@ export default function SettingsPage() {
                 setHsnMandatory={setHsnMandatory}
                 enableReverseCharge={enableReverseCharge}
                 setEnableReverseCharge={setEnableReverseCharge}
+                gstRegistrationType={gstRegistrationType}
+                setGstRegistrationType={setGstRegistrationType}
                 isSuperAdmin={isSuperAdmin}
-                indianStates={INDIAN_STATES}
               />
             )}
 
@@ -606,7 +706,7 @@ export default function SettingsPage() {
                 businessAddress={businessAddress}
                 city={city}
                 supportPhone={supportPhone}
-                gstin={gstin}
+                gstin={taxRegistrationNumber}
                 defaultTaxRate={defaultTaxRate}
                 isSuperAdmin={isSuperAdmin}
               />

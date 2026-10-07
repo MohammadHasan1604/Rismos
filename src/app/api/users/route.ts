@@ -10,6 +10,7 @@ import {
   generateSecureTemporaryPassword,
 } from '@/lib/authPipeline';
 import { ensureStoredImage } from '@/lib/objectStorage';
+import { validatePassword } from '@/lib/passwordPolicy';
 import {
   ROLE_SECURITY_LEVELS,
   SUPER_ADMIN_PROTECTED_PERMISSIONS,
@@ -155,6 +156,20 @@ export async function POST(req: NextRequest) {
         { success: false, error: 'Password is required (minimum 8 characters)' },
         { status: 400 }
       );
+    }
+
+    const sysSettings = await prisma.systemSettings.findFirst().catch(() => null);
+    if (sysSettings?.enforcePasswordPolicy) {
+      const policyRes = validatePassword(password);
+      if (!policyRes.valid) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Password does not meet enterprise policy: ${policyRes.errors.join('; ')}`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const requestedRole = body.role || 'Sales Manager';
@@ -628,6 +643,19 @@ export async function PUT(req: NextRequest) {
           { success: false, error: 'Password must be at least 8 characters' },
           { status: 400 }
         );
+      }
+      const sysSettings = await prisma.systemSettings.findFirst().catch(() => null);
+      if (sysSettings?.enforcePasswordPolicy) {
+        const policyRes = validatePassword(password);
+        if (!policyRes.valid) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Password does not meet enterprise policy: ${policyRes.errors.join('; ')}`,
+            },
+            { status: 400 }
+          );
+        }
       }
       updateData.passwordHash = await hashPassword(password);
       updateData.mustChangePassword = true;

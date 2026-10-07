@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import Icon from '@/components/ui/AppIcon';
 import AppLogo from '@/components/ui/AppLogo';
-import CoskoLogo from '@/components/ui/CoskoLogo';
 import Modal from '@/components/ui/Modal';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import { useRouter } from 'next/navigation';

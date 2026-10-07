@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateRequest, hasPermission, createAuditLog } from '@/lib/authPipeline';
+import { authenticateRequest } from '@/lib/authPipeline';
 import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent } from '@/lib/realtime';
 import { ensureStoredImage } from '@/lib/objectStorage';
+import { DEFAULT_BRANDING, invalidateBrandingCache } from '@/lib/branding';
+import { getJurisdictionProfile, LAUNCH_JURISDICTIONS } from '@/lib/localization/jurisdictions';
 
 const BRANDING_ID = 'cosko_branding_config';
 const SYSTEM_SETTINGS_ID = 'cosko_system_config';
 
 // GSTIN validation regex: 2-digit state code + 10-char PAN + 1 entity + Z + 1 checksum
-const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z0-9A-Z]{1}[0-9A-Z]{1}$/;
 
 const INDIAN_STATES: Record<string, string> = {
   '01': 'Jammu & Kashmir',
@@ -52,15 +54,22 @@ const INDIAN_STATES: Record<string, string> = {
 /**
  * Ensures branding row exists, returns it
  */
-async function getOrCreateBranding() {
-  let setting = await prisma.brandingSetting.findUnique({ where: { id: BRANDING_ID } });
+async function getOrCreateBranding(): Promise<any> {
+  let setting: any = await (prisma as any).brandingSetting.findUnique({ where: { id: BRANDING_ID } });
   if (!setting) {
-    setting = await prisma.brandingSetting.create({
+    setting = await (prisma as any).brandingSetting.create({
       data: {
         id: BRANDING_ID,
-        appName: 'COSKO',
-        tagline: 'Multi-Store Enterprise Retail & POS System',
-        supportEmail: 'support@cosko.com',
+        appName: DEFAULT_BRANDING.appName,
+        tagline: DEFAULT_BRANDING.tagline,
+        supportEmail: DEFAULT_BRANDING.supportEmail,
+        primaryColor: DEFAULT_BRANDING.primaryColor,
+        secondaryColor: DEFAULT_BRANDING.secondaryColor,
+        accentColor: DEFAULT_BRANDING.accentColor,
+        country: DEFAULT_BRANDING.country,
+        countryCode: DEFAULT_BRANDING.countryCode,
+        timezone: DEFAULT_BRANDING.timezone,
+        locale: DEFAULT_BRANDING.locale,
         logoUrl: null,
         faviconUrl: null,
       },
@@ -78,7 +87,10 @@ async function getOrCreateSystemSettings() {
   });
   if (!settings) {
     settings = await (prisma as any).systemSettings.create({
-      data: { id: SYSTEM_SETTINGS_ID },
+      data: {
+        id: SYSTEM_SETTINGS_ID,
+        invoiceHeader: 'RISMOS Retail Enterprise',
+      },
     });
   }
   return settings;
@@ -111,20 +123,20 @@ async function logSettingsAudit(
 
 let cachedSettingsPayload: any = null;
 let lastSettingsCacheTime = 0;
-const SETTINGS_CACHE_TTL = 60_000;
+const SETTINGS_CACHE_TTL = 30_000;
 
 function invalidateSettingsCache() {
   cachedSettingsPayload = null;
   lastSettingsCacheTime = 0;
+  invalidateBrandingCache();
 }
 
 /**
  * GET /api/settings - Retrieve all settings (branding + system) from MySQL
- * REQUIRES: Authenticated Super Admin — contains GSTIN, UPI, security config
+ * REQUIRES: Authenticated Super Admin — contains GSTIN, tax, and security config
  */
 export async function GET(req: NextRequest) {
   try {
-    // SECURITY: Settings contain sensitive business data (GSTIN, UPI, bank details, security config)
     const auth = await authenticateRequest(req);
     if (!auth.user) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -156,22 +168,41 @@ export async function GET(req: NextRequest) {
     const payload = {
       success: true,
       branding: {
-        appName: branding.appName,
-        tagline: branding.tagline,
-        supportEmail: branding.supportEmail,
+        appName: branding.appName || DEFAULT_BRANDING.appName,
+        tagline: branding.tagline || DEFAULT_BRANDING.tagline,
+        supportEmail: branding.supportEmail || DEFAULT_BRANDING.supportEmail,
         supportPhone: (branding as any).supportPhone || null,
         logoUrl: branding.logoUrl,
+        logoDarkUrl: (branding as any).logoDarkUrl || null,
+        appIconUrl: (branding as any).appIconUrl || null,
         faviconUrl: branding.faviconUrl,
+        primaryColor: (branding as any).primaryColor || DEFAULT_BRANDING.primaryColor,
+        secondaryColor: (branding as any).secondaryColor || DEFAULT_BRANDING.secondaryColor,
+        accentColor: (branding as any).accentColor || DEFAULT_BRANDING.accentColor,
         businessName: (branding as any).businessName || null,
         businessAddress: (branding as any).businessAddress || null,
         city: (branding as any).city || null,
         state: (branding as any).state || null,
         pincode: (branding as any).pincode || null,
+        country: (branding as any).country || 'India',
+        countryCode: (branding as any).countryCode || 'IN',
+        timezone: (branding as any).timezone || 'Asia/Kolkata',
+        locale: (branding as any).locale || 'en-IN',
         baseCurrency: (branding as any).baseCurrency || 'INR (₹)',
         updatedAt: branding.updatedAt,
       },
       systemSettings: {
-        // Tax
+        // International Jurisdiction & Tax
+        countryCode: (systemSettings as any).countryCode || 'IN',
+        currencyCode: (systemSettings as any).currencyCode || 'INR',
+        currencySymbol: (systemSettings as any).currencySymbol || '₹',
+        taxRegime: (systemSettings as any).taxRegime || 'GST',
+        taxInclusivePricing: Boolean((systemSettings as any).taxInclusivePricing),
+        taxRegistrationNumber: (systemSettings as any).taxRegistrationNumber || systemSettings.gstin,
+        taxJurisdictionState: (systemSettings as any).taxJurisdictionState || systemSettings.gstState,
+        jurisdictionConfig: (systemSettings as any).jurisdictionConfig || null,
+        taxConfigVersion: Number((systemSettings as any).taxConfigVersion) || 1,
+        // Legacy GST Explicit Fields
         gstin: systemSettings.gstin,
         legalBusinessName: systemSettings.legalBusinessName,
         tradeName: systemSettings.tradeName,
@@ -183,7 +214,7 @@ export async function GET(req: NextRequest) {
         enableReverseCharge: systemSettings.enableReverseCharge,
         gstBusinessAddress: systemSettings.gstBusinessAddress,
         // Invoice
-        invoiceHeader: systemSettings.invoiceHeader,
+        invoiceHeader: systemSettings.invoiceHeader || 'RISMOS Retail Enterprise',
         invoiceFooter: systemSettings.invoiceFooter,
         invoiceTerms: systemSettings.invoiceTerms,
         invoiceAccentColor: systemSettings.invoiceAccentColor,
@@ -261,7 +292,7 @@ export async function POST(req: NextRequest) {
     if (section === 'branding') {
       const updateData: any = {};
       if (data.appName !== undefined)
-        updateData.appName = String(data.appName).trim().slice(0, 128) || 'COSKO';
+        updateData.appName = String(data.appName).trim().slice(0, 128) || DEFAULT_BRANDING.appName;
       if (data.tagline !== undefined)
         updateData.tagline = String(data.tagline).trim().slice(0, 255);
       if (data.supportEmail !== undefined) {
@@ -269,12 +300,35 @@ export async function POST(req: NextRequest) {
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
           return NextResponse.json({ error: 'Invalid support email format' }, { status: 400 });
         }
-        updateData.supportEmail = email || 'support@cosko.com';
+        updateData.supportEmail = email || DEFAULT_BRANDING.supportEmail;
       }
-      if (data.logoUrl !== undefined)
-        updateData.logoUrl = await ensureStoredImage(data.logoUrl, 'branding', user.name);
-      if (data.faviconUrl !== undefined)
-        updateData.faviconUrl = await ensureStoredImage(data.faviconUrl, 'branding', user.name);
+      if (data.supportPhone !== undefined) {
+        updateData.supportPhone = data.supportPhone ? String(data.supportPhone).trim().slice(0, 32) : null;
+      }
+      if (data.businessName !== undefined) {
+        updateData.businessName = data.businessName ? String(data.businessName).trim().slice(0, 255) : null;
+      }
+      if (data.primaryColor !== undefined) {
+        updateData.primaryColor = String(data.primaryColor).trim().slice(0, 32);
+      }
+      if (data.secondaryColor !== undefined) {
+        updateData.secondaryColor = String(data.secondaryColor).trim().slice(0, 32);
+      }
+      if (data.accentColor !== undefined) {
+        updateData.accentColor = String(data.accentColor).trim().slice(0, 32);
+      }
+      if (data.logoUrl !== undefined) {
+        updateData.logoUrl = data.logoUrl ? await ensureStoredImage(data.logoUrl, 'branding', user.name) : null;
+      }
+      if (data.logoDarkUrl !== undefined) {
+        updateData.logoDarkUrl = data.logoDarkUrl ? await ensureStoredImage(data.logoDarkUrl, 'branding', user.name) : null;
+      }
+      if (data.appIconUrl !== undefined) {
+        updateData.appIconUrl = data.appIconUrl ? await ensureStoredImage(data.appIconUrl, 'branding', user.name) : null;
+      }
+      if (data.faviconUrl !== undefined) {
+        updateData.faviconUrl = data.faviconUrl ? await ensureStoredImage(data.faviconUrl, 'branding', user.name) : null;
+      }
 
       const updated = await prisma.brandingSetting.upsert({
         where: { id: BRANDING_ID },
@@ -288,9 +342,13 @@ export async function POST(req: NextRequest) {
         `Updated branding: ${Object.keys(updateData).join(', ')}`,
         user as any
       );
+
       await broadcastRealtimeEvent('settings', 'BRANDING_UPDATED', {
         appName: updated.appName,
+        tagline: updated.tagline,
         logoUrl: updated.logoUrl,
+        primaryColor: (updated as any).primaryColor,
+        secondaryColor: (updated as any).secondaryColor,
       });
 
       return NextResponse.json({
@@ -321,15 +379,17 @@ export async function POST(req: NextRequest) {
       if (data.city !== undefined) updateData.city = String(data.city).trim().slice(0, 64);
       if (data.state !== undefined) updateData.state = String(data.state).trim().slice(0, 64);
       if (data.pincode !== undefined) {
-        const pin = String(data.pincode).trim();
-        if (pin && !/^[1-9][0-9]{5}$/.test(pin)) {
-          return NextResponse.json(
-            { error: 'Invalid Indian pincode format (must be 6 digits)' },
-            { status: 400 }
-          );
-        }
-        updateData.pincode = pin;
+        // International zip/postal code: allow 2 to 32 chars alphanumeric, spaces, hyphens
+        updateData.pincode = String(data.pincode).trim().slice(0, 32);
       }
+      if (data.country !== undefined)
+        updateData.country = String(data.country).trim().slice(0, 64);
+      if (data.countryCode !== undefined)
+        updateData.countryCode = String(data.countryCode).trim().toUpperCase().slice(0, 8);
+      if (data.timezone !== undefined)
+        updateData.timezone = String(data.timezone).trim().slice(0, 64);
+      if (data.locale !== undefined)
+        updateData.locale = String(data.locale).trim().slice(0, 16);
       if (data.baseCurrency !== undefined)
         updateData.baseCurrency = String(data.baseCurrency).trim().slice(0, 32);
 
@@ -346,6 +406,11 @@ export async function POST(req: NextRequest) {
         user as any
       );
 
+      await broadcastRealtimeEvent('settings', 'PROFILE_UPDATED', {
+        businessName: updated.businessName,
+        countryCode: (updated as any).countryCode,
+      });
+
       return NextResponse.json({
         success: true,
         branding: updated,
@@ -358,28 +423,67 @@ export async function POST(req: NextRequest) {
     // ────────────────────────────────────────────
     if (section === 'tax') {
       const updateData: any = {};
+      const targetCountryCode = (data.countryCode || 'IN').toUpperCase().trim();
+      updateData.countryCode = targetCountryCode;
 
-      if (data.gstin !== undefined) {
-        const gstin = String(data.gstin).trim().toUpperCase();
-        if (gstin && !GSTIN_REGEX.test(gstin)) {
-          return NextResponse.json(
-            {
-              error:
-                'Invalid GSTIN format. Must be 15 characters: 2-digit state code + PAN + entity number + Z + checksum (e.g. 29AABCU9603R1ZM)',
-            },
-            { status: 400 }
-          );
-        }
-        updateData.gstin = gstin || null;
+      // Automatically sync currency and tax regime from jurisdiction if not explicit
+      const jurProfile = getJurisdictionProfile(targetCountryCode);
+      updateData.currencyCode = data.currencyCode || jurProfile.defaultCurrencyCode;
+      updateData.currencySymbol = data.currencySymbol || jurProfile.defaultCurrencySymbol;
+      updateData.taxRegime = data.taxRegime || jurProfile.taxRegime;
 
-        // Auto-extract state from GSTIN
-        if (gstin) {
-          const stateCode = gstin.substring(0, 2);
-          const stateName = INDIAN_STATES[stateCode];
-          if (stateName) {
-            updateData.gstState = stateName;
-            updateData.gstStateCode = stateCode;
+      if (data.taxInclusivePricing !== undefined) {
+        updateData.taxInclusivePricing = Boolean(data.taxInclusivePricing);
+      }
+
+      if (data.taxRegistrationNumber !== undefined) {
+        updateData.taxRegistrationNumber = String(data.taxRegistrationNumber).trim().slice(0, 64);
+      }
+
+      if (data.taxJurisdictionState !== undefined) {
+        updateData.taxJurisdictionState = String(data.taxJurisdictionState).trim().slice(0, 64);
+      }
+
+      if (data.jurisdictionConfig !== undefined) {
+        updateData.jurisdictionConfig =
+          typeof data.jurisdictionConfig === 'string'
+            ? data.jurisdictionConfig
+            : JSON.stringify(data.jurisdictionConfig);
+      }
+
+      // GSTIN Validation (Strict only for India when GSTIN is provided)
+      if (targetCountryCode === 'IN') {
+        const gstinInput = data.gstin || data.taxRegistrationNumber;
+        if (gstinInput !== undefined) {
+          const gstin = String(gstinInput).trim().toUpperCase();
+          if (gstin && !GSTIN_REGEX.test(gstin)) {
+            return NextResponse.json(
+              {
+                error:
+                  'Invalid GSTIN format. Must be 15 characters: 2-digit state code + PAN + entity number + Z + checksum (e.g. 29AABCU9603R1ZM)',
+              },
+              { status: 400 }
+            );
           }
+          updateData.gstin = gstin || null;
+          updateData.taxRegistrationNumber = gstin || null;
+
+          if (gstin) {
+            const stateCode = gstin.substring(0, 2);
+            const stateName = INDIAN_STATES[stateCode];
+            if (stateName) {
+              updateData.gstState = stateName;
+              updateData.gstStateCode = stateCode;
+              updateData.taxJurisdictionState = stateName;
+            }
+          }
+        }
+      } else {
+        // Non-India country: tax registration number is saved as general tax number
+        if (data.taxRegistrationNumber !== undefined || data.gstin !== undefined) {
+          const regNum = String(data.taxRegistrationNumber || data.gstin || '').trim();
+          updateData.taxRegistrationNumber = regNum || null;
+          updateData.gstin = regNum || null;
         }
       }
 
@@ -390,28 +494,14 @@ export async function POST(req: NextRequest) {
       if (data.gstState !== undefined)
         updateData.gstState = String(data.gstState).trim().slice(0, 64);
       if (data.gstStateCode !== undefined)
-        updateData.gstStateCode = String(data.gstStateCode).trim().slice(0, 2);
-      if (data.gstRegistrationType !== undefined) {
-        const validTypes = [
-          'Regular',
-          'Composition',
-          'Unregistered',
-          'Casual',
-          'SEZ',
-          'Input Service Distributor',
-        ];
-        if (!validTypes.includes(data.gstRegistrationType)) {
-          return NextResponse.json(
-            { error: `Invalid registration type. Must be one of: ${validTypes.join(', ')}` },
-            { status: 400 }
-          );
-        }
-        updateData.gstRegistrationType = data.gstRegistrationType;
-      }
+        updateData.gstStateCode = String(data.gstStateCode).trim().slice(0, 16);
+      if (data.gstRegistrationType !== undefined)
+        updateData.gstRegistrationType = String(data.gstRegistrationType).trim().slice(0, 32);
+
       if (data.defaultTaxRate !== undefined) {
         const rate = Number(data.defaultTaxRate);
-        if (isNaN(rate) || rate < 0 || rate > 28) {
-          return NextResponse.json({ error: 'Tax rate must be between 0 and 28' }, { status: 400 });
+        if (isNaN(rate) || rate < 0 || rate > 100) {
+          return NextResponse.json({ error: 'Tax rate must be between 0 and 100%' }, { status: 400 });
         }
         updateData.defaultTaxRate = rate;
       }
@@ -420,6 +510,12 @@ export async function POST(req: NextRequest) {
         updateData.enableReverseCharge = Boolean(data.enableReverseCharge);
       if (data.gstBusinessAddress !== undefined)
         updateData.gstBusinessAddress = String(data.gstBusinessAddress).trim();
+
+      // Increment version for audit trail
+      const current = await (prisma as any).systemSettings.findUnique({
+        where: { id: SYSTEM_SETTINGS_ID },
+      });
+      updateData.taxConfigVersion = ((current as any)?.taxConfigVersion || 1) + 1;
 
       const updated = await (prisma as any).systemSettings.upsert({
         where: { id: SYSTEM_SETTINGS_ID },
@@ -430,14 +526,20 @@ export async function POST(req: NextRequest) {
       await logSettingsAudit(
         'TAX',
         'UPDATED',
-        `Updated GST/Tax settings: ${Object.keys(updateData).join(', ')}`,
+        `Updated Tax/Jurisdiction (${targetCountryCode}) config v${updateData.taxConfigVersion}`,
         user as any
       );
+
+      await broadcastRealtimeEvent('settings', 'TAX_UPDATED', {
+        countryCode: targetCountryCode,
+        taxRegime: updateData.taxRegime,
+        defaultTaxRate: updateData.defaultTaxRate,
+      });
 
       return NextResponse.json({
         success: true,
         systemSettings: updated,
-        message: 'GST/Tax settings saved successfully',
+        message: `${jurProfile.countryName} (${jurProfile.taxLabel}) settings saved successfully`,
       });
     }
 
@@ -465,11 +567,9 @@ export async function POST(req: NextRequest) {
       if (data.showStoreAddress !== undefined)
         updateData.showStoreAddress = Boolean(data.showStoreAddress);
       if (data.invoiceTemplateUrl !== undefined)
-        updateData.invoiceTemplateUrl = await ensureStoredImage(
-          data.invoiceTemplateUrl,
-          'branding',
-          user.name
-        );
+        updateData.invoiceTemplateUrl = data.invoiceTemplateUrl
+          ? await ensureStoredImage(data.invoiceTemplateUrl, 'branding', user.name)
+          : null;
       if (data.invoiceFieldMapping !== undefined)
         updateData.invoiceFieldMapping =
           typeof data.invoiceFieldMapping === 'string'
@@ -486,7 +586,7 @@ export async function POST(req: NextRequest) {
         const current = await (prisma as any).systemSettings.findUnique({
           where: { id: SYSTEM_SETTINGS_ID },
         });
-        updateData.invoiceTemplateVersion = (current?.invoiceTemplateVersion || 0) + 1;
+        updateData.invoiceTemplateVersion = ((current as any)?.invoiceTemplateVersion || 0) + 1;
       }
 
       const updated = await (prisma as any).systemSettings.upsert({
@@ -501,6 +601,10 @@ export async function POST(req: NextRequest) {
         `Updated invoice template settings: ${Object.keys(updateData).join(', ')}`,
         user as any
       );
+
+      await broadcastRealtimeEvent('settings', 'INVOICE_UPDATED', {
+        invoiceTemplateVersion: (updated as any).invoiceTemplateVersion,
+      });
 
       return NextResponse.json({
         success: true,
@@ -539,6 +643,11 @@ export async function POST(req: NextRequest) {
         `Updated security settings: ${Object.keys(updateData).join(', ')}`,
         user as any
       );
+
+      await broadcastRealtimeEvent('settings', 'SECURITY_UPDATED', {
+        sessionTimeoutMins: (updated as any).sessionTimeoutMins,
+        maxLoginAttempts: (updated as any).maxLoginAttempts,
+      });
 
       return NextResponse.json({
         success: true,
@@ -597,6 +706,11 @@ export async function POST(req: NextRequest) {
         `Updated alert settings: ${Object.keys(updateData).join(', ')}`,
         user as any
       );
+
+      await broadcastRealtimeEvent('settings', 'ALERTS_UPDATED', {
+        lowStockAlerts: (updated as any).lowStockAlerts,
+        overduePaymentAlerts: (updated as any).overduePaymentAlerts,
+      });
 
       return NextResponse.json({
         success: true,

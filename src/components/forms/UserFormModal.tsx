@@ -1,7 +1,8 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
+import StoreFormModal from '@/components/forms/StoreFormModal';
 import { useApp, UserAccount } from '@/context/AppContext';
 import { toast } from 'sonner';
 
@@ -42,6 +43,12 @@ export default function UserFormModal({
   const [assignedStores, setAssignedStores] = useState<string[]>(['BLR']);
   const [status, setStatus] = useState<'Active' | 'Inactive' | 'Suspended'>('Active');
 
+  // Searchable store combobox states
+  const [storeSearch, setStoreSearch] = useState('');
+  const [isStoreMenuOpen, setIsStoreMenuOpen] = useState(false);
+  const [isAddStoreOpen, setIsAddStoreOpen] = useState(false);
+  const storeMenuRef = useRef<HTMLDivElement>(null);
+
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -80,6 +87,38 @@ export default function UserFormModal({
         return a.code.localeCompare(b.code);
       });
   }, [storesList, callerAccessibleStores]);
+
+  // Filter stores by search query
+  const filteredStores = useMemo(() => {
+    if (!storeSearch.trim()) return availableStoreHubs;
+    const q = storeSearch.toLowerCase().trim();
+    return availableStoreHubs.filter(
+      (st) =>
+        st.code.toLowerCase().includes(q) ||
+        st.name.toLowerCase().includes(q) ||
+        (st.city && st.city.toLowerCase().includes(q))
+    );
+  }, [availableStoreHubs, storeSearch]);
+
+  const selectedStoreObj = useMemo(() => {
+    const code = assignedStores[0];
+    return availableStoreHubs.find((st) => st.code === code) || availableStoreHubs[0];
+  }, [availableStoreHubs, assignedStores]);
+
+  // Click outside to close store dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (storeMenuRef.current && !storeMenuRef.current.contains(e.target as Node)) {
+        setIsStoreMenuOpen(false);
+      }
+    };
+    if (isStoreMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isStoreMenuOpen]);
 
   // 🔒 STABLE FORM INITIALIZATION & DRAFT PROTECTION
   // Initialize ONLY on closed -> open transition or when target user?.id intentionally changes.
@@ -308,6 +347,7 @@ export default function UserFormModal({
   };
 
   return (
+    <>
     <Modal
       open={open}
       onClose={handleSafeClose}
@@ -487,30 +527,133 @@ export default function UserFormModal({
         {/* 4. Assigned Store — Exactly ONE operational store for Store Manager / Sales Manager */}
         {isCallerSuperAdmin ? (
           <div className="space-y-2 p-3.5 rounded-xl border border-border bg-card">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <Icon name="BuildingStorefrontIcon" size={15} className="text-primary" />
-                <label className="text-xs font-bold text-foreground">
-                  Assigned Operational Store <span className="text-danger">*</span>
-                </label>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <Icon name="BuildingStorefrontIcon" size={15} className="text-primary" />
+                  <label className="text-xs font-bold text-foreground">
+                    Assigned Operational Store <span className="text-danger">*</span>
+                  </label>
+                </div>
+                <p className="text-3xs text-muted-foreground mt-0.5">
+                  Every Store Manager and Sales Manager account is strictly assigned to exactly ONE
+                  operational store.
+                </p>
               </div>
-              <p className="text-3xs text-muted-foreground mt-0.5">
-                Every Store Manager and Sales Manager account is strictly assigned to exactly ONE
-                operational store.
-              </p>
+
+              {/* + Add New Store button for Super Admin */}
+              <button
+                type="button"
+                onClick={() => setIsAddStoreOpen(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors cursor-pointer shrink-0"
+              >
+                <Icon name="PlusIcon" size={13} />
+                <span>Add Store</span>
+              </button>
             </div>
 
-            <select
-              value={assignedStores[0] || 'BLR'}
-              onChange={(e) => setAssignedStores([e.target.value])}
-              className="input-field text-xs font-semibold"
-            >
-              {availableStoreHubs.map((st) => (
-                <option key={st.code} value={st.code}>
-                  {st.code} — {st.name} ({st.city})
-                </option>
-              ))}
-            </select>
+            {/* Custom Searchable Combobox */}
+            <div className="relative" ref={storeMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsStoreMenuOpen(!isStoreMenuOpen)}
+                className="w-full input-field text-xs flex items-center justify-between gap-2 cursor-pointer bg-background hover:bg-muted/30 transition-colors py-2 px-3 text-left font-normal"
+                aria-haspopup="listbox"
+                aria-expanded={isStoreMenuOpen}
+              >
+                {selectedStoreObj ? (
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="font-mono font-bold bg-primary/15 text-primary text-3xs px-1.5 py-0.5 rounded">
+                      {selectedStoreObj.code}
+                    </span>
+                    <span className="font-semibold text-foreground truncate">{selectedStoreObj.name}</span>
+                    {selectedStoreObj.city && (
+                      <span className="text-muted-foreground text-3xs truncate">({selectedStoreObj.city})</span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">Select a store...</span>
+                )}
+                <Icon
+                  name={isStoreMenuOpen ? 'ChevronUpIcon' : 'ChevronDownIcon'}
+                  size={14}
+                  className="text-muted-foreground shrink-0"
+                />
+              </button>
+
+              {isStoreMenuOpen && (
+                <div className="absolute z-50 left-0 right-0 mt-1 bg-popover text-popover-foreground border border-border rounded-xl shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95">
+                  <div className="p-2 border-b border-border/60 bg-muted/20">
+                    <div className="relative">
+                      <Icon
+                        name="MagnifyingGlassIcon"
+                        size={14}
+                        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Search by name, code, city..."
+                        value={storeSearch}
+                        onChange={(e) => setStoreSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-h-48 overflow-y-auto p-1 space-y-0.5" role="listbox">
+                    {filteredStores.length === 0 ? (
+                      <div className="py-4 text-center text-xs text-muted-foreground">
+                        No stores found matching &quot;{storeSearch}&quot;
+                      </div>
+                    ) : (
+                      filteredStores.map((st) => {
+                        const isSelected = assignedStores[0] === st.code;
+                        return (
+                          <button
+                            key={st.code}
+                            type="button"
+                            onClick={() => {
+                              setAssignedStores([st.code]);
+                              setIsStoreMenuOpen(false);
+                              setStoreSearch('');
+                            }}
+                            className={`w-full flex items-center justify-between p-2 rounded-lg text-xs cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-primary/10 text-primary font-semibold'
+                                : 'hover:bg-muted text-foreground'
+                            }`}
+                            role="option"
+                            aria-selected={isSelected}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span
+                                className={`font-mono font-bold text-3xs px-1.5 py-0.5 rounded ${
+                                  isSelected
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted text-muted-foreground'
+                                }`}
+                              >
+                                {st.code}
+                              </span>
+                              <span className="truncate">{st.name}</span>
+                              {st.city && (
+                                <span className="text-3xs text-muted-foreground truncate">
+                                  ({st.city})
+                                </span>
+                              )}
+                            </div>
+                            {isSelected && (
+                              <Icon name="CheckIcon" size={14} className="text-primary shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           /* Store Manager creating staff: Control MUST NOT render; store is displayed as read-only contextual info */
@@ -547,5 +690,21 @@ export default function UserFormModal({
         </div>
       </form>
     </Modal>
+
+    {/* Nested Add Store Modal for Super Admin — Higher z-index preserves UserForm draft state */}
+    {isCallerSuperAdmin && isAddStoreOpen && (
+      <StoreFormModal
+        open={isAddStoreOpen}
+        onClose={() => setIsAddStoreOpen(false)}
+        zIndex={zIndex + 20}
+        onSuccess={(newStore) => {
+          if (newStore?.code) {
+            setAssignedStores([newStore.code]);
+          }
+          setIsAddStoreOpen(false);
+        }}
+      />
+    )}
+    </>
   );
 }

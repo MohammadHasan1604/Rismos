@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useRef, useDeferredValue } from 'r
 import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
 import Modal from '@/components/ui/Modal';
-import CoskoLogo from '@/components/ui/CoskoLogo';
+import { formatMoney, formatTaxLabel } from '@/lib/localization';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import {
   useApp,
@@ -57,6 +57,10 @@ export default function SalesPage() {
     addAuditLog,
     confirmAction,
   } = useApp();
+
+  const currencyCode = systemSettings?.currencyCode || 'INR';
+  const locale = branding?.locale || 'en-IN';
+  const taxLabel = formatTaxLabel(systemSettings?.taxRegime || 'GST');
 
   const [activeTab, setActiveTab] = useState<'pos' | 'history'>('pos');
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -1364,7 +1368,7 @@ export default function SalesPage() {
                   <div className="flex items-center justify-between pt-1 border-t border-border/50 text-xs">
                     <span className="badge-neutral text-3xs">{s.paymentMethod}</span>
                     <span className="font-bold text-foreground font-tabular">
-                      ₹{s.total.toLocaleString('en-IN')}
+                      {formatMoney(s.total, currencyCode, locale)}
                     </span>
                   </div>
                   <div className="flex items-center justify-end gap-1.5 pt-1">
@@ -1442,7 +1446,7 @@ export default function SalesPage() {
                     <th className="px-4 py-3">Customer & Mobile</th>
                     <th className="px-4 py-3 text-center">Items</th>
                     <th className="px-4 py-3 text-right font-tabular">Subtotal</th>
-                    <th className="px-4 py-3 text-right font-tabular">GST</th>
+                    <th className="px-4 py-3 text-right font-tabular">{taxLabel}</th>
                     <th className="px-4 py-3 text-right font-tabular">Total</th>
                     <th className="px-4 py-3">Payment</th>
                     <th className="px-4 py-3 text-center">Payment Proof</th>
@@ -1471,13 +1475,13 @@ export default function SalesPage() {
                       </td>
                       <td className="px-4 py-3 text-center font-medium">{s.items?.length || 1}</td>
                       <td className="px-4 py-3 text-right font-tabular">
-                        ₹{s.subtotal.toLocaleString('en-IN')}
+                        {formatMoney(s.subtotal, currencyCode, locale)}
                       </td>
                       <td className="px-4 py-3 text-right font-tabular text-muted-foreground">
-                        {s.taxTotal > 0 ? `₹${s.taxTotal.toLocaleString('en-IN')}` : '₹0'}
+                        {formatMoney(s.taxTotal, currencyCode, locale)}
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-foreground font-tabular">
-                        ₹{s.total.toLocaleString('en-IN')}
+                        {formatMoney(s.total, currencyCode, locale)}
                       </td>
                       <td className="px-4 py-3">
                         <span className="badge-neutral text-3xs">{s.paymentMethod}</span>

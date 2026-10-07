@@ -60,6 +60,7 @@ model UserAccount {
   presence            UserPresence?
   permissionOverrides UserPermissionOverride[]
   passwordResets      PasswordReset[]
+  uiPreference        UserUiPreference?
 
   @@index([role])
   @@index([status])
@@ -663,17 +664,26 @@ model AuditLog {
 // ──────────────────────────────────────────────────────────────────────────────
 model BrandingSetting {
   id              String   @id @default("cosko_branding_config")
-  appName         String   @default("COSKO") @map("app_name") @db.VarChar(128)
+  appName         String   @default("RISMOS") @map("app_name") @db.VarChar(128)
   logoUrl         String?  @map("logo_url") @db.LongText
+  logoDarkUrl     String?  @map("logo_dark_url") @db.LongText
+  appIconUrl      String?  @map("app_icon_url") @db.LongText
   faviconUrl      String?  @map("favicon_url") @db.LongText
-  tagline         String   @default("Multi-Store Enterprise Retail & POS System") @db.VarChar(255)
-  supportEmail    String   @default("support@cosko.com") @map("support_email") @db.VarChar(128)
+  tagline         String   @default("Run Retail. Smarter.") @db.VarChar(255)
+  primaryColor    String?  @default("#002E86") @map("primary_color") @db.VarChar(32)
+  secondaryColor  String?  @default("#009ADF") @map("secondary_color") @db.VarChar(32)
+  accentColor     String?  @default("#2563EB") @map("accent_color") @db.VarChar(32)
+  supportEmail    String   @default("support@rismos.com") @map("support_email") @db.VarChar(128)
   supportPhone    String?  @map("support_phone") @db.VarChar(32)
   businessName    String?  @map("business_name") @db.VarChar(255)
   businessAddress String?  @map("business_address") @db.Text
   city            String?  @db.VarChar(64)
   state           String?  @db.VarChar(64)
-  pincode         String?  @db.VarChar(10)
+  pincode         String?  @db.VarChar(32)
+  country         String?  @default("India") @db.VarChar(64)
+  countryCode     String?  @default("IN") @map("country_code") @db.VarChar(8)
+  timezone        String?  @default("Asia/Kolkata") @db.VarChar(64)
+  locale          String?  @default("en-IN") @db.VarChar(16)
   baseCurrency    String   @default("INR (₹)") @map("base_currency") @db.VarChar(32)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -682,44 +692,54 @@ model BrandingSetting {
 }
 
 model SystemSettings {
-  id                     String  @id @default("cosko_system_config")
-  // ─── GST / Tax ───
-  gstin                  String? @db.VarChar(15)
-  legalBusinessName      String? @map("legal_business_name") @db.VarChar(255)
-  tradeName              String? @map("trade_name") @db.VarChar(255)
-  gstState               String? @map("gst_state") @db.VarChar(64)
-  gstStateCode           String? @map("gst_state_code") @db.VarChar(2)
-  gstRegistrationType    String  @default("Regular") @map("gst_registration_type") @db.VarChar(32)
-  defaultTaxRate         Decimal @default(18) @map("default_tax_rate") @db.Decimal(5, 2)
-  hsnMandatory           Boolean @default(false) @map("hsn_mandatory")
-  enableReverseCharge    Boolean @default(false) @map("enable_reverse_charge")
-  gstBusinessAddress     String? @map("gst_business_address") @db.Text
+  id                     String   @id @default("cosko_system_config")
+  // ─── Jurisdiction & International Tax ───
+  countryCode            String?  @default("IN") @map("country_code") @db.VarChar(8)
+  currencyCode           String?  @default("INR") @map("currency_code") @db.VarChar(8)
+  currencySymbol         String?  @default("₹") @map("currency_symbol") @db.VarChar(8)
+  taxRegime              String?  @default("GST") @map("tax_regime") @db.VarChar(32)
+  taxInclusivePricing    Boolean  @default(false) @map("tax_inclusive_pricing")
+  taxRegistrationNumber  String?  @map("tax_registration_number") @db.VarChar(64)
+  taxJurisdictionState   String?  @map("tax_jurisdiction_state") @db.VarChar(64)
+  jurisdictionConfig     String?  @map("jurisdiction_config") @db.Text
+  taxConfigVersion       Int      @default(1) @map("tax_config_version")
+  // ─── GST / Regional Tax Legacy & Explicit Fields ───
+  gstin                  String?  @db.VarChar(32)
+  legalBusinessName      String?  @map("legal_business_name") @db.VarChar(255)
+  tradeName              String?  @map("trade_name") @db.VarChar(255)
+  gstState               String?  @map("gst_state") @db.VarChar(64)
+  gstStateCode           String?  @map("gst_state_code") @db.VarChar(16)
+  gstRegistrationType    String   @default("Regular") @map("gst_registration_type") @db.VarChar(32)
+  defaultTaxRate         Decimal  @default(18) @map("default_tax_rate") @db.Decimal(5, 2)
+  hsnMandatory           Boolean  @default(false) @map("hsn_mandatory")
+  enableReverseCharge    Boolean  @default(false) @map("enable_reverse_charge")
+  gstBusinessAddress     String?  @map("gst_business_address") @db.Text
   // ─── Invoice Template ───
-  invoiceHeader          String  @default("COSKO Retail Enterprise") @map("invoice_header") @db.VarChar(255)
-  invoiceFooter          String  @default("Thank you for shopping with us! Goods once sold cannot be returned without original receipt.") @map("invoice_footer") @db.VarChar(500)
-  invoiceTerms           String? @map("invoice_terms") @db.Text
-  invoiceAccentColor     String  @default("primary") @map("invoice_accent_color") @db.VarChar(32)
-  watermarkOpacity       Int     @default(5) @map("watermark_opacity")
-  showStoreAddress       Boolean @default(true) @map("show_store_address")
-  invoiceTemplateUrl     String? @map("invoice_template_url") @db.LongText
-  invoiceTemplateVersion Int     @default(1) @map("invoice_template_version")
-  invoiceFieldMapping    String? @map("invoice_field_mapping") @db.Text
-  showPaymentQr          Boolean @default(false) @map("show_payment_qr")
-  paymentUpiId           String? @map("payment_upi_id") @db.VarChar(128)
-  paymentBankDetails     String? @map("payment_bank_details") @db.Text
+  invoiceHeader          String   @default("RISMOS Retail Enterprise") @map("invoice_header") @db.VarChar(255)
+  invoiceFooter          String   @default("Thank you for shopping with us! Goods once sold cannot be returned without original receipt.") @map("invoice_footer") @db.VarChar(500)
+  invoiceTerms           String?  @map("invoice_terms") @db.Text
+  invoiceAccentColor     String   @default("primary") @map("invoice_accent_color") @db.VarChar(32)
+  watermarkOpacity       Int      @default(5) @map("watermark_opacity")
+  showStoreAddress       Boolean  @default(true) @map("show_store_address")
+  invoiceTemplateUrl     String?  @map("invoice_template_url") @db.LongText
+  invoiceTemplateVersion Int      @default(1) @map("invoice_template_version")
+  invoiceFieldMapping    String?  @map("invoice_field_mapping") @db.Text
+  showPaymentQr          Boolean  @default(false) @map("show_payment_qr")
+  paymentUpiId           String?  @map("payment_upi_id") @db.VarChar(128)
+  paymentBankDetails     String?  @map("payment_bank_details") @db.Text
   // ─── Security ───
-  sessionTimeoutMins     Int     @default(43200) @map("session_timeout_mins")
-  maxLoginAttempts       Int     @default(5) @map("max_login_attempts")
-  enforcePasswordPolicy  Boolean @default(true) @map("enforce_password_policy")
-  sensitiveActionConfirm Boolean @default(true) @map("sensitive_action_confirm")
+  sessionTimeoutMins     Int      @default(43200) @map("session_timeout_mins")
+  maxLoginAttempts       Int      @default(5) @map("max_login_attempts")
+  enforcePasswordPolicy  Boolean  @default(true) @map("enforce_password_policy")
+  sensitiveActionConfirm Boolean  @default(true) @map("sensitive_action_confirm")
   // ─── Alerts ───
-  lowStockAlerts         Boolean @default(true) @map("low_stock_alerts")
-  lowStockThreshold      Int     @default(5) @map("low_stock_threshold")
-  overduePaymentAlerts   Boolean @default(true) @map("overdue_payment_alerts")
-  overdueThresholdDays   Int     @default(30) @map("overdue_threshold_days")
-  dailySalesDigest       Boolean @default(false) @map("daily_sales_digest")
-  securityEventAlerts    Boolean @default(true) @map("security_event_alerts")
-  alertRecipientEmails   String? @map("alert_recipient_emails") @db.Text
+  lowStockAlerts         Boolean  @default(true) @map("low_stock_alerts")
+  lowStockThreshold      Int      @default(5) @map("low_stock_threshold")
+  overduePaymentAlerts   Boolean  @default(true) @map("overdue_payment_alerts")
+  overdueThresholdDays   Int      @default(30) @map("overdue_threshold_days")
+  dailySalesDigest       Boolean  @default(false) @map("daily_sales_digest")
+  securityEventAlerts    Boolean  @default(true) @map("security_event_alerts")
+  alertRecipientEmails   String?  @map("alert_recipient_emails") @db.Text
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1014,5 +1034,22 @@ model PasswordReset {
   @@index([userId])
   @@index([expiresAt])
   @@map("password_resets")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 27. USER UI PREFERENCES — User-specific UI custom ordering & layouts
+// ──────────────────────────────────────────────────────────────────────────────
+model UserUiPreference {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  preferencesJson String   @map("preferences_json") @db.Text
+  version         Int      @default(1)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_ui_preferences")
 }
 

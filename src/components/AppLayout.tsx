@@ -13,7 +13,7 @@ import ForcePasswordChangeModal from './ForcePasswordChangeModal';
 import AppErrorBoundary from './AppErrorBoundary';
 import ScrollManager from './ScrollManager';
 import Icon from '@/components/ui/AppIcon';
-import CoskoLogo from '@/components/ui/CoskoLogo';
+import AppLogo from '@/components/ui/AppLogo';
 import GlobalConfirmationModal from '@/components/ui/GlobalConfirmationModal';
 import ActivityTracker from './ActivityTracker';
 import { useApp } from '@/context/AppContext';
@@ -69,10 +69,10 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <CoskoLogo size={36} showText />
+          <AppLogo size={36} showText />
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mt-2" />
           <p className="text-xs font-semibold text-muted-foreground">
-            Verifying COSKO Authenticated Session...
+            Verifying Authenticated Session...
           </p>
         </div>
       </div>
@@ -84,7 +84,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-2">
-          <CoskoLogo size={36} showText />
+          <AppLogo size={36} showText />
           <p className="text-xs font-semibold text-muted-foreground mt-2">
             Redirecting to Login...
           </p>

@@ -27,8 +27,13 @@ export { normalizeMobileNumber };
 export interface AppBranding {
   appName: string;
   logoUrl: string | null;
+  logoDarkUrl?: string | null;
+  appIconUrl?: string | null;
   faviconUrl: string | null;
   tagline: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
   supportEmail: string;
   supportPhone?: string;
   businessName?: string;
@@ -36,11 +41,24 @@ export interface AppBranding {
   city?: string;
   state?: string;
   pincode?: string;
+  country?: string;
+  countryCode?: string;
+  timezone?: string;
+  locale?: string;
   baseCurrency?: string;
   taxNumber?: string;
 }
 
 export interface SystemSettings {
+  countryCode?: string;
+  currencyCode?: string;
+  currencySymbol?: string;
+  taxRegime?: string;
+  taxInclusivePricing?: boolean;
+  taxRegistrationNumber?: string | null;
+  taxJurisdictionState?: string | null;
+  jurisdictionConfig?: string | null;
+  taxConfigVersion?: number;
   gstin: string | null;
   legalBusinessName: string | null;
   tradeName: string | null;
@@ -476,25 +494,43 @@ export interface NotificationItem {
 }
 
 const defaultBranding: AppBranding = {
-  appName: 'COSKO',
+  appName: 'RISMOS',
   logoUrl: null,
+  logoDarkUrl: null,
+  appIconUrl: null,
   faviconUrl: null,
-  tagline: 'Multi-Store Enterprise Retail & POS System',
-  supportEmail: 'support@cosko.com',
+  tagline: 'Run Retail. Smarter.',
+  primaryColor: '#002E86',
+  secondaryColor: '#009ADF',
+  accentColor: '#2563EB',
+  supportEmail: 'support@rismos.com',
   supportPhone: '+91 80 4000 8800',
-  businessName: 'COSKO Retail Enterprise',
+  businessName: 'RISMOS Retail Enterprise',
   businessAddress: '100 Feet Ring Road, Indiranagar',
   city: 'Bengaluru',
   state: 'Karnataka',
   pincode: '560038',
+  country: 'India',
+  countryCode: 'IN',
+  timezone: 'Asia/Kolkata',
+  locale: 'en-IN',
   baseCurrency: 'INR (₹)',
   taxNumber: '29AABCU9603R1ZM',
 };
 
 export const defaultSystemSettings: SystemSettings = {
+  countryCode: 'IN',
+  currencyCode: 'INR',
+  currencySymbol: '₹',
+  taxRegime: 'GST',
+  taxInclusivePricing: true,
+  taxRegistrationNumber: '29AABCU9603R1ZM',
+  taxJurisdictionState: 'Karnataka',
+  jurisdictionConfig: null,
+  taxConfigVersion: 1,
   gstin: '29AABCU9603R1ZM',
-  legalBusinessName: 'COSKO Retail Enterprise Private Limited',
-  tradeName: 'COSKO Stores',
+  legalBusinessName: 'RISMOS Retail Enterprise Private Limited',
+  tradeName: 'RISMOS Stores',
   gstState: 'Karnataka',
   gstStateCode: '29',
   gstRegistrationType: 'Regular',
@@ -502,9 +538,9 @@ export const defaultSystemSettings: SystemSettings = {
   hsnMandatory: true,
   enableReverseCharge: false,
   gstBusinessAddress: '100 Feet Ring Road, Indiranagar, Bengaluru, Karnataka - 560038',
-  invoiceHeader: 'COSKO Retail Enterprise',
+  invoiceHeader: 'RISMOS Retail Enterprise',
   invoiceFooter:
-    'Thank you for shopping with COSKO! Goods once sold cannot be returned without original receipt.',
+    'Thank you for shopping with RISMOS! Goods once sold cannot be returned without original receipt.',
   invoiceTerms:
     '1. Standard 12-month warranty on manufacturing defects.\n2. Retain this invoice for warranty & service support.\n3. Physical and liquid damage are excluded.',
   invoiceAccentColor: 'primary',
@@ -514,7 +550,7 @@ export const defaultSystemSettings: SystemSettings = {
   invoiceTemplateVersion: 1,
   invoiceFieldMapping: null,
   showPaymentQr: false,
-  paymentUpiId: 'cosko@icici',
+  paymentUpiId: 'rismos@icici',
   paymentBankDetails: 'HDFC Bank · A/C 50200012345678 · IFSC HDFC0001234',
   sessionTimeoutMins: 43200,
   maxLoginAttempts: 5,

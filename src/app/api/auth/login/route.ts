@@ -9,10 +9,11 @@ import {
   hashSessionToken,
 } from '@/lib/auth';
 import { checkRateLimit, recordFailedAttempt, clearRateLimit, getClientIp } from '@/lib/rateLimit';
+import { createSecurityAlertNotification } from '@/lib/services/alertService';
 
-const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+const DEFAULT_MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes temporary lockout
-const SESSION_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
+const DEFAULT_SESSION_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days default in seconds
 
 export async function POST(req: NextRequest) {
   // 1. Origin / CSRF validation
@@ -31,7 +32,19 @@ export async function POST(req: NextRequest) {
     const cleanEmail = body.email.toLowerCase().trim();
     const password = body.password;
 
-    // 2. Fast In-Memory Rate Limiting Check (IP DDoS protection: 50 requests/15m; Account lockout: 5 attempts/15m)
+    // Load authoritative security configuration from database
+    const sysSettings = await prisma.systemSettings.findFirst().catch(() => null);
+    const maxFailedAttempts =
+      sysSettings?.maxLoginAttempts && sysSettings.maxLoginAttempts > 0
+        ? sysSettings.maxLoginAttempts
+        : DEFAULT_MAX_FAILED_LOGIN_ATTEMPTS;
+    const sessionTimeoutMins =
+      sysSettings?.sessionTimeoutMins && sysSettings.sessionTimeoutMins > 0
+        ? sysSettings.sessionTimeoutMins
+        : 43200; // 30 days in minutes
+    const sessionCookieMaxAgeSecs = sessionTimeoutMins * 60;
+
+    // 2. Fast In-Memory Rate Limiting Check (IP DDoS protection: 50 requests/15m; Account lockout: dynamic attempts/15m)
     const ipRateLimit = checkRateLimit(`ip:${clientIp}`, 50);
     if (!ipRateLimit.allowed) {
       return NextResponse.json(
@@ -62,11 +75,11 @@ export async function POST(req: NextRequest) {
     // 4. Generic rejection on missing user (prevents account enumeration)
     if (!user) {
       recordFailedAttempt(`ip:${clientIp}`, 50);
-      const r = recordFailedAttempt(`email:${cleanEmail}`, 5);
+      const r = recordFailedAttempt(`email:${cleanEmail}`, maxFailedAttempts);
       if (!r.allowed) {
         return NextResponse.json(
           {
-            error: `Account is temporarily locked due to 5 consecutive failed login attempts. Please try again in ${r.retryAfterSeconds || 900} seconds.`,
+            error: `Account is temporarily locked due to ${maxFailedAttempts} consecutive failed login attempts. Please try again in ${r.retryAfterSeconds || 900} seconds.`,
             retryAfter: r.retryAfterSeconds,
             locked: true,
           },
@@ -82,7 +95,7 @@ export async function POST(req: NextRequest) {
       const retryAfterSeconds = Math.ceil((user.lockedUntil.getTime() - now.getTime()) / 1000);
       return NextResponse.json(
         {
-          error: `Account is temporarily locked due to 5 consecutive failed login attempts. Please try again in ${retryAfterSeconds} seconds.`,
+          error: `Account is temporarily locked due to ${maxFailedAttempts} consecutive failed login attempts. Please try again in ${retryAfterSeconds} seconds.`,
           retryAfter: retryAfterSeconds,
           locked: true,
         },
@@ -122,7 +135,7 @@ export async function POST(req: NextRequest) {
 
     if (!passwordMatch) {
       const currentFailed = (user.failedLoginAttempts || 0) + 1;
-      const isNowLocked = currentFailed >= MAX_FAILED_LOGIN_ATTEMPTS;
+      const isNowLocked = currentFailed >= maxFailedAttempts;
       const lockoutDate = isNowLocked ? new Date(Date.now() + LOCKOUT_DURATION_MS) : null;
 
       try {
@@ -138,12 +151,21 @@ export async function POST(req: NextRequest) {
       }
 
       recordFailedAttempt(`ip:${clientIp}`, 50);
-      recordFailedAttempt(`email:${cleanEmail}`, 5);
+      recordFailedAttempt(`email:${cleanEmail}`, maxFailedAttempts);
 
       if (isNowLocked) {
+        createSecurityAlertNotification({
+          title: `Security Alert: Account Locked (${user.email})`,
+          message: `User account "${user.email}" (${user.name}) was locked after ${maxFailedAttempts} consecutive failed login attempts from IP ${clientIp}.`,
+          severity: 'error',
+          userId: user.id,
+          relatedEntityType: 'UserAccount',
+          relatedEntityId: user.id,
+        }).catch((err) => console.error('Failed to dispatch security alert:', err));
+
         return NextResponse.json(
           {
-            error: `Account is temporarily locked due to 5 consecutive failed login attempts. Please try again in 900 seconds.`,
+            error: `Account is temporarily locked due to ${maxFailedAttempts} consecutive failed login attempts. Please try again in 900 seconds.`,
             retryAfter: 900,
             locked: true,
           },
@@ -151,7 +173,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const remaining = Math.max(0, MAX_FAILED_LOGIN_ATTEMPTS - currentFailed);
+      const remaining = Math.max(0, maxFailedAttempts - currentFailed);
       return NextResponse.json(
         {
           error: `Invalid email or password (${remaining} attempt${remaining === 1 ? '' : 's'} remaining before temporary account lockout)`,
@@ -215,7 +237,7 @@ export async function POST(req: NextRequest) {
     // Generate session ID -> Sign final JWT containing session ID -> Hash final JWT -> Create DB UserSession in MySQL
     // ONLY THEN set HttpOnly cookie and return success. NO JWT-only fallback.
     const sessionId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + sessionCookieMaxAgeSecs * 1000);
     const finalToken = signSessionToken({ ...sessionUser, sessionId }, sessionId);
     const finalTokenHash = hashSessionToken(finalToken);
 
@@ -245,12 +267,12 @@ export async function POST(req: NextRequest) {
       mustChangePassword: sessionUser.mustChangePassword,
     });
 
-    // Set secure HttpOnly 30-day session cookie
+    // Set secure HttpOnly session cookie matching configured timeout
     response.cookies.set('cosko_session', finalToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: SESSION_COOKIE_MAX_AGE, // 30 days
+      maxAge: sessionCookieMaxAgeSecs,
       path: '/',
     });
 

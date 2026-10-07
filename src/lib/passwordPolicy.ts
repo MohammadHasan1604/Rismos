@@ -69,15 +69,19 @@ export function validatePassword(password: string): PasswordValidationResult {
     { pattern: /password/i, desc: 'the word "password"' },
     { pattern: /admin/i, desc: 'the word "admin"' },
     { pattern: /cosko/i, desc: 'brand name "cosko"' },
+    { pattern: /rismos/i, desc: 'brand name "rismos"' },
     { pattern: /(.)\1{4,}/, desc: '5 or more repeated identical characters' },
   ];
 
+  let weakPatternFound = false;
   for (const { pattern, desc } of weakPatterns) {
     if (pattern.test(password)) {
       errors.push(`Password contains an easily guessable pattern (${desc})`);
-      score -= 20;
-      break;
+      weakPatternFound = true;
     }
+  }
+  if (weakPatternFound) {
+    score -= 20;
   }
 
   // Length Bonuses for high entropy
