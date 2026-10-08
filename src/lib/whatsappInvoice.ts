@@ -5,6 +5,8 @@
  * Contains NO internal application URLs, NO authentication gates, NO login links.
  */
 
+import { formatMoney } from '@/lib/localization/formatters';
+
 export interface WhatsAppInvoiceItem {
   name: string;
   qty: number;
@@ -25,6 +27,9 @@ export interface WhatsAppInvoiceData {
   paymentMethod?: string;
   items?: WhatsAppInvoiceItem[];
   warrantyExpiryDate?: string;
+  brandName?: string;
+  currencyCode?: string;
+  locale?: string;
 }
 
 /**
@@ -46,6 +51,8 @@ export function extract10DigitPhone(val: string | null | undefined): string {
  * NEVER includes internal /sales URLs, login paths, or credential requirements.
  */
 export function buildWhatsAppInvoiceMessage(receipt: WhatsAppInvoiceData): string {
+  const brand = receipt.brandName || 'RISMOS';
+
   // 1. Customer greeting name
   const rawName = receipt.customerName?.trim() || '';
   const isWalkIn =
@@ -57,11 +64,14 @@ export function buildWhatsAppInvoiceMessage(receipt: WhatsAppInvoiceData): strin
   const invoiceNo = receipt.orderNo || receipt.invoiceNo || 'INV-RECORD';
 
   // 3. Store name / code
-  const store = receipt.store || receipt.storeCode || 'COSKO';
+  const store = receipt.store || receipt.storeCode || `${brand} Store`;
 
   // 4. Formatted Total Paid
   const totalPaid = receipt.total ?? receipt.totalAmount ?? 0;
-  const formattedAmount = `₹${Number(totalPaid).toLocaleString('en-IN')}`;
+  const currencyCode = receipt.currencyCode || 'INR';
+  const locale = receipt.locale || 'en-IN';
+  const decimals = Number(totalPaid) % 1 === 0 ? 0 : 2;
+  const formattedAmount = formatMoney(totalPaid, { currencyCode, locale, decimals });
 
   // 5. Payment method
   const paymentMethod = receipt.paymentMethod || 'UPI';
@@ -98,9 +108,9 @@ export function buildWhatsAppInvoiceMessage(receipt: WhatsAppInvoiceData): strin
 
   // 8. Assemble clean message
   return (
-    `*COSKO — Purchase Invoice*\n\n` +
+    `*${brand} — Purchase Invoice*\n\n` +
     `${greeting}\n` +
-    `Thank you for shopping with COSKO.\n\n` +
+    `Thank you for shopping with ${brand}.\n\n` +
     `*Invoice:* ${invoiceNo}\n` +
     `*Store:* ${store}\n` +
     `*Total Paid:* ${formattedAmount}\n` +
@@ -109,7 +119,7 @@ export function buildWhatsAppInvoiceMessage(receipt: WhatsAppInvoiceData): strin
     `\n` +
     itemsSection +
     `\nYour purchase has been successfully billed.\n\n` +
-    `Thank you for choosing COSKO.`
+    `Thank you for choosing ${brand}.`
   );
 }
 

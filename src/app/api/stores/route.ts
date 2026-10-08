@@ -140,10 +140,10 @@ export async function POST(req: NextRequest) {
             code: upperCode,
             name:
               upperCode === 'CENTRAL'
-                ? body.name || 'COSKO Central Warehouse & Owner Stock'
+                ? body.name || 'Central Warehouse & Owner Stock'
                 : body.name,
             city: body.city,
-            address: body.address || 'COSKO Retail Hub',
+            address: body.address || 'Retail Hub',
             ownerName: ownerVal || null,
             managerName: ownerVal || null,
             phone: body.phone || null,

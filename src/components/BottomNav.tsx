@@ -94,6 +94,72 @@ export default function BottomNav() {
     setLocalItems(ordered);
   }, [authoritativeSecondaryNav, savedOrder]);
 
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIdx(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIdx !== index) {
+      setDragOverIdx(index);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIdx === null || draggedIdx === targetIndex) {
+      setDraggedIdx(null);
+      setDragOverIdx(null);
+      return;
+    }
+
+    const copy = [...localItems];
+    const [moved] = copy.splice(draggedIdx, 1);
+    copy.splice(targetIndex, 0, moved);
+    setLocalItems(copy);
+    setDraggedIdx(null);
+    setDragOverIdx(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIdx(null);
+    setDragOverIdx(null);
+  };
+
+  const handleTouchStart = (index: number) => {
+    setDraggedIdx(index);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (draggedIdx === null) return;
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const rowEl = el?.closest('[data-reorder-index]');
+    if (rowEl) {
+      const idx = Number(rowEl.getAttribute('data-reorder-index'));
+      if (!isNaN(idx) && idx !== dragOverIdx) {
+        setDragOverIdx(idx);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (draggedIdx !== null && dragOverIdx !== null && draggedIdx !== dragOverIdx) {
+      const copy = [...localItems];
+      const [moved] = copy.splice(draggedIdx, 1);
+      copy.splice(dragOverIdx, 0, moved);
+      setLocalItems(copy);
+    }
+    setDraggedIdx(null);
+    setDragOverIdx(null);
+  };
+
   const handleMove = (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= localItems.length) return;
@@ -418,49 +484,79 @@ export default function BottomNav() {
             ))}
           </div>
         ) : (
-          /* Reorder View with Accessible Up/Down Buttons */
+          /* Reorder View with Touch/Pointer Drag & Accessible Up/Down Buttons */
           <div className="space-y-1.5 py-2 max-h-[60vh] overflow-y-auto">
-            {localItems.map((item, idx) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between p-2.5 rounded-xl border border-border/70 bg-card/60 hover:bg-muted/40 transition-colors"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                    <Icon
-                      name={item.icon as Parameters<typeof Icon>[0]['name']}
-                      size={18}
-                      className="text-foreground"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold truncate text-foreground">{item.label}</p>
-                    <p className="text-3xs text-muted-foreground truncate">{item.href}</p>
-                  </div>
-                </div>
+            {localItems.map((item, idx) => {
+              const isItemDragging = draggedIdx === idx;
+              const isTargetOver = dragOverIdx === idx && draggedIdx !== idx;
 
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleMove(idx, 'up')}
-                    disabled={idx === 0 || isSaving}
-                    className="w-9 h-9 rounded-lg flex items-center justify-center bg-muted/80 hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                    aria-label={`Move ${item.label} up`}
-                  >
-                    <Icon name="ChevronUpIcon" size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMove(idx, 'down')}
-                    disabled={idx === localItems.length - 1 || isSaving}
-                    className="w-9 h-9 rounded-lg flex items-center justify-center bg-muted/80 hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                    aria-label={`Move ${item.label} down`}
-                  >
-                    <Icon name="ChevronDownIcon" size={16} />
-                  </button>
+              return (
+                <div
+                  key={item.id}
+                  data-reorder-index={idx}
+                  draggable={true}
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragOver={(e) => handleDragOver(e, idx)}
+                  onDrop={(e) => handleDrop(e, idx)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
+                    isItemDragging
+                      ? 'opacity-40 border-primary bg-primary/10 shadow-inner'
+                      : isTargetOver
+                      ? 'border-primary ring-2 ring-primary/30 bg-primary/5 shadow-xs scale-[1.01]'
+                      : 'border-border/70 bg-card/60 hover:bg-muted/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {/* Touch / Pointer Drag Handle */}
+                    <button
+                      type="button"
+                      onTouchStart={() => handleTouchStart(idx)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      className="cursor-grab active:cursor-grabbing p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted touch-none"
+                      title="Drag to reorder"
+                      aria-label={`Drag to reorder ${item.label}`}
+                    >
+                      <Icon name="Bars3Icon" size={18} />
+                    </button>
+
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Icon
+                        name={item.icon as Parameters<typeof Icon>[0]['name']}
+                        size={17}
+                        className="text-foreground"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold truncate text-foreground">{item.label}</p>
+                      <p className="text-4xs text-muted-foreground truncate">{item.href}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleMove(idx, 'up')}
+                      disabled={idx === 0 || isSaving}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted/80 hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                      aria-label={`Move ${item.label} up`}
+                    >
+                      <Icon name="ChevronUpIcon" size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMove(idx, 'down')}
+                      disabled={idx === localItems.length - 1 || isSaving}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted/80 hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                      aria-label={`Move ${item.label} down`}
+                    >
+                      <Icon name="ChevronDownIcon" size={15} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </BottomSheet>

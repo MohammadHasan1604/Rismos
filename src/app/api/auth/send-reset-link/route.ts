@@ -91,14 +91,18 @@ export async function POST(req: NextRequest) {
     const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`;
 
     // Send email with reset instructions
+    const branding = await (prisma as any).brandingSetting.findFirst().catch(() => null);
+    const appName = branding?.appName || 'RISMOS';
+
     await sendEmail({
       to: user.email,
-      subject: 'COSKO POS - Password Reset Request',
+      subject: `${appName} POS - Password Reset Request`,
       template: 'password-reset',
       data: {
         userName: user.name,
         resetUrl,
         expiresIn: '24 hours',
+        appName,
       },
     });
 

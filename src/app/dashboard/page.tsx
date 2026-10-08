@@ -29,7 +29,7 @@ export default function DashboardPage() {
           <div className="page-header">
             <h1 className="page-title">Command Center</h1>
             <p className="page-subtitle hidden sm:block">
-              COSKO Enterprise · Multi-Store Command & Analytics
+              RISMOS Enterprise · Multi-Store Command & Analytics
             </p>
           </div>
           <DashboardFilters />

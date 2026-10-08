@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
             Reset Your Password
           </h1>
           <p className="text-xs text-muted-foreground">
-            Enter your official COSKO staff email to receive a secure 24-hour reset link.
+            Enter your official staff email to receive a secure 24-hour reset link.
           </p>
         </div>
 

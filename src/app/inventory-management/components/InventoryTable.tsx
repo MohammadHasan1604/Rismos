@@ -360,7 +360,7 @@ export default function InventoryTable({
                   .map((s) => (
                     <option key={`store-opt-${s.code}`} value={s.code}>
                       {s.code === 'CENTRAL'
-                        ? 'COSKO Central Warehouse (CENTRAL)'
+                        ? 'Central Warehouse (CENTRAL)'
                         : `${s.name} (${s.code})`}
                     </option>
                   ))}

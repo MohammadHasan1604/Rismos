@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { AppProvider } from '@/context/AppContext';
+import { BrandThemeProvider } from '@/components/theme/BrandThemeProvider';
 import '../styles/tailwind.css';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -18,17 +19,17 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'COSKO — Multi-Store Retail & POS Management Platform',
+  title: 'RISMOS — Run Retail. Smarter.',
   description:
-    'COSKO is a production-grade multi-store business management platform for retail POS billing, inventory cataloging, procurement, CRM, and accounting.',
+    'RISMOS is an enterprise multi-store retail and point-of-sale platform. Run Retail. Smarter.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4028'),
   openGraph: {
-    title: 'COSKO — Multi-Store Retail & POS Management Platform',
+    title: 'RISMOS — Run Retail. Smarter.',
     description:
-      'Enterprise POS, multi-store inventory cataloging, purchasing, CRM, and financial accounting system.',
+      'Enterprise multi-store retail POS billing, inventory, procurement, CRM, and accounting platform.',
     url: 'http://localhost:4028',
-    siteName: 'COSKO',
-    locale: 'en_IN',
+    siteName: 'RISMOS',
+    locale: 'en_US',
     type: 'website',
   },
   robots: {
@@ -51,17 +52,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" suppressHydrationWarning className={plusJakartaSans.variable}>
       <body suppressHydrationWarning className={plusJakartaSans.className}>
         <AppProvider>
-          {children}
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                fontFamily: 'var(--font-plus-jakarta-sans)',
-                fontSize: '14px',
-              },
-              duration: 3000,
-            }}
-          />
+          <BrandThemeProvider>
+            {children}
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                style: {
+                  fontFamily: 'var(--font-plus-jakarta-sans)',
+                  fontSize: '14px',
+                },
+                duration: 3000,
+              }}
+            />
+          </BrandThemeProvider>
         </AppProvider>
       </body>
     </html>

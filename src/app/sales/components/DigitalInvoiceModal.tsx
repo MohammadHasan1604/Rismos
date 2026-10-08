@@ -44,6 +44,13 @@ export const DigitalInvoiceModal: React.FC<DigitalInvoiceModalProps> = ({
     referenceNo: receiptModal.referenceNo,
     cashierName: receiptModal.cashierName,
     warrantyExpiryDate: receiptModal.warrantyExpiryDate,
+    countryCode: receiptModal.countryCode,
+    currencyCode: receiptModal.currencyCode,
+    currencySymbol: receiptModal.currencySymbol,
+    taxRegime: receiptModal.taxRegime,
+    taxRegistrationSnapshot: receiptModal.taxRegistrationSnapshot,
+    invoiceTemplateVersion: receiptModal.invoiceTemplateVersion,
+    invoiceSnapshotJson: receiptModal.invoiceSnapshotJson,
   };
 
   return (

@@ -3,6 +3,7 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 import AppLogo from '@/components/ui/AppLogo';
+import { applyBrandThemeCssVariables, BRAND_THEME_PRESETS } from '@/lib/colorUtils';
 
 interface BrandingTabProps {
   appName: string;
@@ -37,10 +38,10 @@ interface BrandingTabProps {
 
 const COLOR_PRESETS = [
   { name: 'RISMOS Blue', primary: '#002E86', secondary: '#009ADF', accent: '#2563EB' },
+  { name: 'Enterprise Red', primary: '#9F1239', secondary: '#BE123C', accent: '#E11D48' },
+  { name: 'Obsidian Black', primary: '#18181B', secondary: '#27272A', accent: '#3F3F46' },
   { name: 'Emerald Retail', primary: '#064E3B', secondary: '#10B981', accent: '#059669' },
   { name: 'Midnight Indigo', primary: '#1E1B4B', secondary: '#6366F1', accent: '#4F46E5' },
-  { name: 'Ruby Enterprise', primary: '#881337', secondary: '#F43F5E', accent: '#E11D48' },
-  { name: 'Slate Modern', primary: '#0F172A', secondary: '#38BDF8', accent: '#0284C7' },
 ];
 
 export const BrandingTab: React.FC<BrandingTabProps> = ({
@@ -220,6 +221,7 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
                     setPrimaryColor(p.primary);
                     setSecondaryColor(p.secondary);
                     setAccentColor(p.accent);
+                    applyBrandThemeCssVariables(p.primary, p.secondary, p.accent);
                   }}
                   className="w-5 h-5 rounded-full border border-border shadow-xs cursor-pointer hover:scale-110 transition-transform"
                   style={{ backgroundColor: p.primary }}

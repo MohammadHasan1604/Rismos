@@ -180,6 +180,9 @@ export default function SettingsPage() {
     systemSettings.paymentBankDetails ||
       'HDFC Bank · A/C 50200012345678 · IFSC HDFC0001234 · Indiranagar Branch'
   );
+  const [invoiceFieldMapping, setInvoiceFieldMapping] = useState<string | null>(
+    systemSettings.invoiceFieldMapping || null
+  );
 
   // ─── Tab 5: Security & Access State ───
   const [sessionTimeoutMins, setSessionTimeoutMins] = useState(
@@ -286,11 +289,12 @@ export default function SettingsPage() {
       setShowPaymentQr(
         systemSettings.showPaymentQr !== undefined ? systemSettings.showPaymentQr : true
       );
-      setPaymentUpiId(systemSettings.paymentUpiId || 'cosko@icici');
+      setPaymentUpiId(systemSettings.paymentUpiId || 'rismos@icici');
       setPaymentBankDetails(
         systemSettings.paymentBankDetails ||
           'HDFC Bank · A/C 50200012345678 · IFSC HDFC0001234 · Indiranagar Branch'
       );
+      setInvoiceFieldMapping(systemSettings.invoiceFieldMapping || null);
 
       setSessionTimeoutMins(systemSettings.sessionTimeoutMins ?? 43200);
       setMaxLoginAttempts(systemSettings.maxLoginAttempts ?? 5);
@@ -303,7 +307,7 @@ export default function SettingsPage() {
       setOverdueThresholdDays(systemSettings.overdueThresholdDays ?? 30);
       setDailySalesDigest(systemSettings.dailySalesDigest ?? false);
       setSecurityEventAlerts(systemSettings.securityEventAlerts ?? true);
-      setAlertRecipientEmails(systemSettings.alertRecipientEmails || 'alerts@cosko.com');
+      setAlertRecipientEmails(systemSettings.alertRecipientEmails || 'alerts@rismos.com');
     }
   }, [systemSettings]);
 
@@ -493,6 +497,7 @@ export default function SettingsPage() {
           showPaymentQr,
           paymentUpiId,
           paymentBankDetails,
+          invoiceFieldMapping,
         });
       } else if (activeTab === 'security') {
         await updateSystemSettings('security', {
@@ -709,6 +714,8 @@ export default function SettingsPage() {
                 gstin={taxRegistrationNumber}
                 defaultTaxRate={defaultTaxRate}
                 isSuperAdmin={isSuperAdmin}
+                invoiceFieldMapping={invoiceFieldMapping}
+                setInvoiceFieldMapping={setInvoiceFieldMapping}
               />
             )}
 

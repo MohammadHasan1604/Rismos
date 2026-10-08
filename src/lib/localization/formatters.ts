@@ -84,11 +84,32 @@ export function formatMoney(
  * e.g. "GST (18%)", "VAT (5%)", "Sales Tax (6.25%)"
  */
 export function formatTaxLabel(
-  countryCode?: string | null,
+  countryOrSettings?: string | { countryCode?: string; defaultTaxRate?: number; taxRegime?: string } | null,
   rate?: number | string | null
 ): string {
+  let countryCode: string | undefined;
+  let taxRate = rate;
+
+  if (countryOrSettings && typeof countryOrSettings === 'object') {
+    countryCode = (countryOrSettings as any).countryCode || (countryOrSettings as any).taxRegime;
+    if (taxRate === undefined || taxRate === null) {
+      taxRate = (countryOrSettings as any).defaultTaxRate;
+    }
+  } else if (typeof countryOrSettings === 'string') {
+    countryCode = countryOrSettings;
+  }
+
+  // If directly passed a known regime name like 'VAT', 'GST', 'Sales Tax'
+  if (countryCode && ['VAT', 'GST', 'SALES TAX'].includes(countryCode.toUpperCase())) {
+    const numRate = taxRate !== undefined && taxRate !== null ? Number(taxRate) : null;
+    if (numRate === null || isNaN(numRate) || numRate <= 0) {
+      return countryCode.toUpperCase();
+    }
+    return `${countryCode.toUpperCase()} (${numRate}%)`;
+  }
+
   const profile = getJurisdictionProfile(countryCode);
-  const numRate = rate !== undefined && rate !== null ? Number(rate) : profile.defaultTaxRate;
+  const numRate = taxRate !== undefined && taxRate !== null ? Number(taxRate) : profile.defaultTaxRate;
   if (isNaN(numRate) || numRate <= 0) {
     return profile.taxLabel;
   }

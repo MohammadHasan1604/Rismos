@@ -116,7 +116,7 @@ export default function StockTransfersPage() {
                       .map((st) => (
                         <option key={st.id} value={st.code}>
                           {st.code === 'CENTRAL'
-                            ? 'COSKO Central Warehouse (CENTRAL)'
+                            ? 'Central Warehouse (CENTRAL)'
                             : `${st.name} (${st.code})`}
                         </option>
                       ))}

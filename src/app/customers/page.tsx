@@ -241,7 +241,7 @@ export default function CustomersPage() {
         title: `Retail Purchase (${s.orderNo})`,
         description: `Purchased items at ${s.store} Hub. Total: ₹${s.total.toLocaleString('en-IN')}`,
         type: 'sale',
-        source: 'COSKO Application DB',
+        source: 'RISMOS Application DB',
       });
     });
 
@@ -504,7 +504,7 @@ export default function CustomersPage() {
               {/* Top Source Badges */}
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-bold border border-primary/20 flex items-center gap-1">
-                  <Icon name="CubeIcon" className="w-3.5 h-3.5" /> Source: COSKO Master
+                  <Icon name="CubeIcon" className="w-3.5 h-3.5" /> Source: Master Database
                 </span>
                 <span className="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold border border-blue-500/20 flex items-center gap-1">
                   <Icon name="CircleStackIcon" className="w-3.5 h-3.5" /> Legacy Customer DB
@@ -607,7 +607,7 @@ export default function CustomersPage() {
                     }{' '}
                     Orders
                   </p>
-                  <p className="text-[11px] text-muted-foreground">COSKO Invoices</p>
+                  <p className="text-[11px] text-muted-foreground">Store Invoices</p>
                 </div>
                 <div className="p-3.5 rounded-xl bg-card border border-border">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -695,7 +695,7 @@ export default function CustomersPage() {
               <div className="space-y-3 pt-3 border-t border-border">
                 <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
                   <Icon name="ShoppingBagIcon" className="w-4 h-4 text-primary" />
-                  <span>COSKO Retail Purchase Orders & Receipts</span>
+                  <span>Retail Purchase Orders & Receipts</span>
                 </h4>
                 <div className="overflow-x-auto max-h-48 border border-border rounded-xl">
                   <table className="w-full text-left text-xs">

@@ -3,6 +3,7 @@
 import React from 'react';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
+import { useApp } from '@/context/AppContext';
 
 interface VendorPaymentVoucherModalProps {
   voucher: any | null;
@@ -19,6 +20,7 @@ export const VendorPaymentVoucherModal: React.FC<VendorPaymentVoucherModalProps>
   currentUser,
   setProofViewerData,
 }) => {
+  const { branding } = useApp();
   if (!voucher) return null;
 
   return (
@@ -38,7 +40,7 @@ export const VendorPaymentVoucherModal: React.FC<VendorPaymentVoucherModalProps>
           <div className="flex items-start justify-between border-b border-border pb-3">
             <div>
               <h2 className="text-base font-extrabold text-foreground tracking-tight">
-                COSKO ENTERPRISE RETAIL
+                {branding?.businessName || branding?.appName || 'RISMOS ENTERPRISE RETAIL'}
               </h2>
               <p className="text-3xs text-muted-foreground">
                 Procurement & Accounts Payable Department
@@ -150,7 +152,7 @@ export const VendorPaymentVoucherModal: React.FC<VendorPaymentVoucherModalProps>
             <span>
               Authorized by: <strong>{voucher.recordedBy || currentUser?.name}</strong>
             </span>
-            <span>Digitally Recorded via COSKO StoreCommand</span>
+            <span>Digitally Recorded via {branding?.appName || 'RISMOS'} StoreCommand</span>
           </div>
         </div>
 

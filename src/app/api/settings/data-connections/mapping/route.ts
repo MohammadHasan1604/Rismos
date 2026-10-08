@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Field mapping saved to COSKO database successfully.',
+      message: 'Field mapping saved successfully.',
       sampleRecordPreview,
     });
   } catch (error: any) {

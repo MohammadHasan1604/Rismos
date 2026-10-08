@@ -168,7 +168,7 @@ export default function DataConnectionsPage() {
       const data = await res.json();
       if (data.success) {
         setMappingPreview(data.sampleRecordPreview);
-        toast.success('Field mappings updated and saved to COSKO database!');
+        toast.success('Field mappings updated and saved successfully!');
       }
     } catch (err) {
       toast.error('Failed to save mappings');
@@ -639,7 +639,7 @@ export default function DataConnectionsPage() {
           <Modal
             open={mappingModal}
             onClose={() => setMappingModal(false)}
-            title="Map Legacy Data Columns to COSKO Concepts"
+            title="Map Legacy Data Columns to Application Fields"
             subtitle="Configure schema associations with live read-only preview"
             size="lg"
           >

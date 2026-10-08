@@ -165,7 +165,7 @@ export default function ExistingCustomersPage() {
             <h1 className="page-title">Existing / Historical Customers</h1>
             <p className="text-sm text-muted-foreground">
               Review, verify, and link legacy customer identities and repair history with the active
-              COSKO Customer Master.
+              Customer Master.
             </p>
           </div>
 
@@ -175,7 +175,7 @@ export default function ExistingCustomersPage() {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-card text-foreground hover:bg-secondary transition-colors text-sm font-medium shadow-sm"
             >
               <Icon name="UserGroupIcon" className="w-4 h-4 text-primary" />
-              <span>COSKO Customer Master</span>
+              <span>Customer Master</span>
             </Link>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function ExistingCustomersPage() {
                   </th>
                   <th className="px-4 py-3.5">Mobile Number</th>
                   <th className="px-4 py-3.5">Legacy ID</th>
-                  <th className="px-4 py-3.5">COSKO Master Link</th>
+                  <th className="px-4 py-3.5">Master Link</th>
                   <th className="px-4 py-3.5 text-center">Repairs</th>
                   <th className="px-4 py-3.5 text-center">Retail Sales</th>
                   <th className="px-4 py-3.5">First Seen</th>

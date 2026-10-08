@@ -12,7 +12,8 @@ export interface InvoiceFieldPlacement {
   visible: boolean;
   xPercent: number; // 0 - 100% horizontal coordinate
   yPercent: number; // 0 - 100% vertical coordinate
-  fontSize: number; // 8 - 24 px
+  widthPercent?: number; // 0 - 100% width percentage
+  fontSize: number; // 8 - 32 px
   fontWeight: 'normal' | 'medium' | 'bold' | 'extrabold';
   textAlign: 'left' | 'center' | 'right';
   color?: string;
@@ -21,6 +22,7 @@ export interface InvoiceFieldPlacement {
 export interface InvoiceTemplateConfig {
   version: number;
   templateName: string;
+  templateMode?: 'standard' | 'custom_mapped';
   pageSize: 'A4' | 'Letter' | 'Thermal80mm';
   orientation: 'portrait' | 'landscape';
   backgroundUrl?: string | null;
@@ -237,6 +239,7 @@ export function parseInvoiceTemplateConfig(rawJson: string | null | undefined): 
       return {
         ...DEFAULT_INVOICE_CONFIG,
         ...parsed,
+        templateMode: parsed.templateMode || 'standard',
         fields: parsed.fields.map((f: any) => ({
           id: f.id || `f-${f.key}`,
           key: f.key,
@@ -244,6 +247,7 @@ export function parseInvoiceTemplateConfig(rawJson: string | null | undefined): 
           visible: f.visible !== false,
           xPercent: Math.max(0, Math.min(100, Number(f.xPercent) || 0)),
           yPercent: Math.max(0, Math.min(100, Number(f.yPercent) || 0)),
+          widthPercent: f.widthPercent !== undefined ? Math.max(0, Math.min(100, Number(f.widthPercent))) : undefined,
           fontSize: Math.max(8, Math.min(32, Number(f.fontSize) || 11)),
           fontWeight: f.fontWeight || 'normal',
           textAlign: f.textAlign || 'left',

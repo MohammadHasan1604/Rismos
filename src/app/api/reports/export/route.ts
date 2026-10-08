@@ -200,7 +200,7 @@ function buildPdfPage(
   return `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
-<title>${title} - COSKO Reports</title>
+<title>${title} - RISMOS Reports</title>
 <style>
   @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
   body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 11px; color: #1a1a1a; margin: 20px; }
@@ -711,7 +711,7 @@ async function exportAllReports(
   });
 
   let csv = buildCsvHeader(
-    'COSKO Executive Analytics - All Reports',
+    'RISMOS Executive Analytics - All Reports',
     storeLabel,
     periodLabel,
     timestamp

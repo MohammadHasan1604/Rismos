@@ -1040,12 +1040,12 @@ export default function SalesPage() {
                   <div className="p-3 rounded-xl border border-primary/30 bg-primary/5 space-y-2 text-xs fade-in">
                     <div className="flex items-center justify-between text-2xs text-muted-foreground">
                       <span>
-                        COSKO GSTIN:{' '}
+                        {branding.appName || 'RISMOS'} {taxLabel} ID:{' '}
                         <strong className="font-mono text-foreground">
-                          {branding.taxNumber || '29AABCC1234F1Z5'}
+                          {systemSettings?.taxRegistrationNumber || branding.taxNumber || systemSettings?.gstin || '—'}
                         </strong>
                       </span>
-                      <span>Rate: 18% (9% CGST + 9% SGST)</span>
+                      <span>Default Rate: {systemSettings?.defaultTaxRate ?? 18}%</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">

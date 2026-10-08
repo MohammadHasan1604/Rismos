@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       {
         success: false,
         error:
-          'Historical customer/repair lookup is temporarily unavailable. You can continue with the current COSKO customer record.',
+          'Historical customer/repair lookup is temporarily unavailable. You can continue with the current customer record.',
       },
       { status: 200 } // Return 200 with error flag to prevent UI crash
     );

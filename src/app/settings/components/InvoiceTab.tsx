@@ -41,6 +41,8 @@ interface InvoiceTabProps {
   gstin: string;
   defaultTaxRate: number;
   isSuperAdmin: boolean;
+  invoiceFieldMapping?: string | null;
+  setInvoiceFieldMapping?: (val: string) => void;
 }
 
 export const InvoiceTab: React.FC<InvoiceTabProps> = ({
@@ -72,18 +74,36 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
   gstin,
   defaultTaxRate,
   isSuperAdmin,
+  invoiceFieldMapping,
+  setInvoiceFieldMapping,
 }) => {
   const [showMapper, setShowMapper] = useState(false);
-  const [templateConfig, setTemplateConfig] = useState<InvoiceTemplateConfig>(DEFAULT_INVOICE_CONFIG);
+  const [templateConfig, setTemplateConfig] = useState<InvoiceTemplateConfig>(() =>
+    parseInvoiceTemplateConfig(invoiceFieldMapping)
+  );
   const [selectedFieldKey, setSelectedFieldKey] = useState<string>('businessName');
+
+  React.useEffect(() => {
+    if (invoiceFieldMapping) {
+      setTemplateConfig(parseInvoiceTemplateConfig(invoiceFieldMapping));
+    }
+  }, [invoiceFieldMapping]);
+
+  const updateConfig = (newCfg: InvoiceTemplateConfig) => {
+    setTemplateConfig(newCfg);
+    if (setInvoiceFieldMapping) {
+      setInvoiceFieldMapping(JSON.stringify(newCfg));
+    }
+  };
 
   const selectedField = templateConfig.fields.find((f) => f.key === selectedFieldKey);
 
   const updateField = (key: string, updates: Partial<InvoiceFieldPlacement>) => {
-    setTemplateConfig((prev) => ({
-      ...prev,
-      fields: prev.fields.map((f) => (f.key === key ? { ...f, ...updates } : f)),
-    }));
+    const newCfg: InvoiceTemplateConfig = {
+      ...templateConfig,
+      fields: templateConfig.fields.map((f) => (f.key === key ? { ...f, ...updates } : f)),
+    };
+    updateConfig(newCfg);
   };
 
   // Sample order for deterministic live print preview
@@ -163,11 +183,45 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => setTemplateConfig(DEFAULT_INVOICE_CONFIG)}
+              onClick={() => updateConfig(DEFAULT_INVOICE_CONFIG)}
               className="text-2xs text-primary hover:underline font-semibold"
             >
               Reset Field Coordinates to Default
             </button>
+          </div>
+
+          {/* Template Style Mode Selector */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border">
+            <div>
+              <span className="font-bold text-foreground text-xs block">Invoice Template Mode</span>
+              <span className="text-2xs text-muted-foreground block">
+                Choose between standard responsive enterprise invoice or custom field-mapped overlay on uploaded artwork.
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 p-1 bg-card rounded-lg border border-border">
+              <button
+                type="button"
+                onClick={() => updateConfig({ ...templateConfig, templateMode: 'standard' })}
+                className={`px-2.5 py-1 rounded-md text-2xs font-semibold transition-colors ${
+                  (templateConfig.templateMode || 'standard') === 'standard'
+                    ? 'bg-primary text-white shadow-2xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Standard Responsive
+              </button>
+              <button
+                type="button"
+                onClick={() => updateConfig({ ...templateConfig, templateMode: 'custom_mapped' })}
+                className={`px-2.5 py-1 rounded-md text-2xs font-semibold transition-colors ${
+                  templateConfig.templateMode === 'custom_mapped'
+                    ? 'bg-primary text-white shadow-2xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Custom Mapped Overlay
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
