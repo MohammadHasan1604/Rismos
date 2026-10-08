@@ -76,6 +76,25 @@ function extractToken(req: NextRequest | Request): string | null {
   }
 }
 
+let cachedTimeoutMins = 43200;
+let lastTimeoutFetch = 0;
+
+async function getSessionTimeoutMins(): Promise<number> {
+  if (Date.now() - lastTimeoutFetch < 60_000) return cachedTimeoutMins;
+  try {
+    const sys = await (prisma as any).systemSettings.findFirst({
+      select: { sessionTimeoutMins: true },
+    });
+    if (sys?.sessionTimeoutMins) {
+      cachedTimeoutMins = Number(sys.sessionTimeoutMins);
+    }
+    lastTimeoutFetch = Date.now();
+  } catch {
+    // Keep fallback
+  }
+  return cachedTimeoutMins;
+}
+
 /**
  * AUTHORITATIVE SERVER-SIDE AUTHENTICATION PIPELINE
  *
@@ -135,6 +154,26 @@ export async function authenticateRequest(req: NextRequest | Request): Promise<A
     // Check expiration
     if (dbSession.expiresAt < new Date()) {
       return { user: null, error: 'Session has expired. Please log in again.', status: 401 };
+    }
+
+    // Check server-authoritative inactivity expiration
+    const now = Date.now();
+    const timeoutMins = await getSessionTimeoutMins();
+    const maxInactivityMs = timeoutMins * 60 * 1000;
+
+    if (dbSession.lastSeenAt) {
+      const elapsedSinceLastSeen = now - new Date(dbSession.lastSeenAt).getTime();
+      if (elapsedSinceLastSeen > maxInactivityMs) {
+        return { user: null, error: 'Session expired due to inactivity. Please log in again.', status: 401 };
+      }
+    }
+
+    // Throttled update of lastSeenAt (once every 60 seconds)
+    if (!dbSession.lastSeenAt || now - new Date(dbSession.lastSeenAt).getTime() > 60_000) {
+      (prisma as any).userSession.update({
+        where: { id: dbSession.id },
+        data: { lastSeenAt: new Date() },
+      }).catch((err: any) => console.warn('[AuthPipeline] Throttled lastSeenAt update warning:', err));
     }
 
     dbSessionId = dbSession.id;

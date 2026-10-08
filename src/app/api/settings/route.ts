@@ -359,7 +359,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ────────────────────────────────────────────
-    // SECTION: profile (business profile in branding table)
+    // SECTION: profile (business profile in branding table & jurisdiction sync)
     // ────────────────────────────────────────────
     if (section === 'profile') {
       const updateData: any = {};
@@ -379,19 +379,24 @@ export async function POST(req: NextRequest) {
       if (data.city !== undefined) updateData.city = String(data.city).trim().slice(0, 64);
       if (data.state !== undefined) updateData.state = String(data.state).trim().slice(0, 64);
       if (data.pincode !== undefined) {
-        // International zip/postal code: allow 2 to 32 chars alphanumeric, spaces, hyphens
         updateData.pincode = String(data.pincode).trim().slice(0, 32);
       }
-      if (data.country !== undefined)
-        updateData.country = String(data.country).trim().slice(0, 64);
-      if (data.countryCode !== undefined)
-        updateData.countryCode = String(data.countryCode).trim().toUpperCase().slice(0, 8);
-      if (data.timezone !== undefined)
-        updateData.timezone = String(data.timezone).trim().slice(0, 64);
-      if (data.locale !== undefined)
-        updateData.locale = String(data.locale).trim().slice(0, 16);
-      if (data.baseCurrency !== undefined)
-        updateData.baseCurrency = String(data.baseCurrency).trim().slice(0, 32);
+
+      // Authoritative Single Jurisdiction Sync
+      let jurProfile = null;
+      if (data.countryCode || data.country) {
+        const targetCode = String(data.countryCode || 'IN').trim().toUpperCase().slice(0, 8);
+        jurProfile = getJurisdictionProfile(targetCode);
+        updateData.countryCode = jurProfile.countryCode;
+        updateData.country = data.country ? String(data.country).trim().slice(0, 64) : jurProfile.countryName;
+        updateData.timezone = data.timezone ? String(data.timezone).trim().slice(0, 64) : jurProfile.defaultTimezone;
+        updateData.locale = data.locale ? String(data.locale).trim().slice(0, 16) : jurProfile.defaultLocale;
+        updateData.baseCurrency = `${jurProfile.defaultCurrencyCode} (${jurProfile.defaultCurrencySymbol})`;
+      } else {
+        if (data.timezone !== undefined) updateData.timezone = String(data.timezone).trim().slice(0, 64);
+        if (data.locale !== undefined) updateData.locale = String(data.locale).trim().slice(0, 16);
+        if (data.baseCurrency !== undefined) updateData.baseCurrency = String(data.baseCurrency).trim().slice(0, 32);
+      }
 
       const updated = await prisma.brandingSetting.upsert({
         where: { id: BRANDING_ID },
@@ -399,16 +404,38 @@ export async function POST(req: NextRequest) {
         update: updateData,
       });
 
+      // Synchronize systemSettings jurisdiction in lockstep
+      if (jurProfile) {
+        await (prisma as any).systemSettings.upsert({
+          where: { id: SYSTEM_SETTINGS_ID },
+          create: {
+            id: SYSTEM_SETTINGS_ID,
+            countryCode: jurProfile.countryCode,
+            currencyCode: jurProfile.defaultCurrencyCode,
+            currencySymbol: jurProfile.defaultCurrencySymbol,
+            taxRegime: jurProfile.taxRegime,
+            defaultTaxRate: jurProfile.defaultTaxRate,
+          },
+          update: {
+            countryCode: jurProfile.countryCode,
+            currencyCode: jurProfile.defaultCurrencyCode,
+            currencySymbol: jurProfile.defaultCurrencySymbol,
+            taxRegime: jurProfile.taxRegime,
+          },
+        });
+      }
+
       await logSettingsAudit(
         'PROFILE',
         'UPDATED',
-        `Updated business profile: ${Object.keys(updateData).join(', ')}`,
+        `Updated business profile & synchronized jurisdiction: ${Object.keys(updateData).join(', ')}`,
         user as any
       );
 
       await broadcastRealtimeEvent('settings', 'PROFILE_UPDATED', {
         businessName: updated.businessName,
         countryCode: (updated as any).countryCode,
+        currencyCode: jurProfile?.defaultCurrencyCode,
       });
 
       return NextResponse.json({
@@ -417,6 +444,7 @@ export async function POST(req: NextRequest) {
         message: 'Business profile saved successfully',
       });
     }
+
 
     // ────────────────────────────────────────────
     // SECTION: tax
@@ -523,6 +551,27 @@ export async function POST(req: NextRequest) {
         update: updateData,
       });
 
+      // Synchronize branding table country/currency in lockstep
+      await (prisma as any).brandingSetting.upsert({
+        where: { id: BRANDING_ID },
+        create: {
+          id: BRANDING_ID,
+          appName: DEFAULT_BRANDING.appName,
+          country: jurProfile.countryName,
+          countryCode: jurProfile.countryCode,
+          timezone: jurProfile.defaultTimezone,
+          locale: jurProfile.defaultLocale,
+          baseCurrency: `${jurProfile.defaultCurrencyCode} (${jurProfile.defaultCurrencySymbol})`,
+        },
+        update: {
+          country: jurProfile.countryName,
+          countryCode: jurProfile.countryCode,
+          timezone: jurProfile.defaultTimezone,
+          locale: jurProfile.defaultLocale,
+          baseCurrency: `${jurProfile.defaultCurrencyCode} (${jurProfile.defaultCurrencySymbol})`,
+        },
+      });
+
       await logSettingsAudit(
         'TAX',
         'UPDATED',
@@ -532,6 +581,8 @@ export async function POST(req: NextRequest) {
 
       await broadcastRealtimeEvent('settings', 'TAX_UPDATED', {
         countryCode: targetCountryCode,
+        currencyCode: updateData.currencyCode,
+        currencySymbol: updateData.currencySymbol,
         taxRegime: updateData.taxRegime,
         defaultTaxRate: updateData.defaultTaxRate,
       });

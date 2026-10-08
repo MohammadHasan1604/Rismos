@@ -1,87 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { getNextSequenceNumber } from '@/lib/atomicSequence';
-import { authenticateRequest } from '@/lib/authPipeline';
+import { executePOSCheckout, CreateSaleInput } from '@/lib/services/salesService';
+import { authenticateRequest, hasPermission, validatePhysicalStore } from '@/lib/authPipeline';
 
 /**
  * POST /api/sales/create
- * High-concurrency atomic checkout endpoint with zero sequence collision.
- * Uses MySQL row-locking via `getNextSequenceNumber('CS')`.
+ * Backward-compatibility adapter delegating to the single canonical executePOSCheckout engine.
+ * Never independently calculates tax, cost, profit, inventory or sequence.
  */
 export async function POST(request: NextRequest) {
   try {
     const auth = await authenticateRequest(request);
-    const authUser = auth.user;
+    if (!auth.user) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+    const user = auth.user;
+
+    if (!hasPermission(user, 'sales.create')) {
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
+    }
 
     const body = await request.json().catch(() => null);
     if (!body) {
       return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
     }
 
-    const { items, paymentMethod, storeCode, customerName, customerPhone, referenceNo, paymentProofUrl } = body;
+    const effectiveStore = (body.storeCode || user.store || 'BLR').toUpperCase();
 
-    const effectiveStore = storeCode || authUser?.store || 'BLR';
-    const effectiveCashier = authUser?.name || 'POS Cashier';
+    // Store scope enforcement
+    if (user.role !== 'Super Admin' && effectiveStore !== user.store) {
+      return NextResponse.json(
+        {
+          error: `Store Scope Lock: Cannot execute sales for store ${effectiveStore}. Assigned store is ${user.store}.`,
+        },
+        { status: 403 }
+      );
+    }
 
-    // Atomic race-condition proof sequence generation
-    const salesOrderNo = await getNextSequenceNumber('CS');
+    if (user.role === 'Super Admin') {
+      const storeVal = await validatePhysicalStore(effectiveStore);
+      if (!storeVal.valid) {
+        return NextResponse.json({ error: storeVal.error }, { status: 400 });
+      }
+    }
 
-    const subtotal = Array.isArray(items)
-      ? items.reduce((acc: number, it: any) => acc + Number(it.unitPrice || it.price || 0) * Number(it.qty || 1), 0)
-      : 0;
-    const taxAmount = Math.round(subtotal * 0.18 * 100) / 100;
-    const grandTotal = subtotal + taxAmount;
+    const checkoutInput: CreateSaleInput = {
+      storeCode: effectiveStore,
+      customerId: body.customerId,
+      customerName: body.customerName || 'Walk-in Customer',
+      customerPhone: body.customerPhone || '9999999999',
+      items: Array.isArray(body.items)
+        ? body.items.map((it: any) => ({
+            productId: it.productId || it.id,
+            productName: it.productName || it.name || 'Product',
+            sku: it.sku || `SKU-${it.productId || it.id}`,
+            qty: Number(it.qty || 1),
+            unitPrice: Number(it.unitPrice || it.price || 0),
+            discountPercent: Number(it.discountPercent || 0),
+          }))
+        : [],
+      taxAmount: body.taxAmount,
+      discountAmount: body.discountAmount || 0,
+      paymentMethod: body.paymentMethod || 'Cash',
+      referenceNo: body.referenceNo,
+      paymentProofUrl: body.paymentProofUrl,
+      cashierName: user.name || body.cashierName || 'POS Cashier',
+      photos: body.photos,
+      idempotencyKey: body.idempotencyKey,
+    };
 
-    // Create sale in MySQL with guaranteed unique invoice number
-    const sale = await prisma.salesOrder.create({
-      data: {
-        orderNo: salesOrderNo,
-        storeCode: effectiveStore,
-        customerName: customerName || 'Walk-in Customer',
-        customerPhone: customerPhone || '9999999999',
-        subtotal,
-        taxAmount,
-        discountAmount: 0,
-        grandTotal,
-        totalCost: Math.round(subtotal * 0.7 * 100) / 100,
-        grossProfit: Math.round((grandTotal - subtotal * 0.7) * 100) / 100,
-        paymentMethod: paymentMethod || 'Cash',
-        referenceNo: referenceNo || null,
-        paymentProofUrl: paymentProofUrl || null,
-        status: 'Completed',
-        cashierName: effectiveCashier,
-        items: Array.isArray(items) && items.length > 0
-          ? {
-              create: items.map((it: any) => ({
-                productId: it.productId || it.id,
-                productName: it.productName || it.name || 'Retail Item',
-                sku: it.sku || `SKU-${Date.now().toString().slice(-4)}`,
-                qty: Number(it.qty || 1),
-                unitPrice: Number(it.unitPrice || it.price || 0),
-                unitCost: Number(it.unitCost || (it.unitPrice || 0) * 0.7),
-                lineTotal: Number(it.unitPrice || it.price || 0) * Number(it.qty || 1),
-                lineProfit: (Number(it.unitPrice || it.price || 0) - Number(it.unitCost || 0)) * Number(it.qty || 1),
-              })),
-            }
-          : undefined,
-      },
-      include: {
-        items: true,
-      },
-    });
+    const sale = await executePOSCheckout(checkoutInput);
 
     return NextResponse.json({
       success: true,
-      invoiceNumber: salesOrderNo,
-      salesOrderNo,
+      invoiceNumber: sale.orderNo,
+      salesOrderNo: sale.orderNo,
       saleId: sale.id,
       sale,
     });
   } catch (error: any) {
-    console.error('[SALES] Atomic creation failed:', error);
+    console.error('[SALES-CREATE] Adapter delegation failed:', error);
+    const statusCode = error.statusCode || 500;
     return NextResponse.json(
-      { error: 'Checkout failed', details: error?.message || 'Internal error' },
-      { status: 500 }
+      { error: error.message || 'Checkout failed', details: error?.message || 'Internal error' },
+      { status: statusCode }
     );
   }
 }
+

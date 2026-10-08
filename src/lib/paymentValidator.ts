@@ -1,17 +1,27 @@
 /**
  * Authoritative Canonical Payment Method Validator
  *
- * Strict business requirement:
- * Operational payment transactions across COSKO must accept EXACTLY:
+ * Operational payment transactions across RISMOS accept configured retail methods:
  * - 'Cash'
+ * - 'Card'
  * - 'UPI'
+ * - 'Bank Transfer'
+ * - 'Credit'
  * - 'Other'
  *
- * Arbitrary or non-approved payment methods (e.g. 'Crypto', 'Cheque', etc.) must be rejected with 400.
- * Historical legacy transaction strings remain immutable.
+ * Arbitrary or non-approved payment methods (e.g. 'Crypto', etc.) are rejected.
+ * Country configurations (e.g. UAE/UK/US) can use Card/Cash/Bank Transfer without UPI dependency.
  */
 
-export const ALLOWED_PAYMENT_METHODS = ['Cash', 'UPI', 'Other'] as const;
+export const ALLOWED_PAYMENT_METHODS = [
+  'Cash',
+  'Card',
+  'UPI',
+  'Bank Transfer',
+  'Credit',
+  'Other',
+] as const;
+
 export type AllowedPaymentMethod = (typeof ALLOWED_PAYMENT_METHODS)[number];
 
 export interface PaymentValidationResult {
@@ -20,32 +30,45 @@ export interface PaymentValidationResult {
   error?: string;
 }
 
+const METHOD_ALIASES: Record<string, AllowedPaymentMethod> = {
+  cash: 'Cash',
+  card: 'Card',
+  'credit card': 'Card',
+  'debit card': 'Card',
+  upi: 'UPI',
+  'bank transfer': 'Bank Transfer',
+  bank: 'Bank Transfer',
+  wire: 'Bank Transfer',
+  'net banking': 'Bank Transfer',
+  credit: 'Credit',
+  other: 'Other',
+};
+
 export function validatePaymentMethod(method: unknown): PaymentValidationResult {
   if (!method || typeof method !== 'string') {
     return {
       valid: false,
-      error: 'Payment method is required and must be one of: Cash, UPI, Other.',
+      error: `Payment method is required and must be one of: ${ALLOWED_PAYMENT_METHODS.join(', ')}.`,
     };
   }
 
-  const trimmed = method.trim();
-  const match = ALLOWED_PAYMENT_METHODS.find(
-    (allowed) => allowed.toLowerCase() === trimmed.toLowerCase()
-  );
+  const trimmed = method.trim().toLowerCase();
+  const normalized = METHOD_ALIASES[trimmed];
 
-  if (!match) {
+  if (!normalized) {
     return {
       valid: false,
-      error: `Invalid payment method "${trimmed}". Operational transactions must strictly use one of: Cash, UPI, Other.`,
+      error: `Invalid payment method "${method}". Operational transactions must use one of: ${ALLOWED_PAYMENT_METHODS.join(', ')}.`,
     };
   }
 
   return {
     valid: true,
-    normalized: match,
+    normalized,
   };
 }
 
 export function isAllowedPaymentMethod(method: unknown): method is AllowedPaymentMethod {
   return validatePaymentMethod(method).valid;
 }
+

@@ -138,7 +138,7 @@ export async function migrateRismosWhitelabel() {
         console.log(`  ℹ️ Custom client branding detected: "${currentBranding.appName}". Preserving custom brand.`);
       }
     } else {
-      await prisma.brandingSetting.create({
+      await (prisma as any).brandingSetting.create({
         data: {
           id: 'cosko_branding_config',
           appName: 'RISMOS',

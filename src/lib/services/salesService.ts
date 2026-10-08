@@ -2,6 +2,7 @@ import { prisma } from '../db';
 import { broadcastRealtimeEvent, getStoreChannel } from '../realtime';
 import { generateSafeSequenceNo } from '../sequenceUtils';
 import { validatePaymentMethod } from '../paymentValidator';
+import { TaxService } from './taxService';
 
 export interface CreateSaleInput {
   storeCode: string;
@@ -16,6 +17,7 @@ export interface CreateSaleInput {
     unitPrice: number;
     unitCost?: number;
     discountPercent?: number;
+    taxRate?: number;
   }[];
   taxAmount?: number;
   discountAmount?: number;
@@ -36,6 +38,7 @@ export interface CreateSaleInput {
  * 2. Concurrency-Safe Stock Validation: Strictly enforces stock availability; throws 409 on insufficient stock (no clamping).
  * 3. Atomic Stock Decrement: Uses atomic decrement on database inventory records.
  * 4. Double-entry financial and inventory ledger tracking.
+ * 5. International Tax Engine & Snapshot: Resolves jurisdiction tax regime and creates immutable financial snapshots.
  */
 export async function executePOSCheckout(input: CreateSaleInput) {
   // Validate payment method strictly
@@ -50,44 +53,74 @@ export async function executePOSCheckout(input: CreateSaleInput) {
   const storeCode = input.storeCode.toUpperCase();
   const productIds = Array.from(new Set(input.items.map((it) => it.productId)));
 
-  // Authoritative Cost Resolution from Database (Ignore malicious client unitCost)
+  // Authoritative Cost and Tax Rate Resolution from Database (Ignore malicious client unitCost)
   const dbProducts = await prisma.product.findMany({
     where: { id: { in: productIds } },
-    select: { id: true, baseCostPrice: true, sku: true, name: true },
+    select: { id: true, baseCostPrice: true, sku: true, name: true, gstRate: true },
   });
   const productMap = new Map<string, any>(dbProducts.map((p) => [p.id, p]));
 
-  let subtotal = 0;
-  let totalCost = 0;
+  // Authoritative Tax Context Resolution
+  const taxContext = await TaxService.resolveTaxContext(storeCode);
 
-  const preparedItems = input.items.map((item) => {
+  const lineTaxItems = input.items.map((item) => {
     const dbProduct = productMap.get(item.productId);
-    const authoritativeUnitCost = dbProduct ? Number(dbProduct.baseCostPrice) || 0 : 0;
-    const lineSubtotal = item.qty * item.unitPrice * (1 - (item.discountPercent || 0) / 100);
-    const lineCost = item.qty * authoritativeUnitCost;
-    const lineProfit = lineSubtotal - lineCost;
-
-    subtotal += lineSubtotal;
-    totalCost += lineCost;
-
     return {
       productId: item.productId,
       productName: item.productName || dbProduct?.name || 'Product',
       sku: item.sku || dbProduct?.sku || item.productId,
       qty: item.qty,
       unitPrice: item.unitPrice,
-      unitCost: authoritativeUnitCost,
       discountPercent: item.discountPercent || 0,
-      lineTotal: lineSubtotal,
-      lineProfit,
+      productTaxRate:
+        item.taxRate !== undefined && item.taxRate !== null
+          ? Number(item.taxRate)
+          : dbProduct?.gstRate !== undefined && dbProduct?.gstRate !== null
+            ? Number(dbProduct.gstRate)
+            : null,
+      hsnSac: null,
     };
   });
 
-  const taxAmount = Number(input.taxAmount) || 0;
-  const discountAmount = Number(input.discountAmount) || 0;
-  const grandTotal = Math.max(0, subtotal + taxAmount - discountAmount);
+  const taxResult = TaxService.calculateTransactionTax(
+    lineTaxItems,
+    taxContext,
+    Number(input.discountAmount) || 0
+  );
+
+  const subtotal = taxResult.subtotal;
+  const taxAmount = taxResult.taxAmount;
+  const discountAmount = taxResult.discountAmount;
+  const grandTotal = taxResult.grandTotal;
+
+  let totalCost = 0;
+  const preparedItems = taxResult.lines.map((taxLine) => {
+    const dbProduct = productMap.get(taxLine.productId);
+    const authoritativeUnitCost = dbProduct ? Number(dbProduct.baseCostPrice) || 0 : 0;
+    const lineCost = taxLine.qty * authoritativeUnitCost;
+    const lineProfit = taxLine.lineSubtotal - lineCost;
+
+    totalCost += lineCost;
+
+    return {
+      productId: taxLine.productId,
+      productName: taxLine.productName,
+      sku: taxLine.sku,
+      qty: taxLine.qty,
+      unitPrice: taxLine.unitPrice,
+      unitCost: authoritativeUnitCost,
+      discountPercent: taxLine.discountPercent,
+      lineTotal: taxLine.lineTotal,
+      lineProfit,
+      taxRate: taxLine.taxRate,
+      taxAmount: taxLine.taxAmount,
+      hsnSac: taxLine.hsnSac || null,
+    };
+  });
+
   const grossProfit = grandTotal - totalCost;
   const netRevenue = subtotal - discountAmount;
+
 
   const storeNumericMap: Record<string, string> = {
     BLR: '001',
@@ -180,6 +213,7 @@ export async function executePOSCheckout(input: CreateSaleInput) {
       });
 
       // 5. Create Sales Order Record with nested sale items
+      // 5. Create Sales Order Record with nested sale items & immutable tax/currency snapshots
       const sale = await tx.salesOrder.create({
         data: {
           orderNo,
@@ -205,6 +239,16 @@ export async function executePOSCheckout(input: CreateSaleInput) {
             : input.paymentProofUrl
               ? JSON.stringify([input.paymentProofUrl])
               : null,
+          countryCode: taxContext.countryCode,
+          currencyCode: taxContext.currencyCode,
+          currencySymbol: taxContext.currencySymbol,
+          taxRegime: taxContext.taxRegime,
+          taxInclusive: taxContext.taxInclusivePricing,
+          taxConfigVersion: taxContext.taxConfigVersion,
+          taxRegistrationSnapshot: taxContext.taxRegistrationNumber || null,
+          taxBreakdownJson: JSON.stringify(taxResult.taxBreakdown),
+          invoiceTemplateVersion: 1,
+          invoiceSnapshotJson: JSON.stringify(taxResult.invoiceSnapshot),
           items: {
             create: preparedItems,
           },
@@ -241,7 +285,7 @@ export async function executePOSCheckout(input: CreateSaleInput) {
         }
       }
 
-      // 6. Batch create double-entry financial ledger records
+      // 6. Batch create double-entry financial ledger records with currency snapshots
       const financialEntries: any[] = [
         {
           entryNo: `JRN-REV-${orderNo}`,
@@ -255,6 +299,7 @@ export async function executePOSCheckout(input: CreateSaleInput) {
           refType: 'SALE',
           refId: sale.id,
           refNo: orderNo,
+          currencyCode: taxContext.currencyCode,
           entityName: input.customerName || 'Customer',
           description: `POS Billed Sales Revenue for Order ${orderNo}`,
           createdBy: input.cashierName,
@@ -267,15 +312,16 @@ export async function executePOSCheckout(input: CreateSaleInput) {
           entryDate: new Date(),
           storeCode,
           accountCategory: 'LIABILITY',
-          accountName: 'GST Output Tax Liability',
+          accountName: `${taxContext.taxLabel} Output Tax Liability`,
           debit: 0,
           credit: taxAmount,
           amount: taxAmount,
           refType: 'SALE',
           refId: sale.id,
           refNo: orderNo,
+          currencyCode: taxContext.currencyCode,
           entityName: input.customerName || 'Customer',
-          description: `GST Collected on Order ${orderNo}`,
+          description: `${taxContext.taxLabel} Collected on Order ${orderNo}`,
           createdBy: input.cashierName,
         });
       }
@@ -295,6 +341,7 @@ export async function executePOSCheckout(input: CreateSaleInput) {
         refType: 'SALE',
         refId: sale.id,
         refNo: orderNo,
+        currencyCode: taxContext.currencyCode,
         entityName: input.customerName || 'Customer',
         description: `Payment Receipt via ${input.paymentMethod} for Order ${orderNo} (Ref: ${effectiveRefNo})`,
         metadataJson: JSON.stringify({
@@ -322,6 +369,7 @@ export async function executePOSCheckout(input: CreateSaleInput) {
             refType: 'SALE',
             refId: sale.id,
             refNo: orderNo,
+            currencyCode: taxContext.currencyCode,
             entityName: input.customerName || 'Customer',
             description: `Inventory Cost of Goods Sold for Order ${orderNo}`,
             createdBy: input.cashierName,
@@ -338,6 +386,7 @@ export async function executePOSCheckout(input: CreateSaleInput) {
             refType: 'SALE',
             refId: sale.id,
             refNo: orderNo,
+            currencyCode: taxContext.currencyCode,
             entityName: input.customerName || 'Customer',
             description: `Stock Depletion for POS Sale ${orderNo}`,
             createdBy: input.cashierName,
@@ -377,7 +426,7 @@ export async function executePOSCheckout(input: CreateSaleInput) {
         data: {
           module: 'Sales',
           action: 'POS Checkout',
-          details: `Completed order ${orderNo} for ${input.customerName} (Total: ₹${grandTotal.toFixed(2)}) [${input.paymentMethod}]`,
+          details: `Completed order ${orderNo} for ${input.customerName} (Total: ${taxContext.currencySymbol}${grandTotal.toFixed(2)}) [${input.paymentMethod}]`,
           userEmail: input.cashierName,
           userRole: 'Sales Manager',
           storeCode,

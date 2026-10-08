@@ -73,7 +73,7 @@ export async function migrateRemediationTables() {
       take: 100,
     });
 
-    let maxSalesNum = 260000n;
+    let maxSalesNum = BigInt(260000);
     for (const s of sales) {
       const match = s.orderNo?.match(/\d+$/);
       if (match) {
@@ -84,15 +84,15 @@ export async function migrateRemediationTables() {
 
     const defaultCounters = [
       { prefix: 'CS', startVal: maxSalesNum },
-      { prefix: 'CS26001', startVal: 10n }, // BLR store prefix
-      { prefix: 'CS26002', startVal: 10n }, // HYD store prefix
-      { prefix: 'CS26003', startVal: 10n }, // DEL store prefix
-      { prefix: 'CS26004', startVal: 10n }, // MUM store prefix
-      { prefix: 'PO', startVal: 10000n },
-      { prefix: 'PO-2026-', startVal: 100n },
-      { prefix: 'EXP', startVal: 5000n },
-      { prefix: 'EXP-2026-', startVal: 100n },
-      { prefix: 'TRF-2026-', startVal: 10n },
+      { prefix: 'CS26001', startVal: BigInt(10) }, // BLR store prefix
+      { prefix: 'CS26002', startVal: BigInt(10) }, // HYD store prefix
+      { prefix: 'CS26003', startVal: BigInt(10) }, // DEL store prefix
+      { prefix: 'CS26004', startVal: BigInt(10) }, // MUM store prefix
+      { prefix: 'PO', startVal: BigInt(10000) },
+      { prefix: 'PO-2026-', startVal: BigInt(100) },
+      { prefix: 'EXP', startVal: BigInt(5000) },
+      { prefix: 'EXP-2026-', startVal: BigInt(100) },
+      { prefix: 'TRF-2026-', startVal: BigInt(10) },
     ];
 
     for (const c of defaultCounters) {

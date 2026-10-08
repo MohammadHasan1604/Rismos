@@ -99,12 +99,14 @@ model UserSession {
   ipAddress String?   @map("ip_address") @db.VarChar(64)
   userAgent String?   @map("user_agent") @db.VarChar(255)
   createdAt DateTime  @default(now()) @map("created_at")
+  lastSeenAt DateTime? @map("last_seen_at")
 
   user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
   @@index([revokedAt])
+  @@index([lastSeenAt])
   @@map("user_sessions")
 }
 
@@ -451,6 +453,10 @@ model PurchaseOrder {
   paymentStatus  String    @default("Unpaid") @map("payment_status") @db.VarChar(32)
   createdBy      String    @map("created_by") @db.VarChar(128)
   notes          String?   @db.VarChar(255)
+  countryCode    String    @default("IN") @map("country_code") @db.VarChar(8)
+  currencyCode   String    @default("INR") @map("currency_code") @db.VarChar(8)
+  taxRegime      String    @default("GST") @map("tax_regime") @db.VarChar(32)
+  taxBreakdownJson String? @map("tax_breakdown_json") @db.Text
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
@@ -551,6 +557,16 @@ model SalesOrder {
   status          String   @default("Completed") @db.VarChar(16)
   cashierName     String   @map("cashier_name") @db.VarChar(128)
   photosJson      String?  @map("photos_json") @db.Text
+  countryCode     String   @default("IN") @map("country_code") @db.VarChar(8)
+  currencyCode    String   @default("INR") @map("currency_code") @db.VarChar(8)
+  currencySymbol  String   @default("₹") @map("currency_symbol") @db.VarChar(8)
+  taxRegime       String   @default("GST") @map("tax_regime") @db.VarChar(32)
+  taxInclusive    Boolean  @default(false) @map("tax_inclusive")
+  taxConfigVersion Int     @default(1) @map("tax_config_version")
+  taxRegistrationSnapshot String? @map("tax_registration_snapshot") @db.VarChar(64)
+  taxBreakdownJson String? @map("tax_breakdown_json") @db.Text
+  invoiceTemplateVersion Int @default(1) @map("invoice_template_version")
+  invoiceSnapshotJson String? @map("invoice_snapshot_json") @db.LongText
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -579,6 +595,9 @@ model SalesOrderItem {
   discountPercent Decimal @default(0.00) @map("discount_percent") @db.Decimal(5, 2)
   lineTotal       Decimal @map("line_total") @db.Decimal(12, 2)
   lineProfit      Decimal @map("line_profit") @db.Decimal(12, 2)
+  taxRate         Decimal @default(0.00) @map("tax_rate") @db.Decimal(5, 2)
+  taxAmount       Decimal @default(0.00) @map("tax_amount") @db.Decimal(12, 2)
+  hsnSac          String? @map("hsn_sac") @db.VarChar(32)
 
   order   SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -767,6 +786,7 @@ model FinancialLedgerEntry {
   description     String   @db.VarChar(255)
   isEliminated    Boolean  @default(false) @map("is_eliminated")
   metadataJson    String?  @map("metadata_json") @db.Text
+  currencyCode    String   @default("INR") @map("currency_code") @db.VarChar(8)
   createdBy       String   @map("created_by") @db.VarChar(128)
   createdAt       DateTime @default(now()) @map("created_at")
 

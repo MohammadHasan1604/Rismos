@@ -13,7 +13,8 @@ import { createSecurityAlertNotification } from '@/lib/services/alertService';
 
 const DEFAULT_MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes temporary lockout
-const DEFAULT_SESSION_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days default in seconds
+const SESSION_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days default in seconds
+const DEFAULT_SESSION_MS = 30 * 24 * 60 * 60 * 1000; // 30-day session expiry constant in ms
 
 export async function POST(req: NextRequest) {
   // 1. Origin / CSRF validation
@@ -42,7 +43,8 @@ export async function POST(req: NextRequest) {
       sysSettings?.sessionTimeoutMins && sysSettings.sessionTimeoutMins > 0
         ? sysSettings.sessionTimeoutMins
         : 43200; // 30 days in minutes
-    const sessionCookieMaxAgeSecs = sessionTimeoutMins * 60;
+    const sessionCookieMaxAgeSecs = sessionTimeoutMins ? sessionTimeoutMins * 60 : SESSION_COOKIE_MAX_AGE;
+
 
     // 2. Fast In-Memory Rate Limiting Check (IP DDoS protection: 50 requests/15m; Account lockout: dynamic attempts/15m)
     const ipRateLimit = checkRateLimit(`ip:${clientIp}`, 50);
@@ -272,7 +274,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: sessionCookieMaxAgeSecs,
+      maxAge: SESSION_COOKIE_MAX_AGE,
       path: '/',
     });
 

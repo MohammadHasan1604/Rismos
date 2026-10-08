@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
 
     if (isSuperAdmin) {
       authorizedChannels.push(getGlobalChannel()); // private-enterprise
+      authorizedChannels.push('private-settings');
       authorizedChannels.push('private-work-activity');
       authorizedChannels.push('private-attendance');
       authorizedChannels.push(`private-user-${user.id}`);
@@ -36,6 +37,8 @@ export async function GET(req: NextRequest) {
       });
     } else {
       const userStore = user.store && user.store !== 'All Stores' ? user.store : 'BLR';
+      authorizedChannels.push(getGlobalChannel()); // private-enterprise (for branding/settings synchronization)
+      authorizedChannels.push('private-settings');
       authorizedChannels.push(getStoreChannel(userStore)); // private-store-<store>
       authorizedChannels.push(`private-user-${user.id}`);
     }

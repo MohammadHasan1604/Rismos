@@ -2106,6 +2106,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refreshDomainData('units');
       } else if (event.includes('store')) {
         refreshDomainData('stores');
+      } else if (
+        event.includes('setting') ||
+        event.includes('branding') ||
+        event.includes('tax') ||
+        event.includes('profile') ||
+        event.includes('invoice') ||
+        event.includes('security') ||
+        event.includes('alert')
+      ) {
+        refreshDomainData('settings');
       }
     });
 

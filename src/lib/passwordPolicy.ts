@@ -1,12 +1,14 @@
+import { prisma } from './db';
+
 /**
  * Enterprise Password Policy Validator & Entropy Scorer
  * Enforces NIST SP 800-63B standards:
- * - Minimum 12 characters
+ * - Minimum 12 characters (or 8 for baseline)
  * - Uppercase letters (A-Z)
  * - Lowercase letters (a-z)
  * - Decimal numbers (0-9)
  * - Special characters (!@#$%^&* etc.)
- * - Rejection of common weak sequences (qwerty, 123456, admin, cosko, repeating chars)
+ * - Rejection of common weak sequences (qwerty, 123456, admin, cosko, rismos, repeating chars)
  */
 
 export interface PasswordValidationResult {
@@ -15,21 +17,26 @@ export interface PasswordValidationResult {
   score: number; // 0-100 (entropy score)
 }
 
-export function validatePassword(password: string): PasswordValidationResult {
+export function validatePassword(
+  password: string,
+  options?: { enforceEnterprise?: boolean }
+): PasswordValidationResult {
   const errors: string[] = [];
   let score = 0;
+  const isEnterprise = options?.enforceEnterprise !== false;
 
   if (!password || typeof password !== 'string') {
     return {
       valid: false,
-      errors: ['Password must be at least 12 characters long'],
+      errors: [isEnterprise ? 'Password must be at least 12 characters long' : 'Password must be at least 8 characters long'],
       score: 0,
     };
   }
 
-  // 1. Length Check (Minimum 12 characters)
-  if (password.length < 12) {
-    errors.push('Password must be at least 12 characters long');
+  // 1. Length Check
+  const minLength = isEnterprise ? 12 : 8;
+  if (password.length < minLength) {
+    errors.push(`Password must be at least ${minLength} characters long`);
   } else {
     score += 20;
   }
@@ -55,9 +62,13 @@ export function validatePassword(password: string): PasswordValidationResult {
     score += 15;
   }
 
-  // 5. Special Characters
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`^]/.test(password)) {
-    errors.push('Password must contain at least one special character (!@#$%^&* etc.)');
+  // 5. Special Characters (Enterprise requirement)
+  if (isEnterprise) {
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`^]/.test(password)) {
+      errors.push('Password must contain at least one special character (!@#$%^&* etc.)');
+    } else {
+      score += 15;
+    }
   } else {
     score += 15;
   }
@@ -113,3 +124,23 @@ export function getPasswordStrengthDisplay(score: number): string {
 
   return `${'█'.repeat(filled)}${'░'.repeat(empty)} ${clamped}% (${strength})`;
 }
+
+/**
+ * Authoritative Server-Side Password Policy Resolver
+ * Checks database systemSettings.enforcePasswordPolicy
+ */
+export async function validatePasswordAgainstPolicy(password: string): Promise<PasswordValidationResult> {
+  let enforceEnterprise = true;
+  try {
+    const sys = await (prisma as any).systemSettings.findFirst({
+      select: { enforcePasswordPolicy: true },
+    });
+    if (sys && sys.enforcePasswordPolicy !== undefined) {
+      enforceEnterprise = Boolean(sys.enforcePasswordPolicy);
+    }
+  } catch {
+    // Fail safe to enterprise
+  }
+  return validatePassword(password, { enforceEnterprise });
+}
+
