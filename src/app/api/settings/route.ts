@@ -5,6 +5,7 @@ import { broadcastRealtimeEvent } from '@/lib/realtime';
 import { ensureStoredImage } from '@/lib/objectStorage';
 import { DEFAULT_BRANDING, invalidateBrandingCache } from '@/lib/branding';
 import { getJurisdictionProfile, LAUNCH_JURISDICTIONS } from '@/lib/localization/jurisdictions';
+import { verifySensitiveAction } from '@/lib/sensitiveAction';
 
 const BRANDING_ID = 'cosko_branding_config';
 const SYSTEM_SETTINGS_ID = 'cosko_system_config';
@@ -282,6 +283,17 @@ export async function POST(req: NextRequest) {
         { error: 'Missing required fields: section and data' },
         { status: 400 }
       );
+    }
+
+    // 🔒 Enforce Server-Authoritative Step-Up Authentication for Critical Configuration Changes
+    if (section === 'security' || section === 'tax') {
+      const stepUp = await verifySensitiveAction(req, body, user, 'CONFIG_CHANGE');
+      if (!stepUp.allowed) {
+        return NextResponse.json(
+          { error: stepUp.error, stepUpRequired: stepUp.stepUpRequired },
+          { status: stepUp.status || 403 }
+        );
+      }
     }
 
     invalidateSettingsCache();

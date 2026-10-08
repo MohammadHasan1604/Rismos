@@ -42,6 +42,7 @@
     "dev": "next dev -p 4028",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
+    "db:migrate": "npx tsx scripts/migrate-production.ts",
     "start": "next start -p 4028",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
@@ -79,8 +80,8 @@
     "test:latency-benchmark": "npx tsx scripts/test-latency-benchmark.ts",
     "test:password-reset": "npx tsx scripts/test-password-reset.ts",
     "test:remediation": "npx tsx tests/remediation.test.ts",
-    "test:load-1000-concurrent": "npx tsx scripts/test-load-1000-concurrent.ts",
-    "test:all": "npx tsx tests/phase1-security.test.ts && npx tsx tests/rismos-whitelabel.test.ts && npx tsx tests/localization-matrix.test.ts && npx tsx tests/responsive-form-modal.test.ts && npx tsx tests/four-issue-hotfix.test.ts && npx tsx tests/phase1-security-matrix.ts && npx tsx tests/final-closure-proof-whatsapp.test.ts && npx tsx tests/remediation.test.ts && npx tsx tests/e2e/production-journey.test.ts"
+    "test:phase1-production": "npx tsx tests/phase1-production-verification.test.ts",
+    "test:all": "npx tsx tests/phase1-security.test.ts && npx tsx tests/phase1-production-verification.test.ts && npx tsx tests/rismos-whitelabel.test.ts && npx tsx tests/localization-matrix.test.ts && npx tsx tests/responsive-form-modal.test.ts && npx tsx tests/four-issue-hotfix.test.ts && npx tsx tests/phase1-security-matrix.ts && npx tsx tests/final-closure-proof-whatsapp.test.ts && npx tsx tests/remediation.test.ts && npx tsx tests/e2e/production-journey.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1121.0",

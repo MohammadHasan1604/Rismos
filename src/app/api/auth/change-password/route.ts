@@ -8,7 +8,7 @@ import {
   isValidAuthOrigin,
 } from '@/lib/auth';
 import { authenticateRequest, invalidateUserSessions, createAuditLog } from '@/lib/authPipeline';
-import { validatePassword } from '@/lib/passwordPolicy';
+import { validatePasswordAgainstPolicy } from '@/lib/passwordPolicy';
 
 /**
  * POST /api/auth/change-password
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const passwordValidation = validatePassword(newPassword);
+    const passwordValidation = await validatePasswordAgainstPolicy(newPassword);
     if (!passwordValidation.valid) {
       return NextResponse.json(
         {

@@ -520,7 +520,7 @@ export async function createAuditLog(
         action,
         details: details.substring(0, 65535),
         userId: user.id,
-        userEmail: user.email,
+        userEmail: user.email || user.name || 'system@rismos.com',
         userRole: user.role,
         storeCode: effectiveStore,
         ipAddress: ipAddress || null,

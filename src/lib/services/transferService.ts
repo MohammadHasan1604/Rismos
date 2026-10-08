@@ -7,6 +7,7 @@ import {
   validateTransferItem,
   formatTransferINR,
 } from '../stockTransferCalculations';
+import { TaxService } from './taxService';
 
 export interface CreateTransferInput {
   sourceStore: string;
@@ -202,6 +203,9 @@ export async function executeStockTransfer(input: CreateTransferInput) {
         data: ledgerEntries,
       });
 
+      const taxContext = await TaxService.resolveTaxContext(sourceStore);
+      const trfCurrency = taxContext.currencyCode || 'INR';
+
       // 6. Record Double-Entry Financial Ledger Entries atomically in a single batched query
       await tx.financialLedgerEntry.createMany({
         data: [
@@ -217,6 +221,7 @@ export async function executeStockTransfer(input: CreateTransferInput) {
             refType: 'STOCK_TRANSFER',
             refId: createdTransfer.id,
             refNo: transferNo,
+            currencyCode: trfCurrency,
             description: `Internal Transfer Margin from ${sourceStore} to ${destStore} (${transferNo})`,
             isEliminated: true,
             createdBy: input.requestedBy,
@@ -233,6 +238,7 @@ export async function executeStockTransfer(input: CreateTransferInput) {
             refType: 'STOCK_TRANSFER',
             refId: createdTransfer.id,
             refNo: transferNo,
+            currencyCode: trfCurrency,
             description: `Inter-store transfer clearing to ${destStore} (${transferNo})`,
             isEliminated: true,
             createdBy: input.requestedBy,
@@ -249,6 +255,7 @@ export async function executeStockTransfer(input: CreateTransferInput) {
             refType: 'STOCK_TRANSFER',
             refId: createdTransfer.id,
             refNo: transferNo,
+            currencyCode: trfCurrency,
             description: `Stock dispatched from ${sourceStore} to ${destStore} (${transferNo})`,
             isEliminated: true,
             createdBy: input.requestedBy,
@@ -265,6 +272,7 @@ export async function executeStockTransfer(input: CreateTransferInput) {
             refType: 'STOCK_TRANSFER',
             refId: createdTransfer.id,
             refNo: transferNo,
+            currencyCode: trfCurrency,
             description: `Stock received at ${destStore} from ${sourceStore} at Transfer Price (${transferNo})`,
             isEliminated: true,
             createdBy: input.requestedBy,
@@ -281,6 +289,7 @@ export async function executeStockTransfer(input: CreateTransferInput) {
             refType: 'STOCK_TRANSFER',
             refId: createdTransfer.id,
             refNo: transferNo,
+            currencyCode: trfCurrency,
             description: `Inter-store transfer payable clearing for receipt from ${sourceStore} (${transferNo})`,
             isEliminated: true,
             createdBy: input.requestedBy,

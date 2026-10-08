@@ -445,6 +445,8 @@ export async function POST(req: NextRequest) {
               timestamp: new Date().toISOString(),
             });
 
+            const poCurrency = (po as any).currencyCode || 'INR';
+
             // Record Double-Entry Financial Ledger Entries atomically in a single batched query
             await tx.financialLedgerEntry.createMany({
               data: [
@@ -460,6 +462,7 @@ export async function POST(req: NextRequest) {
                   refType: 'VENDOR_PAYMENT',
                   refId: payment.id,
                   refNo: voucherNo,
+                  currencyCode: poCurrency,
                   entityName: po.vendor?.name || 'Vendor',
                   description: `Vendor bill payment for Bill #${po.invoiceNo || po.poNo} via ${paymentMethod} (Ref: ${cleanRef})`,
                   metadataJson: ledgerMetadata,
@@ -477,6 +480,7 @@ export async function POST(req: NextRequest) {
                   refType: 'VENDOR_PAYMENT',
                   refId: payment.id,
                   refNo: voucherNo,
+                  currencyCode: poCurrency,
                   entityName: po.vendor?.name || 'Vendor',
                   description: `Bank disbursement for Vendor Bill #${po.invoiceNo || po.poNo} (Voucher ${voucherNo}, Ref: ${cleanRef})`,
                   metadataJson: ledgerMetadata,

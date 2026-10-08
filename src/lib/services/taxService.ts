@@ -35,6 +35,7 @@ export interface CalculatedTaxLine {
   qty: number;
   unitPrice: number;
   discountPercent: number;
+  allocatedCartDiscount: number;
   taxRate: number;
   taxAmount: number;
   lineSubtotal: number;
@@ -46,6 +47,7 @@ export interface CalculatedTaxLine {
 export interface TransactionTaxResult {
   context: TaxContext;
   subtotal: number;
+  netSalesRevenue: number;
   taxAmount: number;
   discountAmount: number;
   grandTotal: number;
@@ -140,15 +142,24 @@ export class TaxService {
   public static calculateLineTax(
     item: LineTaxItem,
     context: TaxContext,
-    options?: { customerState?: string | null }
+    options?: {
+      customerState?: string | null;
+      allocatedCartDiscount?: number;
+      taxComponents?: Array<{ name: string; rate: number }>;
+    }
   ): CalculatedTaxLine {
     const qty = Math.max(1, Number(item.qty) || 1);
     const unitPrice = Math.max(0, Number(item.unitPrice) || 0);
     const discountPercent = Math.max(0, Math.min(100, Number(item.discountPercent) || 0));
 
-    const lineGross = qty * unitPrice;
-    const lineDiscount = lineGross * (discountPercent / 100);
-    const effectiveLinePrice = lineGross - lineDiscount;
+    const lineGross = Math.round(qty * unitPrice * 100) / 100;
+    const itemDiscount = Math.round(lineGross * (discountPercent / 100) * 100) / 100;
+    const lineNetBeforeCart = Math.max(0, Math.round((lineGross - itemDiscount) * 100) / 100);
+
+    const allocatedCartDiscount = Math.max(
+      0,
+      Math.min(lineNetBeforeCart, Math.round(Number(options?.allocatedCartDiscount || 0) * 100) / 100)
+    );
 
     // Resolve line tax rate: use product-specific rate if available, else fall back to context default
     let taxRate = context.defaultTaxRate;
@@ -165,13 +176,22 @@ export class TaxService {
 
     if (context.taxInclusivePricing) {
       // Shelf price includes tax
-      lineTotal = Math.round(effectiveLinePrice * 100) / 100;
-      lineSubtotal = Math.round((effectiveLinePrice / (1 + taxRate / 100)) * 100) / 100;
-      taxAmount = Math.round((lineTotal - lineSubtotal) * 100) / 100;
+      lineTotal = Math.max(0, Math.round((lineNetBeforeCart - allocatedCartDiscount) * 100) / 100);
+      if (taxRate > 0) {
+        lineSubtotal = Math.round((lineTotal / (1 + taxRate / 100)) * 100) / 100;
+        taxAmount = Math.max(0, Math.round((lineTotal - lineSubtotal) * 100) / 100);
+      } else {
+        lineSubtotal = lineTotal;
+        taxAmount = 0;
+      }
     } else {
       // Shelf price is exclusive of tax
-      lineSubtotal = Math.round(effectiveLinePrice * 100) / 100;
-      taxAmount = Math.round(((lineSubtotal * taxRate) / 100) * 100) / 100;
+      lineSubtotal = Math.max(0, Math.round((lineNetBeforeCart - allocatedCartDiscount) * 100) / 100);
+      if (taxRate > 0) {
+        taxAmount = Math.round(((lineSubtotal * taxRate) / 100) * 100) / 100;
+      } else {
+        taxAmount = 0;
+      }
       lineTotal = Math.round((lineSubtotal + taxAmount) * 100) / 100;
     }
 
@@ -197,13 +217,13 @@ export class TaxService {
         breakdown.push({ name: 'IGST', rate: taxRate, amount: taxAmount });
       }
     } else if (context.countryCode === 'US' && taxRate > 0) {
-      const stateRate = Math.min(taxRate, 6.0);
-      const localRate = Math.max(0, taxRate - stateRate);
-      const stateTax = Math.round(((lineSubtotal * stateRate) / 100) * 100) / 100;
-      const localTax = Math.round((taxAmount - stateTax) * 100) / 100;
-      breakdown.push({ name: 'State Tax', rate: stateRate, amount: stateTax });
-      if (localRate > 0) {
-        breakdown.push({ name: 'Local/City Tax', rate: localRate, amount: localTax });
+      if (options?.taxComponents && options.taxComponents.length > 0) {
+        for (const comp of options.taxComponents) {
+          const compTax = Math.round(((lineSubtotal * comp.rate) / 100) * 100) / 100;
+          breakdown.push({ name: comp.name, rate: comp.rate, amount: compTax });
+        }
+      } else {
+        breakdown.push({ name: `Sales Tax (${taxRate}%)`, rate: taxRate, amount: taxAmount });
       }
     } else if (taxRate > 0) {
       breakdown.push({ name: context.taxLabel, rate: taxRate, amount: taxAmount });
@@ -216,6 +236,7 @@ export class TaxService {
       qty,
       unitPrice,
       discountPercent,
+      allocatedCartDiscount,
       taxRate,
       taxAmount,
       lineSubtotal,
@@ -226,24 +247,86 @@ export class TaxService {
   }
 
   /**
-   * Authoritative transaction tax calculation over full cart
+   * Authoritative transaction tax calculation over full cart with deterministic proportional discount allocation
    */
   public static calculateTransactionTax(
     items: LineTaxItem[],
     context: TaxContext,
     discountAmount: number = 0,
-    options?: { customerState?: string | null }
+    options?: {
+      customerState?: string | null;
+      taxComponents?: Array<{ name: string; rate: number }>;
+    }
   ): TransactionTaxResult {
-    let subtotal = 0;
+    // 1. Calculate line bases before cart discount
+    const preCartLineBases: number[] = [];
+    let totalCartEligible = 0;
+
+    for (const item of items) {
+      const qty = Math.max(1, Number(item.qty) || 1);
+      const unitPrice = Math.max(0, Number(item.unitPrice) || 0);
+      const discountPercent = Math.max(0, Math.min(100, Number(item.discountPercent) || 0));
+
+      const lineGross = Math.round(qty * unitPrice * 100) / 100;
+      const itemDiscount = Math.round(lineGross * (discountPercent / 100) * 100) / 100;
+      const lineNetBeforeCart = Math.max(0, Math.round((lineGross - itemDiscount) * 100) / 100);
+
+      preCartLineBases.push(lineNetBeforeCart);
+      totalCartEligible += lineNetBeforeCart;
+    }
+
+    totalCartEligible = Math.round(totalCartEligible * 100) / 100;
+
+    const safeDiscount = Math.max(
+      0,
+      Math.min(totalCartEligible, Math.round(Number(discountAmount || 0) * 100) / 100)
+    );
+
+    // 2. Proportionally allocate cart discount across applicable lines
+    const allocatedDiscounts: number[] = new Array(items.length).fill(0);
+    if (safeDiscount > 0 && totalCartEligible > 0) {
+      let allocatedTotal = 0;
+      let maxBaseIndex = 0;
+      let maxBase = -1;
+
+      for (let i = 0; i < items.length; i++) {
+        const base = preCartLineBases[i];
+        if (base > maxBase) {
+          maxBase = base;
+          maxBaseIndex = i;
+        }
+        const lineShare = Math.round((safeDiscount * (base / totalCartEligible)) * 100) / 100;
+        allocatedDiscounts[i] = lineShare;
+        allocatedTotal += lineShare;
+      }
+
+      // Reconcile rounding difference to the largest eligible line
+      allocatedTotal = Math.round(allocatedTotal * 100) / 100;
+      const diff = Math.round((safeDiscount - allocatedTotal) * 100) / 100;
+      if (diff !== 0 && maxBase > 0) {
+        allocatedDiscounts[maxBaseIndex] = Math.round((allocatedDiscounts[maxBaseIndex] + diff) * 100) / 100;
+      }
+    }
+
+    // 3. Calculate taxes for each line on its adjusted taxable amount
+    let netSalesRevenue = 0;
     let totalTaxAmount = 0;
+    let grandTotal = 0;
     const lines: CalculatedTaxLine[] = [];
     const aggregatedBreakdown = new Map<string, { rate: number; amount: number }>();
 
-    for (const item of items) {
-      const line = this.calculateLineTax(item, context, options);
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const allocatedDiscount = allocatedDiscounts[i];
+      const line = this.calculateLineTax(item, context, {
+        ...options,
+        allocatedCartDiscount: allocatedDiscount,
+      });
+
       lines.push(line);
-      subtotal += line.lineSubtotal;
+      netSalesRevenue += line.lineSubtotal;
       totalTaxAmount += line.taxAmount;
+      grandTotal += line.lineTotal;
 
       for (const bd of line.breakdown) {
         const existing = aggregatedBreakdown.get(bd.name) || { rate: bd.rate, amount: 0 };
@@ -252,13 +335,13 @@ export class TaxService {
       }
     }
 
-    subtotal = Math.round(subtotal * 100) / 100;
+    netSalesRevenue = Math.round(netSalesRevenue * 100) / 100;
     totalTaxAmount = Math.round(totalTaxAmount * 100) / 100;
-    const safeDiscount = Math.max(0, Math.round(Number(discountAmount || 0) * 100) / 100);
+    grandTotal = Math.round(grandTotal * 100) / 100;
 
-    const grandTotal = context.taxInclusivePricing
-      ? Math.max(0, Math.round((subtotal + totalTaxAmount - safeDiscount) * 100) / 100)
-      : Math.max(0, Math.round((subtotal + totalTaxAmount - safeDiscount) * 100) / 100);
+    const subtotal = context.taxInclusivePricing
+      ? Math.round((netSalesRevenue + totalTaxAmount + safeDiscount) * 100) / 100
+      : Math.round((netSalesRevenue + safeDiscount) * 100) / 100;
 
     const taxBreakdown = Array.from(aggregatedBreakdown.entries()).map(([name, val]) => ({
       name,
@@ -271,6 +354,7 @@ export class TaxService {
     return {
       context,
       subtotal,
+      netSalesRevenue,
       taxAmount: totalTaxAmount,
       discountAmount: safeDiscount,
       grandTotal,
@@ -295,7 +379,10 @@ export class TaxService {
   /**
    * Helper to format localized tax labels
    */
-  public static getInvoiceLabels(countryCode?: string | null, rate?: number | string | null): string {
+  public static getInvoiceLabels(
+    countryCode?: string | null,
+    rate?: number | string | null
+  ): string {
     const profile = getJurisdictionProfile(countryCode);
     const numRate = rate !== undefined && rate !== null ? Number(rate) : profile.defaultTaxRate;
     if (isNaN(numRate) || numRate <= 0) {
@@ -304,3 +391,4 @@ export class TaxService {
     return `${profile.taxLabel} (${numRate}%)`;
   }
 }
+

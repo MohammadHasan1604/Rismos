@@ -11,6 +11,7 @@ import { broadcastRealtimeEvent, getStoreChannel } from '@/lib/realtime';
 import { generateSafeSequenceNo } from '@/lib/sequenceUtils';
 import { executeWithIdempotency } from '@/lib/idempotency';
 import { validatePaymentMethod } from '@/lib/paymentValidator';
+import { TaxService } from '@/lib/services/taxService';
 
 /**
  * GET /api/expenses - Retrieve store/central expenses
@@ -193,6 +194,9 @@ export async function POST(req: NextRequest) {
             });
 
             const entrySuffix = Date.now().toString().slice(-4);
+            const taxContext = await TaxService.resolveTaxContext(expenseStore);
+            const expCurrency = taxContext.currencyCode || 'INR';
+
             await tx.financialLedgerEntry.createMany({
               data: [
                 {
@@ -207,6 +211,7 @@ export async function POST(req: NextRequest) {
                   refType: 'EXPENSE',
                   refId: expense.id,
                   refNo: expenseNo,
+                  currencyCode: expCurrency,
                   description: `${body.category} Expense: ${body.description || 'General Operational Expense'} (Ref: ${cleanRef})`,
                   metadataJson: expLedgerMeta,
                   createdBy: user.name,
@@ -223,6 +228,7 @@ export async function POST(req: NextRequest) {
                   refType: 'EXPENSE',
                   refId: expense.id,
                   refNo: expenseNo,
+                  currencyCode: expCurrency,
                   description: `Disbursement for ${body.category} (Voucher ${expenseNo}, Ref: ${cleanRef})`,
                   metadataJson: expLedgerMeta,
                   createdBy: user.name,

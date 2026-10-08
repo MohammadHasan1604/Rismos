@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import CustomSelect, { SelectOption } from '@/components/ui/CustomSelect';
+import { useApp } from '@/context/AppContext';
 
 export interface PaymentMethodSelectProps {
   value: string;
@@ -18,10 +19,19 @@ export interface PaymentMethodSelectProps {
   modalZIndex?: number;
 }
 
-// Requirement 12: Across POS and other applicable payment forms show exactly: Cash, UPI, Other
-const EXACT_PAYMENT_METHODS = [
+interface PaymentMethodItem {
+  id?: string;
+  name: string;
+  type?: string;
+  status?: string;
+  label?: string;
+  sublabel?: string;
+  badge?: string;
+}
+
+const BASELINE_FALLBACK: PaymentMethodItem[] = [
   { name: 'Cash', label: 'Cash', sublabel: 'Cash Currency Payment', badge: 'Cash' },
-  { name: 'UPI', label: 'UPI', sublabel: 'UPI QR / Digital Payment', badge: 'Digital' },
+  { name: 'Card', label: 'Card', sublabel: 'Card POS Payment', badge: 'Card' },
   { name: 'Other', label: 'Other', sublabel: 'Other Payment Method', badge: 'Other' },
 ];
 
@@ -37,16 +47,61 @@ export default function PaymentMethodSelect({
   size = 'md',
   className = '',
 }: PaymentMethodSelectProps) {
-  // Generate options for the exact 3 payment methods
+  let contextPaymentMethods: PaymentMethodItem[] | null = null;
+  try {
+    const appCtx = useApp();
+    if (appCtx && Array.isArray(appCtx.paymentMethods)) {
+      contextPaymentMethods = appCtx.paymentMethods;
+    }
+  } catch {
+    // Component mounted outside AppProvider
+  }
+
+  const [fetchedMethods, setFetchedMethods] = useState<PaymentMethodItem[]>([]);
+
+  useEffect(() => {
+    if (!contextPaymentMethods || contextPaymentMethods.length === 0) {
+      let isMounted = true;
+      fetch('/api/payment-methods')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (isMounted && data?.paymentMethods && Array.isArray(data.paymentMethods)) {
+            setFetchedMethods(data.paymentMethods);
+          }
+        })
+        .catch(() => {});
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [contextPaymentMethods]);
+
+  // Authoritative source: DB PaymentMethod table (active only)
+  const activeMethods: PaymentMethodItem[] = useMemo(() => {
+    const source = (contextPaymentMethods && contextPaymentMethods.length > 0)
+      ? contextPaymentMethods
+      : (fetchedMethods.length > 0 ? fetchedMethods : BASELINE_FALLBACK);
+
+    return source
+      .filter((m) => !m.status || m.status === 'Active')
+      .map((m) => ({
+        name: m.name,
+        label: m.label || m.name,
+        sublabel: m.sublabel || `${m.type || m.name} payment instrument`,
+        badge: m.badge || (m.type || m.name),
+      }));
+  }, [contextPaymentMethods, fetchedMethods]);
+
+  // Generate options for CustomSelect dropdown
   const selectOptions: SelectOption[] = useMemo(() => {
-    const list: SelectOption[] = EXACT_PAYMENT_METHODS.map((pm) => ({
+    const list: SelectOption[] = activeMethods.map((pm) => ({
       value: pm.name,
-      label: pm.label,
+      label: pm.label || pm.name,
       sublabel: pm.sublabel,
       badge: pm.badge,
     }));
 
-    // Data Integrity: If current value is historical/different (e.g. Card, Net Banking), preserve it!
+    // Data Integrity: If current value is historical/inactive, preserve and display it!
     if (value && !list.some((pm) => pm.value.toLowerCase() === value.toLowerCase())) {
       list.unshift({
         value,
@@ -57,7 +112,7 @@ export default function PaymentMethodSelect({
     }
 
     return list;
-  }, [value]);
+  }, [activeMethods, value]);
 
   if (layout === 'pills') {
     return (
@@ -69,7 +124,7 @@ export default function PaymentMethodSelect({
         )}
 
         <div className="grid grid-cols-3 gap-2">
-          {EXACT_PAYMENT_METHODS.map((m) => {
+          {activeMethods.map((m) => {
             const isSelected = value?.toLowerCase() === m.name.toLowerCase();
             return (
               <button
@@ -90,7 +145,7 @@ export default function PaymentMethodSelect({
 
           {/* Historical fallback pill if currently selected */}
           {value &&
-            !EXACT_PAYMENT_METHODS.some((m) => m.name.toLowerCase() === value.toLowerCase()) && (
+            !activeMethods.some((m) => m.name.toLowerCase() === value.toLowerCase()) && (
               <button
                 type="button"
                 disabled={disabled}
@@ -107,7 +162,7 @@ export default function PaymentMethodSelect({
     );
   }
 
-  // Default: Dropdown layout with responsive BottomSheet on mobile
+  // Default: Dropdown layout
   return (
     <CustomSelect
       options={selectOptions}
@@ -118,7 +173,6 @@ export default function PaymentMethodSelect({
       disabled={disabled}
       placeholder={placeholder}
       searchPlaceholder={searchPlaceholder}
-      searchable={false}
       size={size}
       className={className}
     />

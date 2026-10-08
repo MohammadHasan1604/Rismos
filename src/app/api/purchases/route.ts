@@ -10,6 +10,7 @@ import { broadcastRealtimeEvent, getStoreChannel } from '@/lib/realtime';
 import { generateSafeSequenceNo, generateDateSequenceNo } from '@/lib/sequenceUtils';
 import { executeWithIdempotency } from '@/lib/idempotency';
 import { validatePaymentMethod } from '@/lib/paymentValidator';
+import { TaxService } from '@/lib/services/taxService';
 
 /**
  * GET /api/purchases - Retrieve purchase orders with authoritative payment reconciliation
@@ -301,42 +302,32 @@ export async function POST(req: NextRequest) {
           effectiveDueDate = d;
         }
 
-        // ─── 1. PRE-PROCESS ITEMS & PRODUCTS OUTSIDE $transaction ───────────
-        let subtotal = 0;
-        let totalTax = 0;
-        let totalDiscount = 0;
-        const preparedItems: any[] = [];
+        // ─── 1. RESOLVE AUTHORITATIVE TAX CONTEXT & PRE-PROCESS ITEMS ─────
+        const taxContext = await TaxService.resolveTaxContext(effectiveStoreCode);
 
+        const preprocessedLineItems: any[] = [];
         for (const it of body.items) {
-          const itemQty = Number(it.qty) || 1;
+          const itemQty = Math.max(1, Number(it.qty) || 1);
           const itemUnitCost = Number(
             it.unitCost !== undefined && it.unitCost !== null ? it.unitCost : it.costPrice || 0
           );
-          const itemDiscount = Number(it.discount || 0);
-          const itemSubtotal = itemQty * itemUnitCost;
-          const discountedBase = Math.max(0, itemSubtotal - itemDiscount);
-          const itemTaxRate = Number(it.taxRate || 0);
-          const itemTax =
-            it.taxAmount !== undefined && it.taxAmount !== null
-              ? Number(it.taxAmount)
-              : Math.round(((discountedBase * itemTaxRate) / 100) * 100) / 100;
-          const itemLineTotal =
-            it.lineTotal !== undefined && it.lineTotal !== null
-              ? Number(it.lineTotal)
-              : Math.round((discountedBase + itemTax) * 100) / 100;
+          const itemDiscount = Math.max(0, Number(it.discount || 0));
+          const lineGross = Math.round(itemQty * itemUnitCost * 100) / 100;
+          const discountPercent = lineGross > 0 ? (itemDiscount / lineGross) * 100 : 0;
 
-          subtotal += itemSubtotal;
-          totalDiscount += itemDiscount;
-          totalTax += itemTax;
-
-          // Pre-resolve product master record outside transaction to keep transaction lightning-fast
+          // Pre-resolve product master record outside transaction
           let prodId = it.productId;
-          if (!prodId) {
+          let dbProduct: any = null;
+          if (prodId) {
+            dbProduct = await prisma.product.findUnique({ where: { id: prodId } });
+          }
+          if (!prodId || !dbProduct) {
             const matchedProd = await prisma.product.findFirst({
               where: { OR: [{ sku: it.sku || '' }, { name: it.name || '' }] },
             });
             if (matchedProd) {
               prodId = matchedProd.id;
+              dbProduct = matchedProd;
             } else {
               const newProd = await prisma.product.create({
                 data: {
@@ -345,31 +336,71 @@ export async function POST(req: NextRequest) {
                   category: it.category || 'General',
                   baseCostPrice: itemUnitCost,
                   baseSellingPrice: 0,
-                  gstRate: itemTaxRate,
+                  gstRate: Number(it.taxRate) || taxContext.defaultTaxRate,
                   status: 'active',
                 },
               });
               prodId = newProd.id;
+              dbProduct = newProd;
             }
           }
 
-          preparedItems.push({
+          const productTaxRate =
+            it.taxRate !== undefined && it.taxRate !== null
+              ? Number(it.taxRate)
+              : dbProduct?.gstRate !== undefined && dbProduct?.gstRate !== null
+                ? Number(dbProduct.gstRate)
+                : null;
+
+          preprocessedLineItems.push({
             productId: prodId,
-            qtyOrdered: itemQty,
-            qtyReceived: body.status === 'Received' ? itemQty : 0,
-            unitCost: itemUnitCost,
-            taxRate: itemTaxRate,
-            taxAmount: itemTax,
-            discount: itemDiscount,
-            lineTotal: itemLineTotal,
+            productName: it.name || dbProduct?.name || 'Purchased Item',
+            sku: it.sku || dbProduct?.sku || prodId,
+            qty: itemQty,
+            unitPrice: itemUnitCost,
+            discountPercent,
+            productTaxRate,
+            hsnSac: dbProduct?.hsnSac || null,
           });
         }
 
-        subtotal = Math.round(subtotal * 100) / 100;
-        totalDiscount = Math.round(totalDiscount * 100) / 100;
-        totalTax = Math.round(totalTax * 100) / 100;
-        const calculatedGrandTotal = Math.round((subtotal - totalDiscount + totalTax) * 100) / 100;
-        const totalCost = calculatedGrandTotal;
+        // Authoritative transaction tax calculation via TaxService
+        const cartDiscount = Number(
+          body.discountAmount !== undefined ? body.discountAmount : body.discount || 0
+        );
+        const taxResult = TaxService.calculateTransactionTax(
+          preprocessedLineItems,
+          taxContext,
+          cartDiscount
+        );
+
+        const subtotal = taxResult.subtotal;
+        const totalTax = taxResult.taxAmount;
+        const totalDiscount = taxResult.discountAmount;
+        const totalCost = taxResult.grandTotal;
+
+        const preparedItems = taxResult.lines.map((taxLine) => {
+          const origPre = preprocessedLineItems.find((p) => p.productId === taxLine.productId);
+          const origDiscountAmt = origPre
+            ? Math.round(
+                taxLine.qty * taxLine.unitPrice * (taxLine.discountPercent / 100) * 100
+              ) / 100
+            : 0;
+          const totalLineDiscount =
+            Math.round((origDiscountAmt + taxLine.allocatedCartDiscount) * 100) / 100;
+
+          return {
+            productId: taxLine.productId,
+            qtyOrdered: taxLine.qty,
+            qtyReceived: body.status === 'Received' ? taxLine.qty : 0,
+            unitCost: taxLine.unitPrice,
+            taxRate: taxLine.taxRate,
+            taxAmount: taxLine.taxAmount,
+            discount: totalLineDiscount,
+            lineTotal: taxLine.lineTotal,
+          };
+        });
+
         const creditAmount = body.creditAmount ? Number(body.creditAmount) : 0;
 
         let paidAmount = 0;
@@ -437,6 +468,16 @@ export async function POST(req: NextRequest) {
                 expectedDate: body.expectedDate ? new Date(body.expectedDate) : effectiveDueDate,
                 notes: body.notes || null,
                 createdBy: user.name,
+                countryCode: taxContext.countryCode,
+                currencyCode: taxContext.currencyCode,
+                taxRegime: taxContext.taxRegime,
+                taxBreakdownJson: JSON.stringify({
+                  breakdown: taxResult.taxBreakdown,
+                  invoiceSnapshot: taxResult.invoiceSnapshot,
+                  taxConfigVersion: taxContext.taxConfigVersion,
+                  taxRegistrationSnapshot: taxContext.taxRegistrationNumber || null,
+                  taxJurisdictionState: taxContext.taxJurisdictionState || null,
+                }),
               },
             });
 
@@ -496,6 +537,7 @@ export async function POST(req: NextRequest) {
                     refType: 'VENDOR_PAYMENT',
                     refId: payment.id,
                     refNo: voucherNo,
+                    currencyCode: taxContext.currencyCode,
                     entityName: vendor.name,
                     description: `Initial payment for PO ${poNo} (${vendor.name}) via ${paymentMethod} (Ref: ${initRef})`,
                     metadataJson: poLedgerMeta,
@@ -513,6 +555,7 @@ export async function POST(req: NextRequest) {
                     refType: 'VENDOR_PAYMENT',
                     refId: payment.id,
                     refNo: voucherNo,
+                    currencyCode: taxContext.currencyCode,
                     entityName: vendor.name,
                     description: `Bank disbursement for PO ${poNo} (Voucher ${voucherNo}, Ref: ${initRef})`,
                     metadataJson: poLedgerMeta,
@@ -614,6 +657,7 @@ export async function POST(req: NextRequest) {
                     refType: 'PURCHASE_GRN',
                     refId: createdPO.id,
                     refNo: poNo,
+                    currencyCode: taxContext.currencyCode,
                     entityName: body.vendorName,
                     description: `Goods Received Note (${grnNo}) against PO ${poNo}`,
                     createdBy: user.name,
@@ -630,6 +674,7 @@ export async function POST(req: NextRequest) {
                     refType: 'PURCHASE_GRN',
                     refId: createdPO.id,
                     refNo: poNo,
+                    currencyCode: taxContext.currencyCode,
                     entityName: body.vendorName,
                     description: `Accounts Payable liability for PO ${poNo} (${body.vendorName})`,
                     createdBy: user.name,
@@ -758,6 +803,8 @@ export async function PUT(req: NextRequest) {
     let updatedTaxAmount = Number(existing.taxAmount) || 0;
     let updatedDiscountAmount = Number(existing.discountAmount) || 0;
     let updatedTotalCost = Number(existing.totalCost) || 0;
+    let updatedTaxBreakdownJson: string | null = null;
+    const taxContext = await TaxService.resolveTaxContext(targetStore);
 
     if (
       body.items &&
@@ -765,40 +812,29 @@ export async function PUT(req: NextRequest) {
       body.items.length > 0 &&
       existing.status !== 'Received'
     ) {
-      let sub = 0;
-      let tax = 0;
-      let disc = 0;
-      preparedUpdateItems = [];
+      const preprocessedUpdateItems: any[] = [];
 
       for (const it of body.items) {
-        const itemQty = Number(it.qty) || 1;
+        const itemQty = Math.max(1, Number(it.qty) || 1);
         const itemUnitCost = Number(
           it.unitCost !== undefined && it.unitCost !== null ? it.unitCost : it.costPrice || 0
         );
-        const itemDiscount = Number(it.discount || 0);
-        const itemSubtotal = itemQty * itemUnitCost;
-        const discountedBase = Math.max(0, itemSubtotal - itemDiscount);
-        const itemTaxRate = Number(it.taxRate || 0);
-        const itemTax =
-          it.taxAmount !== undefined && it.taxAmount !== null
-            ? Number(it.taxAmount)
-            : Math.round(((discountedBase * itemTaxRate) / 100) * 100) / 100;
-        const itemLineTotal =
-          it.lineTotal !== undefined && it.lineTotal !== null
-            ? Number(it.lineTotal)
-            : Math.round((discountedBase + itemTax) * 100) / 100;
-
-        sub += itemSubtotal;
-        disc += itemDiscount;
-        tax += itemTax;
+        const itemDiscount = Math.max(0, Number(it.discount || 0));
+        const lineGross = Math.round(itemQty * itemUnitCost * 100) / 100;
+        const discountPercent = lineGross > 0 ? (itemDiscount / lineGross) * 100 : 0;
 
         let prodId = it.productId;
-        if (!prodId) {
+        let dbProduct: any = null;
+        if (prodId) {
+          dbProduct = await prisma.product.findUnique({ where: { id: prodId } });
+        }
+        if (!prodId || !dbProduct) {
           const matchedProd = await prisma.product.findFirst({
             where: { OR: [{ sku: it.sku || '' }, { name: it.name || '' }] },
           });
           if (matchedProd) {
             prodId = matchedProd.id;
+            dbProduct = matchedProd;
           } else {
             const newProd = await prisma.product.create({
               data: {
@@ -807,32 +843,81 @@ export async function PUT(req: NextRequest) {
                 category: it.category || 'General',
                 baseCostPrice: itemUnitCost,
                 baseSellingPrice: 0,
-                gstRate: itemTaxRate,
+                gstRate: Number(it.taxRate) || taxContext.defaultTaxRate,
                 status: 'active',
               },
             });
             prodId = newProd.id;
+            dbProduct = newProd;
           }
         }
 
-        preparedUpdateItems.push({
-          poId: existing.id,
+        const productTaxRate =
+          it.taxRate !== undefined && it.taxRate !== null
+            ? Number(it.taxRate)
+            : dbProduct?.gstRate !== undefined && dbProduct?.gstRate !== null
+              ? Number(dbProduct.gstRate)
+              : null;
+
+        preprocessedUpdateItems.push({
           productId: prodId,
-          qtyOrdered: itemQty,
-          qtyReceived: 0,
-          unitCost: itemUnitCost,
-          taxRate: itemTaxRate,
-          taxAmount: itemTax,
-          discount: itemDiscount,
-          lineTotal: itemLineTotal,
+          productName: it.name || dbProduct?.name || 'Purchased Item',
+          sku: it.sku || dbProduct?.sku || prodId,
+          qty: itemQty,
+          unitPrice: itemUnitCost,
+          discountPercent,
+          productTaxRate,
+          hsnSac: dbProduct?.hsnSac || null,
         });
       }
 
-      updatedSubtotal = Math.round(sub * 100) / 100;
-      updatedDiscountAmount = Math.round(disc * 100) / 100;
-      updatedTaxAmount = Math.round(tax * 100) / 100;
-      updatedTotalCost =
-        Math.round((updatedSubtotal - updatedDiscountAmount + updatedTaxAmount) * 100) / 100;
+      const cartDiscount = Number(
+        body.discountAmount !== undefined
+          ? body.discountAmount
+          : body.discount !== undefined
+            ? body.discount
+            : existing.discountAmount || 0
+      );
+      const taxResult = TaxService.calculateTransactionTax(
+        preprocessedUpdateItems,
+        taxContext,
+        cartDiscount
+      );
+
+      updatedSubtotal = taxResult.subtotal;
+      updatedTaxAmount = taxResult.taxAmount;
+      updatedDiscountAmount = taxResult.discountAmount;
+      updatedTotalCost = taxResult.grandTotal;
+      updatedTaxBreakdownJson = JSON.stringify({
+        breakdown: taxResult.taxBreakdown,
+        invoiceSnapshot: taxResult.invoiceSnapshot,
+        taxConfigVersion: taxContext.taxConfigVersion,
+        taxRegistrationSnapshot: taxContext.taxRegistrationNumber || null,
+        taxJurisdictionState: taxContext.taxJurisdictionState || null,
+      });
+
+      preparedUpdateItems = taxResult.lines.map((taxLine) => {
+        const origPre = preprocessedUpdateItems.find((p) => p.productId === taxLine.productId);
+        const origDiscountAmt = origPre
+          ? Math.round(
+              taxLine.qty * taxLine.unitPrice * (taxLine.discountPercent / 100) * 100
+            ) / 100
+          : 0;
+        const totalLineDiscount =
+          Math.round((origDiscountAmt + taxLine.allocatedCartDiscount) * 100) / 100;
+
+        return {
+          poId: existing.id,
+          productId: taxLine.productId,
+          qtyOrdered: taxLine.qty,
+          qtyReceived: 0,
+          unitCost: taxLine.unitPrice,
+          taxRate: taxLine.taxRate,
+          taxAmount: taxLine.taxAmount,
+          discount: totalLineDiscount,
+          lineTotal: taxLine.lineTotal,
+        };
+      });
     }
 
     // Execute atomic update & stock credit if receiving
@@ -937,6 +1022,7 @@ export async function PUT(req: NextRequest) {
 
             // Batch create Financial Ledger Entries for GRN Receiving in 1 query
             const poTotalCost = Number(updatedTotalCost ?? existing.totalCost) || 0;
+            const poCurrency = (existing as any).currencyCode || taxContext.currencyCode || 'INR';
             await tx.financialLedgerEntry.createMany({
               data: [
                 {
@@ -951,6 +1037,7 @@ export async function PUT(req: NextRequest) {
                   refType: 'PURCHASE_GRN',
                   refId: existing.id,
                   refNo: existing.poNo,
+                  currencyCode: poCurrency,
                   entityName: existing.vendor?.name || 'Vendor',
                   description: `Goods Received Note (${grnNo}) against PO ${existing.poNo}`,
                   createdBy: user.name,
@@ -967,6 +1054,7 @@ export async function PUT(req: NextRequest) {
                   refType: 'PURCHASE_GRN',
                   refId: existing.id,
                   refNo: existing.poNo,
+                  currencyCode: poCurrency,
                   entityName: existing.vendor?.name || 'Vendor',
                   description: `Accounts Payable liability for PO ${existing.poNo}`,
                   createdBy: user.name,
@@ -1015,6 +1103,10 @@ export async function PUT(req: NextRequest) {
                   taxAmount: updatedTaxAmount,
                   discountAmount: updatedDiscountAmount,
                   totalCost: updatedTotalCost,
+                  taxBreakdownJson: updatedTaxBreakdownJson,
+                  countryCode: taxContext.countryCode,
+                  currencyCode: taxContext.currencyCode,
+                  taxRegime: taxContext.taxRegime,
                 }
               : {}),
           },

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { authenticateRequest, hasPermission, createAuditLog } from '@/lib/authPipeline';
 import { broadcastRealtimeEvent } from '@/lib/realtime';
 
-import { validatePaymentMethod } from '@/lib/paymentValidator';
+import { validatePaymentMethod, invalidatePaymentMethodCache } from '@/lib/paymentValidator';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,9 +12,18 @@ const DEFAULT_PAYMENT_METHODS = [
     name: 'Cash',
     code: 'CASH',
     type: 'Cash',
-    description: 'Cash payment / cash on counter',
+    description: 'Cash currency payment',
     isSystem: true,
     sortOrder: 1,
+    status: 'Active',
+  },
+  {
+    name: 'Card',
+    code: 'CARD',
+    type: 'Card',
+    description: 'Credit or Debit Card transaction',
+    isSystem: true,
+    sortOrder: 2,
     status: 'Active',
   },
   {
@@ -22,8 +31,26 @@ const DEFAULT_PAYMENT_METHODS = [
     code: 'UPI',
     type: 'UPI',
     description: 'Instant UPI / QR Code payment',
-    isSystem: true,
-    sortOrder: 2,
+    isSystem: false,
+    sortOrder: 3,
+    status: 'Active',
+  },
+  {
+    name: 'Bank Transfer',
+    code: 'BANK',
+    type: 'Bank',
+    description: 'Direct wire / bank transfer',
+    isSystem: false,
+    sortOrder: 4,
+    status: 'Active',
+  },
+  {
+    name: 'Credit',
+    code: 'CREDIT',
+    type: 'Credit',
+    description: 'Customer store credit / receivable account',
+    isSystem: false,
+    sortOrder: 5,
     status: 'Active',
   },
   {
@@ -32,7 +59,7 @@ const DEFAULT_PAYMENT_METHODS = [
     type: 'Other',
     description: 'Other verified payment instrument',
     isSystem: true,
-    sortOrder: 3,
+    sortOrder: 6,
     status: 'Active',
   },
 ];
@@ -44,6 +71,7 @@ const CACHE_TTL = 30_000;
 function invalidateCache() {
   cachedPayload = null;
   lastCacheTime = 0;
+  invalidatePaymentMethodCache();
 }
 
 export async function GET(req: NextRequest) {

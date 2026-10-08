@@ -86,29 +86,41 @@ export async function getNextSequenceNumber(
     return `${prefix}${padded}`;
   };
 
-  try {
-    if (client) {
-      // Caller already provided an active interactive transaction
-      return await executeAtomicIncrement(client);
-    } else {
-      // Self-contained transaction
-      return await prisma.$transaction(
-        async (tx) => {
-          return await executeAtomicIncrement(tx);
-        },
-        {
-          maxWait: 15000,
-          timeout: 45000,
-          isolationLevel: 'ReadCommitted',
-        }
-      );
+  let lastError: any = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      if (client) {
+        // Caller already provided an active interactive transaction
+        return await executeAtomicIncrement(client);
+      } else {
+        // Self-contained transaction
+        return await prisma.$transaction(
+          async (tx) => {
+            return await executeAtomicIncrement(tx);
+          },
+          {
+            maxWait: 15000,
+            timeout: 45000,
+            isolationLevel: 'ReadCommitted',
+          }
+        );
+      }
+    } catch (error: any) {
+      lastError = error;
+      if (client) {
+        // Don't retry inside caller-managed transaction
+        break;
+      }
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 150));
+      }
     }
-  } catch (error) {
-    console.error(`[SEQUENCE] Failed to atomically generate "${prefix}" sequence:`, error);
-    // Cryptographically secure fallback to prevent catastrophic checkout failure
-    const uuid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
-    return `${prefix}-${uuid}`;
   }
+
+  console.error(`[SEQUENCE] Failed to atomically generate "${prefix}" sequence:`, lastError);
+  // Cryptographically secure fallback to prevent catastrophic checkout failure
+  const uuid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  return `${prefix}-${uuid}`;
 }
 
 /**

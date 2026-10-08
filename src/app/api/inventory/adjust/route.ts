@@ -9,6 +9,8 @@ import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent, getStoreChannel, persistOutboxEvent } from '@/lib/realtime';
 
 import { executeWithIdempotency } from '@/lib/idempotency';
+import { verifySensitiveAction } from '@/lib/sensitiveAction';
+import { TaxService } from '@/lib/services/taxService';
 
 /**
  * POST /api/inventory/adjust - Atomic stock adjustment with ledger entry and idempotency protection
@@ -80,6 +82,18 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // 🔒 Enforce Server-Authoritative Step-Up Authentication for Stock Write-Offs / Loss Adjustments
+    if (resolvedQtyChange < 0) {
+      const stepUp = await verifySensitiveAction(req, body, user, 'STOCK_WRITEOFF');
+      if (!stepUp.allowed) {
+        return NextResponse.json(
+          { error: stepUp.error, stepUpRequired: stepUp.stepUpRequired },
+          { status: stepUp.status || 403 }
+        );
+      }
+    }
+
     body.qtyChange = resolvedQtyChange;
     body.storeCode = targetStore;
 
@@ -161,7 +175,9 @@ export async function POST(req: NextRequest) {
             // Financial Ledger entry for stock adjustment
             const unitCost = Number(product?.baseCostPrice) || 0;
             const absQty = Math.abs(body.qtyChange);
-            const financialImpact = absQty * unitCost;
+            const financialImpact = Math.round(absQty * unitCost * 100) / 100;
+            const taxContext = await TaxService.resolveTaxContext(effectiveStoreCode);
+            const adjCurrency = taxContext.currencyCode || 'INR';
 
             if (financialImpact > 0) {
               if (body.qtyChange < 0) {
@@ -179,6 +195,7 @@ export async function POST(req: NextRequest) {
                       refType: 'INVENTORY_ADJUSTMENT',
                       refId: body.productId,
                       refNo,
+                      currencyCode: adjCurrency,
                       description: `Stock adjustment loss for ${product?.name || body.productId}: ${body.reason || 'Damage/Shrinkage'}`,
                       createdBy: user.name,
                     },
@@ -194,6 +211,7 @@ export async function POST(req: NextRequest) {
                       refType: 'INVENTORY_ADJUSTMENT',
                       refId: body.productId,
                       refNo,
+                      currencyCode: adjCurrency,
                       description: `Stock asset write-down for ${product?.name || body.productId}`,
                       createdBy: user.name,
                     },
@@ -214,6 +232,7 @@ export async function POST(req: NextRequest) {
                       refType: 'INVENTORY_ADJUSTMENT',
                       refId: body.productId,
                       refNo,
+                      currencyCode: adjCurrency,
                       description: `Stock surplus audit gain for ${product?.name || body.productId}`,
                       createdBy: user.name,
                     },
@@ -229,6 +248,7 @@ export async function POST(req: NextRequest) {
                       refType: 'INVENTORY_ADJUSTMENT',
                       refId: body.productId,
                       refNo,
+                      currencyCode: adjCurrency,
                       description: `Stock asset write-up for ${product?.name || body.productId}`,
                       createdBy: user.name,
                     },

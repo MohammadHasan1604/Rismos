@@ -240,15 +240,7 @@ export function calculateApplicableTax(params: TaxCalculationParams): TaxCalcula
       breakdown.push({ name: 'IGST', rate: safeRate, amount: taxAmount });
     }
   } else if (countryCode.toUpperCase() === 'US' && safeRate > 0) {
-    // Standard US State/Local split simulation
-    const stateRate = Math.min(safeRate, 6.0);
-    const localRate = Math.max(0, safeRate - stateRate);
-    const stateTax = Math.round(((baseAmount * stateRate) / 100) * 100) / 100;
-    const localTax = Math.round((taxAmount - stateTax) * 100) / 100;
-    breakdown.push({ name: 'State Tax', rate: stateRate, amount: stateTax });
-    if (localRate > 0) {
-      breakdown.push({ name: 'Local/County Tax', rate: localRate, amount: localTax });
-    }
+    breakdown.push({ name: `Sales Tax (${safeRate}%)`, rate: safeRate, amount: taxAmount });
   } else {
     const profile = getJurisdictionProfile(countryCode);
     breakdown.push({ name: profile.taxLabel, rate: safeRate, amount: taxAmount });

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
-import { validatePassword } from '@/lib/passwordPolicy';
+import { validatePasswordAgainstPolicy } from '@/lib/passwordPolicy';
 import { invalidateUserSessions } from '@/lib/authPipeline';
 import { getClientIp } from '@/lib/rateLimit';
 
@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
 
     const { resetToken, newPassword } = body;
 
-    // 1. Validate password strength FIRST with enterprise policy
-    const passwordValidation = validatePassword(newPassword);
+    // 1. Validate password strength with authoritative server-side policy
+    const passwordValidation = await validatePasswordAgainstPolicy(newPassword);
     if (!passwordValidation.valid) {
       return NextResponse.json(
         {

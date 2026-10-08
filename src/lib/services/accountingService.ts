@@ -30,6 +30,7 @@ export interface LedgerEntryInput {
   description: string;
   isEliminated?: boolean;
   metadataJson?: string | null;
+  currencyCode?: string;
   createdBy: string;
 }
 
@@ -54,6 +55,7 @@ export async function recordLedgerEntries(tx: any, entries: LedgerEntryInput[]) 
     description: item.description,
     isEliminated: item.isEliminated || false,
     metadataJson: item.metadataJson || null,
+    currencyCode: item.currencyCode || 'INR',
     createdBy: item.createdBy,
     createdAt: item.entryDate || new Date(),
   }));

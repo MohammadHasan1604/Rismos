@@ -191,8 +191,27 @@ export async function evaluateSystemAlerts(): Promise<AlertEvaluationSummary> {
   // 5. Daily Digest Evaluation
   if (sysSettings.dailySalesDigest) {
     const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+
+    // Business timezone resolution
+    const branding = await (prisma as any).brandingSetting
+      .findFirst({ select: { timezone: true } })
+      .catch(() => null);
+    const businessTimezone = branding?.timezone || 'Asia/Kolkata';
+
+    let startOfToday: Date;
+    try {
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: businessTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      const localDateStr = formatter.format(new Date()); // e.g. 2026-10-08
+      startOfToday = new Date(`${localDateStr}T00:00:00.000Z`);
+    } catch {
+      startOfToday = new Date();
+      startOfToday.setUTCHours(0, 0, 0, 0);
+    }
 
     for (const targetUser of recipientUsers) {
       const recentDigest = await (prisma as any).notification.findFirst({
@@ -245,7 +264,7 @@ export async function evaluateSystemAlerts(): Promise<AlertEvaluationSummary> {
 
   const emailMessage = isEmailConfigured
     ? 'Outbound email notifications dispatched to configured recipients.'
-    : 'Email delivery provider credentials (SMTP/Resend) are not configured. In-app notifications generated successfully.';
+    : 'Email provider not configured';
 
   return {
     lowStockAlertsCreated,

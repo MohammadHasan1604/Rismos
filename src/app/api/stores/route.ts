@@ -3,6 +3,7 @@ import { authenticateRequest, hasPermission, createAuditLog } from '@/lib/authPi
 import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent } from '@/lib/realtime';
 import { executeWithIdempotency } from '@/lib/idempotency';
+import { verifySensitiveAction } from '@/lib/sensitiveAction';
 
 let cachedStoresPayload: any = null;
 let lastStoresCacheTime = 0;
@@ -199,6 +200,15 @@ export async function DELETE(req: NextRequest) {
 
     if (user.role !== 'Super Admin') {
       return NextResponse.json({ error: 'Forbidden: Super Admin only' }, { status: 403 });
+    }
+
+    // 🔒 Enforce Server-Authoritative Step-Up Authentication for Store Deletion
+    const stepUp = await verifySensitiveAction(req, null, user, 'DELETE_STORE');
+    if (!stepUp.allowed) {
+      return NextResponse.json(
+        { error: stepUp.error, stepUpRequired: stepUp.stepUpRequired },
+        { status: stepUp.status || 403 }
+      );
     }
 
     const { searchParams } = new URL(req.url);

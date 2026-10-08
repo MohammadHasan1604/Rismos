@@ -10,6 +10,7 @@ import {
   validatePhysicalStore,
 } from '@/lib/authPipeline';
 import { validatePaymentMethod } from '@/lib/paymentValidator';
+import { verifySensitiveAction } from '@/lib/sensitiveAction';
 
 /**
  * GET /api/sales - Retrieve sales orders with store isolation and financial privacy
@@ -321,6 +322,22 @@ export async function PUT(req: NextRequest) {
       existing.status === 'Completed' &&
       (status === 'Cancelled' || status === 'Refunded' || status === 'Voided');
 
+    // 🔒 Enforce Server-Authoritative Step-Up Authentication for Void/Refund
+    if (isVoidingOrRefunding) {
+      const stepUp = await verifySensitiveAction(
+        req,
+        body,
+        user,
+        status === 'Refunded' ? 'REFUND' : 'VOID_SALE'
+      );
+      if (!stepUp.allowed) {
+        return NextResponse.json(
+          { error: stepUp.error, stepUpRequired: stepUp.stepUpRequired },
+          { status: stepUp.status || 403 }
+        );
+      }
+    }
+
     const updatedSale = await prisma.$transaction(
       async (tx: any) => {
         // If voiding or refunding a completed sale, restock inventory and revert customer totals
@@ -398,6 +415,8 @@ export async function PUT(req: NextRequest) {
           const gTotal = Number(existing.grandTotal);
           const cogsAmt = Number(existing.totalCost);
 
+          const saleCurrency = (existing as any).currencyCode || 'INR';
+
           const financialEntries: any[] = [
             {
               entryNo: `JRN-VOID-REV-${existing.orderNo}-${Date.now().toString().slice(-4)}`,
@@ -411,6 +430,7 @@ export async function PUT(req: NextRequest) {
               refType: 'SALE',
               refId: existing.id,
               refNo: existing.orderNo,
+              currencyCode: saleCurrency,
               entityName: existing.customerName || 'Customer',
               description: `Order ${existing.orderNo} ${status} reversal by ${user.name}`,
               createdBy: user.name,
@@ -427,6 +447,7 @@ export async function PUT(req: NextRequest) {
               refType: 'SALE',
               refId: existing.id,
               refNo: existing.orderNo,
+              currencyCode: saleCurrency,
               entityName: existing.customerName || 'Customer',
               description: `Refund payout for Order ${existing.orderNo}`,
               createdBy: user.name,
@@ -446,6 +467,7 @@ export async function PUT(req: NextRequest) {
               refType: 'SALE',
               refId: existing.id,
               refNo: existing.orderNo,
+              currencyCode: saleCurrency,
               entityName: existing.customerName || 'Customer',
               description: `GST Reversal on Order ${existing.orderNo} ${status}`,
               createdBy: user.name,
@@ -466,6 +488,7 @@ export async function PUT(req: NextRequest) {
                 refType: 'SALE',
                 refId: existing.id,
                 refNo: existing.orderNo,
+                currencyCode: saleCurrency,
                 entityName: existing.customerName || 'Customer',
                 description: `COGS Reversal on Order ${existing.orderNo} ${status}`,
                 createdBy: user.name,
@@ -482,6 +505,7 @@ export async function PUT(req: NextRequest) {
                 refType: 'SALE',
                 refId: existing.id,
                 refNo: existing.orderNo,
+                currencyCode: saleCurrency,
                 entityName: existing.customerName || 'Customer',
                 description: `Stock Restocked for Voided/Refunded Order ${existing.orderNo}`,
                 createdBy: user.name,

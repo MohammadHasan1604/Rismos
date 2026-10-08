@@ -10,7 +10,8 @@ import {
   generateSecureTemporaryPassword,
 } from '@/lib/authPipeline';
 import { ensureStoredImage } from '@/lib/objectStorage';
-import { validatePassword } from '@/lib/passwordPolicy';
+import { validatePasswordAgainstPolicy, validatePassword } from '@/lib/passwordPolicy';
+import { verifySensitiveAction } from '@/lib/sensitiveAction';
 import {
   ROLE_SECURITY_LEVELS,
   SUPER_ADMIN_PROTECTED_PERMISSIONS,
@@ -158,18 +159,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const sysSettings = await prisma.systemSettings.findFirst().catch(() => null);
-    if (sysSettings?.enforcePasswordPolicy) {
-      const policyRes = validatePassword(password);
-      if (!policyRes.valid) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Password does not meet enterprise policy: ${policyRes.errors.join('; ')}`,
-          },
-          { status: 400 }
-        );
-      }
+    // Authoritatively enforce enterprise password policy (enforcePasswordPolicy) via validatePassword/validatePasswordAgainstPolicy
+    const policyRes = await validatePasswordAgainstPolicy(password);
+    if (!policyRes.valid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Password does not meet policy requirements: ${policyRes.errors.join('; ')}`,
+        },
+        { status: 400 }
+      );
     }
 
     const requestedRole = body.role || 'Sales Manager';
@@ -616,6 +615,22 @@ export async function PUT(req: NextRequest) {
       }
     }
 
+    // 🔒 Enforce Server-Authoritative Step-Up Authentication for Role Escalation & Permission Modifications
+    const isEscalatingOrChangingPermissions = Boolean(
+      (requestedRole && requestedRole !== targetUser.role) ||
+      body.permissionOverride ||
+      (Array.isArray(overrides) && overrides.length > 0)
+    );
+    if (isEscalatingOrChangingPermissions) {
+      const stepUp = await verifySensitiveAction(req, body, authUser, 'ROLE_ESCALATION');
+      if (!stepUp.allowed) {
+        return NextResponse.json(
+          { error: stepUp.error, stepUpRequired: stepUp.stepUpRequired },
+          { status: stepUp.status || 403 }
+        );
+      }
+    }
+
     const updateData: any = {};
     if (name) updateData.name = name.trim();
     if (requestedRole && targetUser.role !== 'Super Admin') {
@@ -638,24 +653,15 @@ export async function PUT(req: NextRequest) {
     }
 
     if (password) {
-      if (password.length < 8) {
+      const policyRes = await validatePasswordAgainstPolicy(password);
+      if (!policyRes.valid) {
         return NextResponse.json(
-          { success: false, error: 'Password must be at least 8 characters' },
+          {
+            success: false,
+            error: `Password does not meet policy requirements: ${policyRes.errors.join('; ')}`,
+          },
           { status: 400 }
         );
-      }
-      const sysSettings = await prisma.systemSettings.findFirst().catch(() => null);
-      if (sysSettings?.enforcePasswordPolicy) {
-        const policyRes = validatePassword(password);
-        if (!policyRes.valid) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: `Password does not meet enterprise policy: ${policyRes.errors.join('; ')}`,
-            },
-            { status: 400 }
-          );
-        }
       }
       updateData.passwordHash = await hashPassword(password);
       updateData.mustChangePassword = true;
@@ -881,6 +887,15 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'You cannot delete or deactivate your own logged-in account' },
         { status: 400 }
+      );
+    }
+
+    // 🔒 Enforce Server-Authoritative Step-Up Authentication for User Deletion / Deactivation
+    const stepUp = await verifySensitiveAction(req, null, session, 'DELETE_USER');
+    if (!stepUp.allowed) {
+      return NextResponse.json(
+        { success: false, error: stepUp.error, stepUpRequired: stepUp.stepUpRequired },
+        { status: stepUp.status || 403 }
       );
     }
 

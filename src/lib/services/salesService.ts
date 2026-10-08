@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../db';
 import { broadcastRealtimeEvent, getStoreChannel } from '../realtime';
 import { generateSafeSequenceNo } from '../sequenceUtils';
@@ -92,13 +93,16 @@ export async function executePOSCheckout(input: CreateSaleInput) {
   const taxAmount = taxResult.taxAmount;
   const discountAmount = taxResult.discountAmount;
   const grandTotal = taxResult.grandTotal;
+  const netSalesRevenue = taxResult.netSalesRevenue;
+  const taxCollected = taxAmount;
+  const discount = discountAmount;
 
   let totalCost = 0;
   const preparedItems = taxResult.lines.map((taxLine) => {
     const dbProduct = productMap.get(taxLine.productId);
     const authoritativeUnitCost = dbProduct ? Number(dbProduct.baseCostPrice) || 0 : 0;
-    const lineCost = taxLine.qty * authoritativeUnitCost;
-    const lineProfit = taxLine.lineSubtotal - lineCost;
+    const lineCost = Math.round(taxLine.qty * authoritativeUnitCost * 100) / 100;
+    const lineProfit = Math.round((taxLine.lineSubtotal - lineCost) * 100) / 100;
 
     totalCost += lineCost;
 
@@ -118,8 +122,11 @@ export async function executePOSCheckout(input: CreateSaleInput) {
     };
   });
 
-  const grossProfit = grandTotal - totalCost;
-  const netRevenue = subtotal - discountAmount;
+  totalCost = Math.round(totalCost * 100) / 100;
+  const COGS = totalCost;
+  // P0-2: Gross Profit = Net Tax-Exclusive Sales Revenue - COGS
+  const grossProfit = Math.round((netSalesRevenue - COGS) * 100) / 100;
+  const netRevenue = netSalesRevenue;
 
 
   const storeNumericMap: Record<string, string> = {
@@ -151,14 +158,16 @@ export async function executePOSCheckout(input: CreateSaleInput) {
       // 1. Generate store-specific invoice number with collision safety (e.g. CS260011, CS260012)
       const orderNo = await generateSafeSequenceNo('salesOrder', 'orderNo', invoicePrefix, 1, tx);
 
-      // 2. Batch read all inventory records for the cart items in 1 query
-      const invRecords = await tx.inventory.findMany({
-        where: {
-          storeCode,
-          productId: { in: productIds },
-        },
-      });
-      const invMap = new Map<string, any>(invRecords.map((r: any) => [r.productId, r]));
+      // 2. Lock and batch read all inventory records for the cart items with FOR UPDATE row locking
+      const invRecords = await tx.$queryRaw<Array<{ id: string; product_id: string; store_code: string; qty_on_hand: number }>>`
+        SELECT id, product_id, store_code, qty_on_hand
+        FROM inventory
+        WHERE store_code = ${storeCode} AND product_id IN (${Prisma.join(productIds)})
+        FOR UPDATE
+      `;
+      const invMap = new Map<string, any>(
+        invRecords.map((r: any) => [r.product_id, { id: r.id, qtyOnHand: Number(r.qty_on_hand) }])
+      );
 
       // PREVENT OVERSELLING: Strict concurrency-safe availability check
       for (const item of input.items) {
@@ -173,18 +182,22 @@ export async function executePOSCheckout(input: CreateSaleInput) {
         }
       }
 
-      // 3. Atomically decrement inventory balances (no clamping)
-      await Promise.all(
-        input.items.map((item) => {
-          const existing = invMap.get(item.productId);
-          return tx.inventory.update({
-            where: { id: existing.id },
-            data: {
-              qtyOnHand: { decrement: item.qty },
-            },
-          });
-        })
-      );
+      // 3. Atomically decrement inventory balances with conditional non-negative check
+      for (const item of input.items) {
+        const existing = invMap.get(item.productId);
+        const updateCount = await tx.$executeRaw`
+          UPDATE inventory
+          SET qty_on_hand = qty_on_hand - ${item.qty}
+          WHERE id = ${existing.id} AND qty_on_hand >= ${item.qty}
+        `;
+        if (updateCount === 0) {
+          const err: any = new Error(
+            `Insufficient stock for "${item.productName || item.sku}": concurrent checkout conflict. Available quantity modified.`
+          );
+          err.statusCode = 409;
+          throw err;
+        }
+      }
 
       // 4. Batch create inventory ledger entries
       const inventoryLedgerEntries = input.items.map((item) => {
