@@ -15,7 +15,7 @@ interface PendingVendorBillsModalProps {
 }
 
 export default function PendingVendorBillsModal({ open, onClose }: PendingVendorBillsModalProps) {
-  const { purchases, vendors, selectedStore, datePeriod, recordPurchasePayment, refreshAllData } =
+  const { purchases, vendors, selectedStore, datePeriod, recordPurchasePayment, refreshAllData, formatCurrency, dateLocale } =
     useApp();
 
   // Fresh authoritative sync whenever modal opens
@@ -69,7 +69,7 @@ export default function PendingVendorBillsModal({ open, onClose }: PendingVendor
                 Total Outstanding Payables
               </p>
               <p className="text-2xl font-bold text-foreground font-tabular mt-0.5">
-                ₹{totalOutstanding.toLocaleString('en-IN')}
+                {formatCurrency(totalOutstanding)}
               </p>
               <p className="text-2xs text-muted-foreground mt-0.5">
                 {pendingBills.length} pending bill{pendingBills.length === 1 ? '' : 's'} across{' '}
@@ -161,7 +161,7 @@ export default function PendingVendorBillsModal({ open, onClose }: PendingVendor
                         <span>
                           Ordered:{' '}
                           {po.createdAt
-                            ? new Date(po.createdAt).toLocaleDateString('en-IN')
+                            ? new Date(po.createdAt).toLocaleDateString(dateLocale || 'en-IN')
                             : 'N/A'}
                         </span>
                         {po.expectedDate && <span>Expected: {po.expectedDate}</span>}
@@ -173,12 +173,11 @@ export default function PendingVendorBillsModal({ open, onClose }: PendingVendor
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground">Outstanding Payable</p>
                         <p className="text-base font-bold text-danger font-tabular">
-                          ₹{remaining.toLocaleString('en-IN')}
+                          {formatCurrency(remaining)}
                         </p>
                         {paid > 0 && (
                           <p className="text-3xs text-muted-foreground">
-                            Paid: ₹{paid.toLocaleString('en-IN')} / Total: ₹
-                            {po.totalAmount.toLocaleString('en-IN')}
+                            Paid: {formatCurrency(paid)} / Total: {formatCurrency(po.totalAmount)}
                           </p>
                         )}
                       </div>

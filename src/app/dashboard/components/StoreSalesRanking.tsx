@@ -15,6 +15,8 @@ export default function StoreSalesRanking() {
     setDatePeriod,
     customDateRange,
     setCustomDateRange,
+    formatCurrency,
+    dateLocale,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'stores' | 'customers'>('stores');
@@ -131,7 +133,7 @@ export default function StoreSalesRanking() {
           totalPurchases: 0,
           invoiceCount: 0,
           lastPurchase: sale.createdAt
-            ? new Date(sale.createdAt).toLocaleDateString('en-IN')
+            ? new Date(sale.createdAt).toLocaleDateString(dateLocale || 'en-IN')
             : 'N/A',
         };
       }
@@ -305,18 +307,17 @@ export default function StoreSalesRanking() {
                         )}
                       </div>
                       <p className="text-3xs text-muted-foreground mt-0.5">
-                        {st.invoiceCount} invoices · {st.totalUnits} units · Avg ticket ₹
-                        {st.avgInvoiceValue.toLocaleString('en-IN')}
+                        {st.invoiceCount} invoices · {st.totalUnits} units · Avg ticket {formatCurrency(st.avgInvoiceValue)}
                       </p>
                     </div>
                   </div>
 
                   <div className="text-right flex-shrink-0">
                     <p className="text-xs font-bold text-foreground font-tabular">
-                      ₹{st.revenue.toLocaleString('en-IN')}
+                      {formatCurrency(st.revenue)}
                     </p>
                     <p className="text-3xs text-positive font-medium font-tabular mt-0.5">
-                      GP: ₹{Math.round(st.grossProfit).toLocaleString('en-IN')}
+                      GP: {formatCurrency(Math.round(st.grossProfit))}
                     </p>
                   </div>
                 </div>
@@ -350,7 +351,7 @@ export default function StoreSalesRanking() {
 
                 <div className="text-right flex-shrink-0">
                   <p className="text-xs font-bold text-foreground font-tabular">
-                    ₹{c.totalSpend.toLocaleString('en-IN')}
+                    {formatCurrency(c.totalSpend)}
                   </p>
                   <p className="text-3xs text-muted-foreground mt-0.5">Last: {c.lastPurchase}</p>
                 </div>

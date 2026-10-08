@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useApp } from '@/context/AppContext';
 import { CentralPnLData } from './types';
 
 interface CentralPnLViewProps {
@@ -12,6 +13,7 @@ export const CentralPnLView: React.FC<CentralPnLViewProps> = ({
   centralPnLData,
   handleDrillDown,
 }) => {
+  const { formatCurrency } = useApp();
   return (
     <div className="space-y-6 fade-in">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -28,7 +30,7 @@ export const CentralPnLView: React.FC<CentralPnLViewProps> = ({
             </span>
           </div>
           <p className="text-2xl font-black text-foreground font-tabular mt-2">
-            ₹{centralPnLData.centralTransferRevenue.toLocaleString('en-IN')}
+            {formatCurrency(centralPnLData.centralTransferRevenue)}
           </p>
           <p className="text-2xs text-muted-foreground mt-1">Billed to outlets @ Transfer Price</p>
         </div>
@@ -38,7 +40,7 @@ export const CentralPnLView: React.FC<CentralPnLViewProps> = ({
             Central Inventory Cost
           </p>
           <p className="text-2xl font-black text-info font-tabular mt-2">
-            ₹{centralPnLData.centralInventoryCost.toLocaleString('en-IN')}
+            {formatCurrency(centralPnLData.centralInventoryCost)}
           </p>
           <p className="text-2xs text-muted-foreground mt-1">Vendor purchase cost</p>
         </div>
@@ -56,7 +58,7 @@ export const CentralPnLView: React.FC<CentralPnLViewProps> = ({
             </span>
           </div>
           <p className="text-2xl font-black text-success font-tabular mt-2">
-            ₹{centralPnLData.grossTransferProfit.toLocaleString('en-IN')}
+            {formatCurrency(centralPnLData.grossTransferProfit)}
           </p>
           <p className="text-2xs text-muted-foreground mt-1 font-tabular">
             Markup: {centralPnLData.centralMarkupMarginPercent}%
@@ -70,7 +72,7 @@ export const CentralPnLView: React.FC<CentralPnLViewProps> = ({
           <p
             className={`text-2xl font-black font-tabular mt-2 ${centralPnLData.netCentralProfit >= 0 ? 'text-success' : 'text-danger'}`}
           >
-            ₹{centralPnLData.netCentralProfit.toLocaleString('en-IN')}
+            {formatCurrency(centralPnLData.netCentralProfit)}
           </p>
           <p className="text-2xs text-muted-foreground mt-1">After freight & warehouse overhead</p>
         </div>
@@ -115,13 +117,13 @@ export const CentralPnLView: React.FC<CentralPnLViewProps> = ({
                   <td className="px-4 py-3 text-right text-muted-foreground">{ob.count}</td>
                   <td className="px-4 py-3 text-right font-bold text-foreground">{ob.units}</td>
                   <td className="px-4 py-3 text-right text-info">
-                    ₹{ob.inventoryCost.toLocaleString('en-IN')}
+                    {formatCurrency(ob.inventoryCost)}
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-foreground">
-                    ₹{ob.transferValue.toLocaleString('en-IN')}
+                    {formatCurrency(ob.transferValue)}
                   </td>
                   <td className="px-4 py-3 text-right font-black text-success">
-                    ₹{ob.markupProfit.toLocaleString('en-IN')}
+                    {formatCurrency(ob.markupProfit)}
                   </td>
                 </tr>
               ))}

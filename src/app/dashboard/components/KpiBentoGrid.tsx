@@ -20,6 +20,7 @@ export default function KpiBentoGrid() {
     datePeriod,
     customDateRange,
     currentUser,
+    formatCurrency,
   } = useApp();
 
   const isSuperAdmin = currentUser.role === 'Super Admin';
@@ -210,7 +211,7 @@ export default function KpiBentoGrid() {
     {
       id: 'kpi-revenue',
       label: `Total Sales Revenue (${datePeriod})`,
-      value: `₹${totalRevenue.toLocaleString('en-IN')}`,
+      value: formatCurrency(totalRevenue),
       change: revChange,
       trend: revTrend,
       subtext: `vs prev period · ${filteredSales.length} orders`,
@@ -221,7 +222,7 @@ export default function KpiBentoGrid() {
     {
       id: 'kpi-gross-profit',
       label: 'Gross Profit',
-      value: `₹${Math.round(grossProfit).toLocaleString('en-IN')}`,
+      value: formatCurrency(Math.round(grossProfit)),
       change: grossProfit > 0 ? `${grossMarginPct}% margin` : '0%',
       trend: grossProfit > 0 ? ('up' as const) : ('neutral' as const),
       subtext: totalRevenue > 0 ? `Cost of goods deducted` : 'No sales recorded',
@@ -232,10 +233,10 @@ export default function KpiBentoGrid() {
     {
       id: 'kpi-net-profit',
       label: 'Net Profit',
-      value: `₹${Math.round(netProfit).toLocaleString('en-IN')}`,
-      change: netProfit > 0 ? 'Profitable' : netProfit < 0 ? 'Operating Loss' : '₹0',
+      value: formatCurrency(Math.round(netProfit)),
+      change: netProfit > 0 ? 'Profitable' : netProfit < 0 ? 'Operating Loss' : formatCurrency(0),
       trend: netProfit >= 0 ? ('up' as const) : ('down' as const),
-      subtext: `After ₹${totalExp.toLocaleString('en-IN')} store expenses`,
+      subtext: `After ${formatCurrency(totalExp)} store expenses`,
       icon: 'ChartPieIcon',
       variant: 'normal' as const,
       color: netProfit >= 0 ? ('warning' as const) : ('danger' as const),
@@ -243,7 +244,7 @@ export default function KpiBentoGrid() {
     {
       id: 'kpi-expenses',
       label: 'Total Expenses',
-      value: `₹${totalExp.toLocaleString('en-IN')}`,
+      value: formatCurrency(totalExp),
       change: `${filteredExpenses.length} entries`,
       trend: totalExp > 0 ? ('down' as const) : ('neutral' as const),
       subtext: `Operating costs in ${datePeriod}`,
@@ -256,7 +257,7 @@ export default function KpiBentoGrid() {
       label: isSalesManager ? 'Stock Status' : 'Inventory Asset Value',
       value: isSalesManager
         ? `${filteredInv.reduce((acc: number, i: any) => acc + (i.qtyOnHand || 0), 0)} Units`
-        : `₹${invValue.toLocaleString('en-IN')}`,
+        : formatCurrency(invValue),
       change: `${filteredInv.length} SKUs`,
       trend: 'neutral' as const,
       subtext: isSalesManager
@@ -280,7 +281,7 @@ export default function KpiBentoGrid() {
     {
       id: 'kpi-receivables',
       label: 'Receivables',
-      value: `₹${receivablesTotal.toLocaleString('en-IN')}`,
+      value: formatCurrency(receivablesTotal),
       change: `${pendingReceivablesCount} pending accounts`,
       trend: receivablesTotal > 0 ? ('alert' as const) : ('neutral' as const),
       subtext: `${customers.length} total customer accounts`,
@@ -291,7 +292,7 @@ export default function KpiBentoGrid() {
     {
       id: 'kpi-payables',
       label: 'Vendor Payables',
-      value: `₹${payablesTotal.toLocaleString('en-IN')}`,
+      value: formatCurrency(payablesTotal),
       change: `${pendingBillsCount} pending bill${pendingBillsCount === 1 ? '' : 's'}`,
       trend: payablesTotal > 0 ? ('alert' as const) : ('neutral' as const),
       subtext: pendingBillsCount > 0 ? 'Click to view & settle bills' : 'All vendor bills settled',

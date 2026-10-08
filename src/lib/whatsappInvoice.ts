@@ -1,11 +1,12 @@
 /**
- * COSKO WhatsApp Invoice Message Builder
+ * RISMOS WhatsApp Invoice Message Builder
  *
  * Generates clean, professional WhatsApp text invoice summaries for customers.
  * Contains NO internal application URLs, NO authentication gates, NO login links.
  */
 
 import { formatMoney } from '@/lib/localization/formatters';
+import { toE164Phone } from '@/lib/phoneUtils';
 
 export interface WhatsAppInvoiceItem {
   name: string;
@@ -30,10 +31,11 @@ export interface WhatsAppInvoiceData {
   brandName?: string;
   currencyCode?: string;
   locale?: string;
+  countryCode?: string;
 }
 
 /**
- * Extracts a valid 10-digit Indian mobile number from raw phone input.
+ * Extracts a valid 10-digit Indian mobile number from raw phone input (kept for backward compatibility).
  * Strips +91, 0, spaces, dashes, parentheses.
  */
 export function extract10DigitPhone(val: string | null | undefined): string {
@@ -129,24 +131,47 @@ export function buildWhatsAppInvoiceMessage(receipt: WhatsAppInvoiceData): strin
  */
 export function buildWhatsAppInvoiceUrl(
   receipt: WhatsAppInvoiceData,
-  fallbackPhone?: string
+  fallbackPhone?: string,
+  countryCode: string = 'IN'
 ): { success: boolean; url?: string; error?: string; cleanPhone?: string } {
   const targetPhone = receipt.customerPhone || fallbackPhone || '';
-  const cleanPhone = extract10DigitPhone(targetPhone);
-
-  if (!cleanPhone || cleanPhone.length !== 10) {
+  if (!targetPhone) {
     return {
       success: false,
       error: 'Customer phone number is required to send invoice on WhatsApp.',
     };
   }
 
+  const effectiveCountry = receipt.countryCode || countryCode || 'IN';
+  const isIndia = (effectiveCountry || '').toUpperCase() === 'IN';
+
+  let digits = '';
+  if (isIndia) {
+    const tenDigit = extract10DigitPhone(targetPhone);
+    if (!tenDigit) {
+      return {
+        success: false,
+        error: 'Customer phone number is required to send invoice on WhatsApp.',
+      };
+    }
+    digits = `91${tenDigit}`;
+  } else {
+    const e164 = toE164Phone(targetPhone, effectiveCountry);
+    digits = e164.replace(/\D/g, '');
+    if (!digits || digits.length < 7) {
+      return {
+        success: false,
+        error: 'Customer phone number is required to send invoice on WhatsApp.',
+      };
+    }
+  }
+
   const message = buildWhatsAppInvoiceMessage(receipt);
-  const url = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
+  const url = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 
   return {
     success: true,
     url,
-    cleanPhone,
+    cleanPhone: `+${digits}`,
   };
 }

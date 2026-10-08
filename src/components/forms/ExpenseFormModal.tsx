@@ -35,7 +35,10 @@ export default function ExpenseFormModal({
     categoriesList,
     paymentMethods,
     confirmAction,
+    formatCurrency,
+    systemSettings,
   } = useApp();
+  const currencySymbol = systemSettings?.currencySymbol || '₹';
 
   const isEdit = Boolean(expense);
 
@@ -204,7 +207,7 @@ export default function ExpenseFormModal({
         { label: 'Description', value: description.trim() || 'N/A' },
         {
           label: 'Expense Amount',
-          value: `₹${parsedAmount.toLocaleString('en-IN')}`,
+          value: formatCurrency(parsedAmount),
           highlighted: true,
         },
       ],
@@ -250,7 +253,7 @@ export default function ExpenseFormModal({
           receiptUrl,
           status: 'Approved',
         });
-        toast.success(`Expense of ₹${parsedAmount.toLocaleString('en-IN')} recorded successfully!`);
+        toast.success(`Expense of ${formatCurrency(parsedAmount)} recorded successfully!`);
         if (onSuccess) {
           onSuccess({
             id: 'temp-' + Date.now(),
@@ -364,7 +367,7 @@ export default function ExpenseFormModal({
             <input
               required
               type="text"
-              placeholder="e.g. Monthly electricity bill for Indiranagar Store"
+              placeholder="e.g. Monthly utilities and operational expense"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="input-field text-xs h-8"
@@ -375,7 +378,7 @@ export default function ExpenseFormModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-bold text-foreground block mb-1">
-                Amount (₹) <span className="text-danger">*</span>
+                Amount ({currencySymbol}) <span className="text-danger">*</span>
               </label>
               <NumericInput
                 required

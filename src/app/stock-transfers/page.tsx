@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import SuperAdminGuard from '@/components/SuperAdminGuard';
 import {
   calculateTransferLineItem,
-  formatTransferINR,
+  formatTransferAmount,
   formatTransferMargin,
   getTransferProfitColorClass,
   validateTransferHeader,
@@ -27,7 +27,13 @@ export default function StockTransfersPage() {
     refreshAllData,
     updateTransferStatus,
     deleteTransfer,
+    branding,
+    systemSettings,
   } = useApp();
+
+  const currencyCode = systemSettings?.currencyCode || branding?.baseCurrency?.slice(0, 3) || 'INR';
+  const currencySymbol = systemSettings?.currencySymbol || '₹';
+  const locale = branding?.locale || 'en-IN';
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [viewModalTransfer, setViewModalTransfer] = useState<any | null>(null);
@@ -183,22 +189,23 @@ export default function StockTransfersPage() {
                           {t.totalUnits || t.qty}
                         </td>
                         <td className="px-4 py-3 text-right font-extrabold text-foreground font-tabular">
-                          {formatTransferINR(
+                          {formatTransferAmount(
                             t.totalTransferValue !== undefined &&
                               !isNaN(Number(t.totalTransferValue)) &&
                               Number(t.totalTransferValue) > 0
                               ? Number(t.totalTransferValue)
-                              : (Number(t.transferPrice) || 0) * (t.totalUnits || t.qty || 1)
+                              : (Number(t.transferPrice) || 0) * (t.totalUnits || t.qty || 1),
+                            { currencyCode, currencySymbol, locale }
                           )}
                         </td>
                         <td
                           className={`px-4 py-3 text-right font-bold font-tabular ${getTransferProfitColorClass(t.grossProfit !== undefined && !isNaN(Number(t.grossProfit)) ? Number(t.grossProfit) : t.transferProfit)}`}
                         >
-                          {formatTransferINR(
+                          {formatTransferAmount(
                             t.grossProfit !== undefined && !isNaN(Number(t.grossProfit))
                               ? Number(t.grossProfit)
                               : t.transferProfit || 0,
-                            { showPositiveSign: true }
+                            { showPositiveSign: true, currencyCode, currencySymbol, locale }
                           )}
                         </td>
                         <td className="px-4 py-3 text-center">
@@ -270,10 +277,11 @@ export default function StockTransfersPage() {
                     </div>
                     <div className="record-meta">
                       <p className="record-value">
-                        {formatTransferINR(
+                        {formatTransferAmount(
                           Number(t.totalTransferValue) > 0
                             ? Number(t.totalTransferValue)
-                            : (Number(t.transferPrice) || 0) * (t.totalUnits || t.qty || 1)
+                            : (Number(t.transferPrice) || 0) * (t.totalUnits || t.qty || 1),
+                          { currencyCode, currencySymbol, locale }
                         )}
                       </p>
                       <span
@@ -334,26 +342,28 @@ export default function StockTransfersPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Transfer Value:</span>
                   <span className="font-tabular font-bold text-foreground">
-                    {formatTransferINR(
+                    {formatTransferAmount(
                       viewModalTransfer.totalTransferValue !== undefined &&
                         !isNaN(Number(viewModalTransfer.totalTransferValue)) &&
                         Number(viewModalTransfer.totalTransferValue) > 0
                         ? Number(viewModalTransfer.totalTransferValue)
                         : (Number(viewModalTransfer.transferPrice) || 0) *
-                            (viewModalTransfer.totalUnits || viewModalTransfer.qty || 1)
+                            (viewModalTransfer.totalUnits || viewModalTransfer.qty || 1),
+                      { currencyCode, currencySymbol, locale }
                     )}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Inventory Cost:</span>
                   <span className="font-tabular font-bold text-foreground">
-                    {formatTransferINR(
+                    {formatTransferAmount(
                       viewModalTransfer.totalCost !== undefined &&
                         !isNaN(Number(viewModalTransfer.totalCost)) &&
                         Number(viewModalTransfer.totalCost) > 0
                         ? Number(viewModalTransfer.totalCost)
                         : (Number(viewModalTransfer.purchaseCost) || 0) *
-                            (viewModalTransfer.totalUnits || viewModalTransfer.qty || 1)
+                            (viewModalTransfer.totalUnits || viewModalTransfer.qty || 1),
+                      { currencyCode, currencySymbol, locale }
                     )}
                   </span>
                 </div>
@@ -362,12 +372,12 @@ export default function StockTransfersPage() {
                 >
                   <span>Gross Transfer Profit:</span>
                   <span>
-                    {formatTransferINR(
+                    {formatTransferAmount(
                       viewModalTransfer.grossProfit !== undefined &&
                         !isNaN(Number(viewModalTransfer.grossProfit))
                         ? Number(viewModalTransfer.grossProfit)
                         : viewModalTransfer.transferProfit || 0,
-                      { showPositiveSign: true }
+                      { showPositiveSign: true, currencyCode, currencySymbol, locale }
                     )}
                   </span>
                 </div>

@@ -172,7 +172,7 @@ export const AlertsTab: React.FC<AlertsTabProps> = ({
             disabled={!isSuperAdmin}
             value={alertRecipientEmails}
             onChange={(e) => setAlertRecipientEmails(e.target.value)}
-            placeholder="alerts@cosko.com, finance@cosko.com"
+            placeholder="alerts@company.com, finance@company.com"
             className="input-field text-xs font-mono"
           />
         </div>

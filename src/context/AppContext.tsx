@@ -23,6 +23,7 @@ import { getEffectivePermissions } from '@/lib/rbacEngine';
 
 import { normalizeMobileNumber } from '@/lib/phoneUtils';
 export { normalizeMobileNumber };
+import { formatMoney } from '@/lib/localization/formatters';
 
 export interface AppBranding {
   appName: string;
@@ -562,7 +563,7 @@ export const defaultSystemSettings: SystemSettings = {
   overdueThresholdDays: 30,
   dailySalesDigest: false,
   securityEventAlerts: true,
-  alertRecipientEmails: 'alerts@cosko.com',
+  alertRecipientEmails: 'alerts@company.com',
 };
 
 const initialStoreHubs: StoreHub[] = [];
@@ -931,6 +932,11 @@ interface AppContextType {
   };
   closeConfirmationModal: () => void;
   executeConfirmationAction: () => Promise<void>;
+  formatCurrency: (
+    amount: number | string | null | undefined,
+    options?: { decimals?: number; showSymbol?: boolean }
+  ) => string;
+  dateLocale: string;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -973,6 +979,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  const formatCurrency = useCallback(
+    (
+      amount: number | string | null | undefined,
+      options?: { decimals?: number; showSymbol?: boolean }
+    ) => {
+      const activeCurrencyCode =
+        systemSettings?.currencyCode || branding?.baseCurrency?.slice(0, 3) || 'INR';
+      const activeCurrencySymbol = systemSettings?.currencySymbol || '₹';
+      const activeLocale = branding?.locale || 'en-IN';
+      const activeCountry = systemSettings?.countryCode || branding?.countryCode || 'IN';
+
+      return formatMoney(amount, {
+        currencyCode: activeCurrencyCode,
+        currencySymbol: activeCurrencySymbol,
+        locale: activeLocale,
+        countryCode: activeCountry,
+        ...options,
+      });
+    },
+    [
+      systemSettings?.currencyCode,
+      systemSettings?.currencySymbol,
+      systemSettings?.countryCode,
+      branding?.baseCurrency,
+      branding?.locale,
+      branding?.countryCode,
+    ]
+  );
+
+  const dateLocale = branding?.locale || (systemSettings as any)?.locale || 'en-IN';
 
   const [selectedStore, setSelectedStoreState] = useState<string>('All Stores');
   const [datePeriod, setDatePeriod] = useState<string>('This Month');
@@ -3481,9 +3518,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog(
       'Inventory',
       'Set Default Store Transfer Price',
-      `Updated transfer price for product #${productId} at store ${storeCode} to ₹${price}`
+      `Updated transfer price for product #${productId} at store ${storeCode} to ${formatCurrency(price)}`
     );
-    toast.success(`Default transfer price set to ₹${price} for ${storeCode}`);
+    toast.success(`Default transfer price set to ${formatCurrency(price)} for ${storeCode}`);
   };
 
   const transferStock = async (
@@ -3740,7 +3777,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addAuditLog(
         'Sales',
         'POS Sale Checkout',
-        `Completed order ${newSale.orderNo} for ₹${newSale.total.toLocaleString('en-IN')}${photoMsg}`
+        `Completed order ${newSale.orderNo} for ${formatCurrency(newSale.total)}${photoMsg}`
       );
       toast.success(`Invoice ${newSale.orderNo} generated successfully!`);
 
@@ -3748,7 +3785,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await refreshDomainData('sales');
       return newSale;
     } catch (err: any) {
-      console.error('[COSKO] addSale error:', err);
+      console.error('[App] addSale error:', err);
       toast.error(err.message || 'Failed to process sale. No changes were made.');
       return null;
     }
@@ -3845,7 +3882,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addAuditLog(
           'Purchases',
           'Create Purchase Order',
-          `Generated ${newPO.poNo} for ${newPO.vendorName} (${newPO.items.length} items, ₹${newPO.totalAmount.toLocaleString('en-IN')})`
+          `Generated ${newPO.poNo} for ${newPO.vendorName} (${newPO.items.length} items, ${formatCurrency(newPO.totalAmount)})`
         );
         toast.success(`Purchase Order ${newPO.poNo} saved with ${newPO.items.length} items!`);
         refreshDomainData('purchases');
@@ -4000,7 +4037,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       toast.success(
-        `Payment of ₹${paymentData.amount.toLocaleString('en-IN')} recorded successfully!`
+        `Payment of ${formatCurrency(paymentData.amount)} recorded successfully!`
       );
       await refreshDomainData('purchases');
       return {
@@ -4216,7 +4253,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addAuditLog(
           'Expenses',
           'Create Expense Record',
-          `Logged expense "${newExp.description}" for ₹${newExp.amount.toLocaleString('en-IN')} (${newExp.store})`
+          `Logged expense "${newExp.description}" for ${formatCurrency(newExp.amount)} (${newExp.store})`
         );
         toast.success(`Expense record ${newExp.referenceNo} saved to MySQL!`);
         refreshDomainData('expenses');
@@ -4272,7 +4309,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           receiptUrl: e.receiptUrl,
           recordedBy: e.recordedBy || e.approvedBy,
           status: 'Approved',
-          date: new Date(e.date).toLocaleDateString('en-IN'),
+          date: new Date(e.date).toLocaleDateString(branding?.locale || 'en-IN'),
           createdAt: e.createdAt,
         };
         setExpenses((prev) =>
@@ -4281,7 +4318,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addAuditLog(
           'Expenses',
           'Update Expense Record',
-          `Updated expense "${updatedExp.description}" for ₹${updatedExp.amount.toLocaleString('en-IN')} (${updatedExp.store})`
+          `Updated expense "${updatedExp.description}" for ${formatCurrency(updatedExp.amount)} (${updatedExp.store})`
         );
         toast.success(`Expense record ${updatedExp.referenceNo} updated successfully`);
         refreshDomainData('expenses');
@@ -4454,10 +4491,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       confirmationModalState,
       closeConfirmationModal,
       executeConfirmationAction,
+      formatCurrency,
+      dateLocale,
     }),
     [
       branding,
       systemSettings,
+      dateLocale,
       selectedStore,
       datePeriod,
       customDateRange,
@@ -4492,6 +4532,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       confirmationModalState,
       closeConfirmationModal,
       executeConfirmationAction,
+      formatCurrency,
     ]
   );
 

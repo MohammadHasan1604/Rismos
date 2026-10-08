@@ -5,6 +5,10 @@ import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
 import Modal from '@/components/ui/Modal';
 import { formatMoney, formatTaxLabel } from '@/lib/localization';
+import { getJurisdictionProfile } from '@/lib/localization/jurisdictions';
+import { COUNTRY_DIAL_CODES, formatDisplayPhone } from '@/lib/phoneUtils';
+import { validateTaxRegistrationId } from '@/lib/taxValidation';
+import TaxRegistrationField from '@/components/ui/TaxRegistrationField';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import {
   useApp,
@@ -56,11 +60,16 @@ export default function SalesPage() {
     storesList,
     addAuditLog,
     confirmAction,
+    formatCurrency,
   } = useApp();
 
+  const countryCode = systemSettings?.countryCode || branding?.countryCode || 'IN';
   const currencyCode = systemSettings?.currencyCode || 'INR';
+  const currencySymbol = systemSettings?.currencySymbol || '₹';
   const locale = branding?.locale || 'en-IN';
-  const taxLabel = formatTaxLabel(systemSettings?.taxRegime || 'GST');
+  const jurProfile = getJurisdictionProfile(countryCode);
+  const taxLabel = formatTaxLabel(systemSettings?.taxRegime || jurProfile.taxLabel || 'GST');
+  const activeTaxRate = Number(systemSettings?.defaultTaxRate ?? jurProfile.defaultTaxRate);
 
   const [activeTab, setActiveTab] = useState<'pos' | 'history'>('pos');
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -111,7 +120,21 @@ export default function SalesPage() {
   const [customerBillingAddress, setCustomerBillingAddress] = useState('');
 
   // Checkout State
-  const [paymentMethod, setPaymentMethod] = useState<string>('UPI');
+  const [paymentMethod, setPaymentMethod] = useState<string>(() => {
+    return paymentMethods?.find((p) => p.status === 'Active')?.name || 'Cash';
+  });
+
+  useEffect(() => {
+    if (paymentMethods && paymentMethods.length > 0) {
+      const active = paymentMethods.filter((p) => p.status === 'Active');
+      if (
+        active.length > 0 &&
+        !active.some((p) => p.name.toLowerCase() === paymentMethod.toLowerCase())
+      ) {
+        setPaymentMethod(active[0].name);
+      }
+    }
+  }, [paymentMethods, paymentMethod]);
   const [refundModalSale, setRefundModalSale] = useState<any | null>(null);
   const [cartDiscount, setCartDiscount] = useState<number>(0);
   const [heldCart, setHeldCart] = useState<CartItem[] | null>(null);
@@ -129,31 +152,42 @@ export default function SalesPage() {
 
   const [historyDateFilter, setHistoryDateFilter] = useState('');
 
-  // Normalize mobile number helper: strips +91, 0, spaces, dashes
-  const clean10DigitPhone = (val: string): string => {
-    const raw = val.replace(/\D/g, '');
-    if (raw.startsWith('91') && raw.length === 12) return raw.slice(2);
-    if (raw.startsWith('0') && raw.length === 11) return raw.slice(1);
-    if (raw.length > 10) return raw.slice(-10);
-    return raw;
+  // International phone normalization & display helpers
+  const dialCode = COUNTRY_DIAL_CODES[countryCode] || '+91';
+
+  const cleanPhone = (val: string): string => {
+    return normalizeMobileNumber(val, countryCode);
   };
 
-  const performCustomerLookup = async (phone10: string) => {
+  const formatCustomerPhone = (phoneRaw: string): string => {
+    const norm = cleanPhone(phoneRaw);
+    if (!norm) return '';
+    if (countryCode === 'IN' && norm.length === 10) {
+      return `${dialCode} ${norm.slice(0, 5)} ${norm.slice(5)}`;
+    }
+    return `${dialCode} ${norm}`;
+  };
+
+  const performCustomerLookup = async (phoneInput: string) => {
     setLookupLoading(true);
     setCustomerNotFound(false);
-    const fullNormalized = `+91 ${phone10.slice(0, 5)} ${phone10.slice(5)}`;
+    const cleaned = cleanPhone(phoneInput);
+    const fullNormalized = formatCustomerPhone(cleaned);
     setCustomerPhone(fullNormalized);
 
     try {
       // 1. Check local customers first
-      const localMatch = customers.find((c) => clean10DigitPhone(c.phone) === phone10);
+      const localMatch = customers.find((c) => {
+        const cPhone = cleanPhone(c.phone || '');
+        return cPhone === cleaned || (cleaned.length >= 7 && cPhone.endsWith(cleaned));
+      });
 
       // 2. Call backend legacy / customer lookup API
       let remoteMatch: any = null;
       let remoteRepairs: any[] = [];
       try {
         const res = await fetch(
-          `/api/customers/legacy/search?phone=${encodeURIComponent(phone10)}`
+          `/api/customers/legacy/search?phone=${encodeURIComponent(cleaned)}`
         );
         const data = await res.json();
         if (data.success && data.found) {
@@ -176,7 +210,7 @@ export default function SalesPage() {
         const pastSales = sales
           .filter(
             (s) =>
-              clean10DigitPhone(s.customerPhone || '') === phone10 ||
+              cleanPhone(s.customerPhone || '') === cleaned ||
               s.customerName.toLowerCase() === verified.name.toLowerCase()
           )
           .slice(0, 3);
@@ -187,7 +221,7 @@ export default function SalesPage() {
         if (remoteRepairs && remoteRepairs.length > 0) {
           remoteRepairs.slice(0, 3).forEach((r) => {
             relevantRepairs.push({
-              date: r.enquiryDate ? new Date(r.enquiryDate).toLocaleDateString('en-IN') : 'Recent',
+              date: r.enquiryDate ? new Date(r.enquiryDate).toLocaleDateString(locale) : 'Recent',
               status: r.repairStatus || r.status || 'Received',
               service: r.repairRequested || r.issueDescription || 'Inspection / Service',
               device: r.deviceName || r.deviceType || 'Device',
@@ -195,7 +229,7 @@ export default function SalesPage() {
           });
         } else {
           repairsEnquiries
-            .filter((r) => clean10DigitPhone(r.customerPhone) === phone10)
+            .filter((r) => cleanPhone(r.customerPhone) === cleaned)
             .slice(0, 3)
             .forEach((r) => {
               relevantRepairs.push({
@@ -227,14 +261,14 @@ export default function SalesPage() {
   };
 
   const attachCustomer = (c: Customer) => {
+    const digits = cleanPhone(c.phone || '');
+    setCustomerPhoneDigits(digits);
+    setCustomerPhone(c.phone ? formatCustomerPhone(c.phone) : '');
     setSelectedCustomerId(c.id);
     setCustomerName(c.name);
-    setCustomerPhone(c.phone);
-    const digits = clean10DigitPhone(c.phone);
-    setCustomerPhoneDigits(digits);
-    setCustomerSearchQuery('');
-    setLookupDone(true);
     setCustomerNotFound(false);
+    setLookupDone(true);
+    setCustomerSearchQuery(c.name);
 
     if (c.gstin) {
       setGstInvoiceEnabled(true);
@@ -247,14 +281,14 @@ export default function SalesPage() {
     const pastSales = sales
       .filter(
         (s) =>
-          clean10DigitPhone(s.customerPhone || '') === digits ||
+          cleanPhone(s.customerPhone || '') === digits ||
           s.customerName.toLowerCase() === c.name.toLowerCase()
       )
       .slice(0, 3);
 
     const relevantRepairs: { date: string; status: string; service: string; device: string }[] = [];
     repairsEnquiries
-      .filter((r) => clean10DigitPhone(r.customerPhone) === digits)
+      .filter((r) => cleanPhone(r.customerPhone) === digits)
       .slice(0, 3)
       .forEach((r) => {
         relevantRepairs.push({
@@ -291,8 +325,9 @@ export default function SalesPage() {
 
   const handleSearchQueryChange = (val: string) => {
     setCustomerSearchQuery(val);
-    const digits = clean10DigitPhone(val);
-    if (digits.length === 10) {
+    const digits = cleanPhone(val);
+    const minDigits = countryCode === 'IN' ? 10 : 8;
+    if (digits.length >= minDigits) {
       setCustomerPhoneDigits(digits);
       performCustomerLookup(digits);
     } else {
@@ -304,13 +339,13 @@ export default function SalesPage() {
   const matchingCustomers = useMemo(() => {
     const q = customerSearchQuery.trim().toLowerCase();
     if (!q) return [];
-    const cleanQ = clean10DigitPhone(q);
+    const cleanQ = cleanPhone(q);
     const seen = new Set<string>();
     const result: Customer[] = [];
     for (const c of customers) {
       if (!c.id || seen.has(c.id)) continue;
       const matchName = c.name?.toLowerCase().includes(q);
-      const matchPhone = cleanQ.length >= 3 && clean10DigitPhone(c.phone || '').includes(cleanQ);
+      const matchPhone = cleanQ.length >= 3 && cleanPhone(c.phone || '').includes(cleanQ);
       if (matchName || matchPhone) {
         seen.add(c.id);
         result.push(c);
@@ -318,7 +353,7 @@ export default function SalesPage() {
       }
     }
     return result;
-  }, [customers, customerSearchQuery]);
+  }, [customers, customerSearchQuery, countryCode]);
 
   // Inventory Filtering
   const dynamicCategories = useMemo(() => {
@@ -416,12 +451,12 @@ export default function SalesPage() {
       prev.map((c) => {
         if (c.itemId === itemId) {
           if (newPrice !== '' && Number(newPrice) < c.unitCost) {
-            toast.warning(`Warning: Price ₹${newPrice} is below purchase cost ₹${c.unitCost}!`);
+            toast.warning(`Warning: Price ${formatCurrency(newPrice)} is below purchase cost ${formatCurrency(c.unitCost)}!`);
           }
           addAuditLog(
             'Sales',
             'Override Selling Price',
-            `Adjusted sale price for "${c.name}" from ₹${c.referenceSellingPrice} to ₹${newPrice}`
+            `Adjusted sale price for "${c.name}" from ${formatCurrency(c.referenceSellingPrice)} to ${formatCurrency(newPrice)}`
           );
           return { ...c, actualSellingPrice: newPrice };
         }
@@ -435,21 +470,24 @@ export default function SalesPage() {
     return cart.reduce((acc, c) => acc + (Number(c.actualSellingPrice) || 0) * c.qty, 0);
   }, [cart]);
 
-  // GST Calculation: When GST is ON: 18% (CGST 9% + SGST 9%)
-  const gstRate = 18;
+  // Dynamic Tax Calculation driven by active jurisdiction profile and settings
   const cartTax = useMemo(() => {
     if (!gstInvoiceEnabled) return 0;
-    return Math.round(cartSubtotal * (gstRate / 100) * 100) / 100;
-  }, [cartSubtotal, gstInvoiceEnabled]);
+    return Math.round(cartSubtotal * (activeTaxRate / 100) * 100) / 100;
+  }, [cartSubtotal, gstInvoiceEnabled, activeTaxRate]);
 
-  const cgstAmount = useMemo(
-    () => (gstInvoiceEnabled ? Math.round((cartTax / 2) * 100) / 100 : 0),
-    [cartTax, gstInvoiceEnabled]
-  );
-  const sgstAmount = useMemo(
-    () => (gstInvoiceEnabled ? Math.round((cartTax / 2) * 100) / 100 : 0),
-    [cartTax, gstInvoiceEnabled]
-  );
+  const taxBreakdown = useMemo(() => {
+    if (!gstInvoiceEnabled || cartTax === 0) return [];
+    if (jurProfile.hasStateTaxBreakdown && countryCode === 'IN') {
+      const halfRate = activeTaxRate / 2;
+      const halfTax = Math.round((cartTax / 2) * 100) / 100;
+      return [
+        { label: `CGST (${halfRate}%)`, amount: halfTax },
+        { label: `SGST (${halfRate}%)`, amount: Math.round((cartTax - halfTax) * 100) / 100 },
+      ];
+    }
+    return [{ label: `${taxLabel} (${activeTaxRate}%)`, amount: cartTax }];
+  }, [gstInvoiceEnabled, cartTax, jurProfile.hasStateTaxBreakdown, countryCode, activeTaxRate, taxLabel]);
 
   const cartTotal = useMemo(() => {
     return Math.max(0, cartSubtotal + cartTax - cartDiscount);
@@ -465,12 +503,13 @@ export default function SalesPage() {
       return;
     }
 
-    // Validate GSTIN format if GST invoice is enabled and GSTIN is provided
+    // Validate Tax Registration format if tax invoice is enabled and ID is provided
     if (gstInvoiceEnabled && customerGstin.trim()) {
-      const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-      if (!gstinRegex.test(customerGstin.trim().toUpperCase())) {
+      const taxValidation = validateTaxRegistrationId(customerGstin.trim(), countryCode);
+      if (!taxValidation.valid) {
         toast.error(
-          'Invalid GSTIN format. Standard Indian GSTIN is 15 alphanumeric characters (e.g. 29ABCDE1234F1Z5).'
+          taxValidation.error ||
+            `Invalid ${jurProfile.taxIdLabel || 'Tax ID'} format for ${jurProfile.countryName}.`
         );
         return;
       }
@@ -499,18 +538,18 @@ export default function SalesPage() {
         { label: 'Customer', value: customerName.trim() || 'Walk-in Customer' },
         { label: 'Store Location', value: effectiveStore },
         { label: 'Items in Cart', value: `${totalUnits} units (${cart.length} SKUs)` },
-        { label: 'Taxable Subtotal', value: `₹${cartSubtotal.toLocaleString('en-IN')}` },
+        { label: 'Taxable Subtotal', value: formatCurrency(cartSubtotal) },
         ...(gstInvoiceEnabled
-          ? [{ label: 'GST (18%)', value: `₹${cartTax.toLocaleString('en-IN')}` }]
+          ? taxBreakdown.map((tb) => ({ label: tb.label, value: formatCurrency(tb.amount) }))
           : []),
         ...(cartDiscount > 0
-          ? [{ label: 'Discount Applied', value: `-₹${cartDiscount.toLocaleString('en-IN')}` }]
+          ? [{ label: 'Discount Applied', value: `-${formatCurrency(cartDiscount)}` }]
           : []),
         { label: 'Payment Method', value: paymentMethod },
         { label: 'Payment Ref (Server-generated)', value: effectiveRefNo },
         {
           label: 'Total Payable Amount',
-          value: `₹${cartTotal.toLocaleString('en-IN')}`,
+          value: formatCurrency(cartTotal),
           highlighted: true,
         },
       ],
@@ -540,7 +579,7 @@ export default function SalesPage() {
           qty: c.qty,
           unitPrice:
             c.actualSellingPrice !== '' ? Number(c.actualSellingPrice) : c.referenceSellingPrice,
-          taxRate: gstInvoiceEnabled ? gstRate : 0,
+          taxRate: gstInvoiceEnabled ? activeTaxRate : 0,
           warrantyMonths: c.warrantyMonths,
         })),
         subtotal: cartSubtotal,
@@ -560,7 +599,7 @@ export default function SalesPage() {
         return;
       }
 
-      // Attach GST snapshot info for receipt modal
+      // Attach Tax snapshot info for receipt modal
       const receiptSnapshot = {
         ...saleOrder,
         referenceNo: effectiveRefNo,
@@ -569,9 +608,8 @@ export default function SalesPage() {
         customerGstin: customerGstin.trim() || undefined,
         customerBusinessName: customerBusinessName.trim() || undefined,
         customerBillingAddress: customerBillingAddress.trim() || undefined,
-        cgstAmount,
-        sgstAmount,
-        coskoGstin: branding.taxNumber || '29AABCC1234F1Z5',
+        taxBreakdown,
+        sellerTaxNumber: systemSettings?.taxRegistrationNumber || branding.taxNumber || '—',
       };
 
       setReceiptModal(receiptSnapshot);
@@ -602,14 +640,14 @@ export default function SalesPage() {
   // WhatsApp Digital Invoice Sender
   const handleSendWhatsAppInvoice = (receipt: any) => {
     const targetPhone = receipt.customerPhone || customerPhone;
-    const res = buildWhatsAppInvoiceUrl(receipt, targetPhone);
+    const res = buildWhatsAppInvoiceUrl(receipt, targetPhone, countryCode);
     if (!res.success || !res.url) {
       toast.error(res.error || 'Customer phone number is required to send invoice on WhatsApp.');
       return;
     }
 
     window.open(res.url, '_blank');
-    toast.success(`Opened WhatsApp with invoice summary for +91 ${res.cleanPhone}`);
+    toast.success(`Opened WhatsApp with invoice summary for ${res.cleanPhone}`);
   };
 
   // Sales History Filtering
@@ -620,7 +658,7 @@ export default function SalesPage() {
         s.orderNo.toLowerCase().includes(historySearch.toLowerCase()) ||
         s.customerName.toLowerCase().includes(historySearch.toLowerCase()) ||
         s.customerPhone.includes(historySearch);
-      const assignedStore = currentUser.store || 'BLR';
+      const assignedStore = currentUser.store || 'CENTRAL';
       const matchStore =
         currentUser.role === 'Super Admin'
           ? historyStoreFilter === 'All' || s.store === historyStoreFilter
@@ -770,16 +808,14 @@ export default function SalesPage() {
                         <div>
                           <p className="font-bold text-foreground">No Customer Found</p>
                           <p className="text-2xs text-muted-foreground">
-                            {clean10DigitPhone(customerSearchQuery).length === 10
-                              ? `+91 ${clean10DigitPhone(customerSearchQuery)}`
-                              : `"${customerSearchQuery}"`}
+                            {customerSearchQuery}
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => {
-                            const digits = clean10DigitPhone(customerSearchQuery);
-                            if (digits.length === 10) {
+                            const digits = cleanPhone(customerSearchQuery);
+                            if (digits) {
                               setCustomerPhoneDigits(digits);
                             }
                             openCustomerModal();
@@ -848,7 +884,7 @@ export default function SalesPage() {
                               <span className="font-mono">
                                 {p.orderNo} ({p.createdAt})
                               </span>
-                              <span className="font-bold">₹{p.total.toLocaleString('en-IN')}</span>
+                              <span className="font-bold">{formatCurrency(p.total)}</span>
                             </div>
                           ))}
                         </div>
@@ -976,11 +1012,11 @@ export default function SalesPage() {
                     <div className="pt-2 mt-2 border-t border-border/60 flex items-center justify-between">
                       <div>
                         <span className="text-xs font-black text-primary font-tabular">
-                          ₹{item.sellingPrice.toLocaleString('en-IN')}
+                          {formatCurrency(item.sellingPrice)}
                         </span>
                         {canViewCost && (
                           <span className="text-3xs text-muted-foreground block font-mono">
-                            Cost: ₹{item.costPrice}
+                            Cost: {formatCurrency(item.costPrice)}
                           </span>
                         )}
                       </div>
@@ -1022,9 +1058,9 @@ export default function SalesPage() {
                     )}
                   </div>
 
-                  {/* GST Invoice Toggle */}
+                  {/* Tax Invoice Toggle */}
                   <div className="flex items-center gap-2">
-                    <span className="text-2xs font-bold text-muted-foreground">GST Invoice:</span>
+                    <span className="text-2xs font-bold text-muted-foreground">{taxLabel} Invoice:</span>
                     <ToggleSwitch
                       checked={gstInvoiceEnabled}
                       onChange={setGstInvoiceEnabled}
@@ -1035,31 +1071,28 @@ export default function SalesPage() {
                   </div>
                 </div>
 
-                {/* Customer GST Fields when GST is ON */}
+                {/* Customer Tax Registration Fields when Tax is ON */}
                 {gstInvoiceEnabled && (
                   <div className="p-3 rounded-xl border border-primary/30 bg-primary/5 space-y-2 text-xs fade-in">
                     <div className="flex items-center justify-between text-2xs text-muted-foreground">
                       <span>
                         {branding.appName || 'RISMOS'} {taxLabel} ID:{' '}
                         <strong className="font-mono text-foreground">
-                          {systemSettings?.taxRegistrationNumber || branding.taxNumber || systemSettings?.gstin || '—'}
+                          {systemSettings?.taxRegistrationNumber || branding.taxNumber || '—'}
                         </strong>
                       </span>
-                      <span>Default Rate: {systemSettings?.defaultTaxRate ?? 18}%</span>
+                      <span>Default Rate: {activeTaxRate}%</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-3xs font-bold text-muted-foreground block mb-0.5">
-                          Customer GSTIN (Optional)
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={15}
-                          placeholder="29ABCDE1234F1Z5"
+                        <TaxRegistrationField
                           value={customerGstin}
-                          onChange={(e) => setCustomerGstin(e.target.value.toUpperCase())}
-                          className="input-field text-2xs py-1 font-mono uppercase"
+                          onChange={setCustomerGstin}
+                          countryCode={countryCode}
+                          label={`Customer ${jurProfile.taxIdLabel || 'Tax ID'} (Optional)`}
+                          placeholder={jurProfile.taxIdPlaceholder || 'Tax Registration ID'}
+                          size="sm"
                         />
                       </div>
                       <div>
@@ -1082,7 +1115,7 @@ export default function SalesPage() {
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. 12/B Commercial Street, Bengaluru"
+                        placeholder="e.g. 12/B Commercial Street, Downtown"
                         value={customerBillingAddress}
                         onChange={(e) => setCustomerBillingAddress(e.target.value)}
                         className="input-field text-2xs py-1"
@@ -1144,13 +1177,13 @@ export default function SalesPage() {
                               <span className="text-muted-foreground block">
                                 Ref Price:{' '}
                                 <span className="font-semibold text-foreground">
-                                  ₹{c.referenceSellingPrice}
+                                  {formatCurrency(c.referenceSellingPrice)}
                                 </span>
                               </span>
                               {canViewCost && (
                                 <span className="text-3xs text-muted-foreground block">
                                   Ref Cost:{' '}
-                                  <span className="font-mono font-medium">₹{c.unitCost}</span>
+                                  <span className="font-mono font-medium">{formatCurrency(c.unitCost)}</span>
                                 </span>
                               )}
                             </div>
@@ -1158,7 +1191,7 @@ export default function SalesPage() {
                             <div className="flex items-center gap-2">
                               <div className="text-right">
                                 <label className="text-3xs text-muted-foreground block">
-                                  Actual Sale Price (₹)
+                                  Actual Sale Price ({currencySymbol})
                                 </label>
                                 {canOverridePrice ? (
                                   <NumericInput
@@ -1169,15 +1202,12 @@ export default function SalesPage() {
                                   />
                                 ) : (
                                   <span className="font-bold text-foreground font-tabular">
-                                    ₹{c.actualSellingPrice}
+                                    {formatCurrency(c.actualSellingPrice)}
                                   </span>
                                 )}
                               </div>
                               <span className="text-xs font-extrabold text-foreground font-tabular min-w-[55px] text-right">
-                                ₹
-                                {((Number(c.actualSellingPrice) || 0) * c.qty).toLocaleString(
-                                  'en-IN'
-                                )}
+                                {formatCurrency((Number(c.actualSellingPrice) || 0) * c.qty)}
                               </span>
                             </div>
                           </div>
@@ -1186,7 +1216,7 @@ export default function SalesPage() {
                           {isBelowCost && (
                             <div className="p-1.5 rounded-lg bg-danger/10 border border-danger/30 text-danger text-3xs font-bold flex items-center gap-1">
                               <Icon name="ExclamationTriangleIcon" size={12} />
-                              Below Authoritative Cost Warning (Cost: ₹{c.unitCost}). Authorized
+                              Below Authoritative Cost Warning (Cost: {formatCurrency(c.unitCost)}). Authorized
                               override active.
                             </div>
                           )}
@@ -1200,34 +1230,30 @@ export default function SalesPage() {
                 <div className="pt-3 border-t border-border space-y-1.5 text-xs font-tabular">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Taxable Subtotal:</span>
-                    <span>₹{cartSubtotal.toLocaleString('en-IN')}</span>
+                    <span>{formatCurrency(cartSubtotal)}</span>
                   </div>
                   {gstInvoiceEnabled ? (
-                    <>
-                      <div className="flex justify-between text-muted-foreground text-2xs">
-                        <span>CGST (9%):</span>
-                        <span>₹{cgstAmount.toLocaleString('en-IN')}</span>
+                    taxBreakdown.map((tb, idx) => (
+                      <div key={`tb-${idx}`} className="flex justify-between text-muted-foreground text-2xs">
+                        <span>{tb.label}:</span>
+                        <span>{formatCurrency(tb.amount)}</span>
                       </div>
-                      <div className="flex justify-between text-muted-foreground text-2xs">
-                        <span>SGST (9%):</span>
-                        <span>₹{sgstAmount.toLocaleString('en-IN')}</span>
-                      </div>
-                    </>
+                    ))
                   ) : (
                     <div className="flex justify-between text-muted-foreground">
-                      <span>GST Amount:</span>
-                      <span className="text-2xs font-semibold">₹0 (Non-GST Invoice)</span>
+                      <span>{taxLabel} Amount:</span>
+                      <span className="text-2xs font-semibold">{formatCurrency(0)} (Non-{taxLabel} Invoice)</span>
                     </div>
                   )}
                   {cartDiscount > 0 && (
                     <div className="flex justify-between text-success font-bold">
                       <span>Order Discount:</span>
-                      <span>-₹{cartDiscount}</span>
+                      <span>-{formatCurrency(cartDiscount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-base font-extrabold text-foreground pt-1.5 border-t border-border">
                     <span>Grand Total:</span>
-                    <span className="text-primary">₹{cartTotal.toLocaleString('en-IN')}</span>
+                    <span className="text-primary">{formatCurrency(cartTotal)}</span>
                   </div>
                 </div>
 
@@ -1247,7 +1273,7 @@ export default function SalesPage() {
                     onChange={setPosPaymentProofUrl}
                     required={true}
                     label="Payment Proof * (Receipt / Screenshot / Slip)"
-                    helperText="Upload UPI screenshot, card slip, or cash voucher (JPG, PNG, WebP, PDF) — Required"
+                    helperText="Upload receipt, transaction screenshot, card slip, or payment voucher (JPG, PNG, WebP, PDF) — Required"
                     storeCode={effectiveStore}
                     relatedEntityType="Sale"
                   />
@@ -1581,7 +1607,7 @@ export default function SalesPage() {
           setSelectedCustomerToEdit(null);
         }}
         customer={selectedCustomerToEdit || undefined}
-        initialPhone={customerPhoneDigits ? `+91 ${customerPhoneDigits}` : undefined}
+        initialPhone={customerPhoneDigits ? (customerPhoneDigits.startsWith('+') ? customerPhoneDigits : `${dialCode} ${customerPhoneDigits}`) : undefined}
         onSuccess={(created) => {
           attachCustomer(created);
           setQuickRegModal(false);

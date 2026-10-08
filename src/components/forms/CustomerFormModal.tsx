@@ -5,7 +5,10 @@ import Icon from '@/components/ui/AppIcon';
 import NumericInput from '@/components/ui/NumericInput';
 import { useApp, Customer } from '@/context/AppContext';
 import { toast } from 'sonner';
-import { validateAndNormalizeGstin } from '@/lib/gstUtils';
+import { COUNTRY_DIAL_CODES, normalizeMobileNumber } from '@/lib/phoneUtils';
+import { getJurisdictionProfile } from '@/lib/localization/jurisdictions';
+import { validateTaxRegistrationId } from '@/lib/taxValidation';
+import TaxRegistrationField from '@/components/ui/TaxRegistrationField';
 
 interface CustomerFormModalProps {
   open: boolean;
@@ -18,15 +21,8 @@ interface CustomerFormModalProps {
   zIndex?: number;
 }
 
-export function clean10DigitPhone(input: string): string {
-  const digits = input.replace(/\D/g, '');
-  if (digits.length === 12 && digits.startsWith('91')) {
-    return digits.slice(2);
-  }
-  if (digits.length > 10) {
-    return digits.slice(-10);
-  }
-  return digits;
+export function clean10DigitPhone(input: string, countryCode = 'IN'): string {
+  return normalizeMobileNumber(input, countryCode);
 }
 
 export default function CustomerFormModal({
@@ -39,13 +35,30 @@ export default function CustomerFormModal({
   quickMode = false,
   zIndex = 100,
 }: CustomerFormModalProps) {
-  const { addCustomer, updateCustomer, confirmAction, currentUser, selectedStore, storesList } = useApp();
+  const {
+    addCustomer,
+    updateCustomer,
+    confirmAction,
+    currentUser,
+    selectedStore,
+    storesList,
+    systemSettings,
+    branding,
+    formatCurrency,
+  } = useApp();
+
+  const countryCode = systemSettings?.countryCode || branding?.countryCode || 'IN';
+  const currencySymbol = systemSettings?.currencySymbol || '₹';
+  const jurProfile = getJurisdictionProfile(countryCode);
+  const dialCode = COUNTRY_DIAL_CODES[countryCode] || '+91';
+
+  const cleanPhone = (val: string): string => normalizeMobileNumber(val, countryCode);
 
   const isSuperAdmin = currentUser?.role === 'Super Admin';
   const userStoreCode = (
     currentUser?.store && currentUser?.store !== 'All Stores' && currentUser?.store !== 'HQ'
       ? currentUser.store
-      : 'BLR'
+      : 'CENTRAL'
   ).toUpperCase();
 
   const activePhysicalStores = React.useMemo(() => {
@@ -65,7 +78,7 @@ export default function CustomerFormModal({
 
   const assignedStoreLabel = assignedStoreObj
     ? `${userStoreCode} · ${assignedStoreObj.name}`
-    : `${userStoreCode} · Cosko Indiranagar`;
+    : `${userStoreCode} · Retail Store`;
 
   const defaultSuperAdminStore = React.useMemo(() => {
     if (
@@ -77,7 +90,7 @@ export default function CustomerFormModal({
     ) {
       return selectedStore.toUpperCase();
     }
-    return activePhysicalStores[0]?.code?.toUpperCase() || 'BLR';
+    return activePhysicalStores[0]?.code?.toUpperCase() || 'CENTRAL';
   }, [selectedStore, activePhysicalStores]);
 
   const [name, setName] = useState('');
@@ -110,11 +123,11 @@ export default function CustomerFormModal({
 
       if (customer) {
         setName(customer.name || '');
-        setPhone(clean10DigitPhone(customer.phone || ''));
+        setPhone(cleanPhone(customer.phone || ''));
         setEmail(customer.email || '');
         setCity(customer.city || '');
         setAddress(customer.address || '');
-        setGstin('');
+        setGstin(customer.gstin || '');
         setTier(customer.tier || 'Regular');
         setCreditBalance(
           customer.creditBalance !== undefined && customer.creditBalance !== null
@@ -128,7 +141,7 @@ export default function CustomerFormModal({
         setServiceStore(custStore);
       } else {
         setName(initialName || '');
-        setPhone(clean10DigitPhone(initialPhone || ''));
+        setPhone(cleanPhone(initialPhone || ''));
         setEmail('');
         setCity('');
         setAddress('');
@@ -149,7 +162,7 @@ export default function CustomerFormModal({
     if (isEdit) {
       return (
         name !== (customer?.name || '') ||
-        clean10DigitPhone(phone) !== clean10DigitPhone(customer?.phone || '') ||
+        cleanPhone(phone) !== cleanPhone(customer?.phone || '') ||
         email !== (customer?.email || '') ||
         address !== (customer?.address || '')
       );
@@ -179,22 +192,27 @@ export default function CustomerFormModal({
       return;
     }
 
-    const cleanDigits = clean10DigitPhone(phone);
-    if (cleanDigits.length < 10) {
-      toast.error('Please enter a valid 10-digit mobile number');
+    const cleanDigits = cleanPhone(phone);
+    const minDigits = countryCode === 'IN' ? 10 : 7;
+    if (cleanDigits.length < minDigits) {
+      toast.error(`Please enter a valid mobile number (minimum ${minDigits} digits)`);
       return;
     }
 
     if (gstin.trim()) {
-      const gstinCheck = validateAndNormalizeGstin(gstin);
-      if (!gstinCheck.isValid) {
-        toast.error(gstinCheck.error || 'Invalid GSTIN format');
+      const taxCheck = validateTaxRegistrationId(gstin, countryCode);
+      if (!taxCheck.valid) {
+        toast.error(taxCheck.error || `Invalid ${jurProfile.taxIdLabel || 'Tax ID'} format`);
         return;
       }
     }
 
     const effectiveStoreCode = !isSuperAdmin ? userStoreCode : (serviceStore || defaultSuperAdminStore);
-    const formattedPhone = `+91 ${cleanDigits.slice(0, 5)} ${cleanDigits.slice(5)}`;
+    const formattedPhone = cleanDigits.startsWith('+')
+      ? cleanDigits
+      : (countryCode === 'IN' && cleanDigits.length === 10
+          ? `${dialCode} ${cleanDigits.slice(0, 5)} ${cleanDigits.slice(5)}`
+          : `${dialCode} ${cleanDigits}`);
     const cleanGstin = gstin.trim().toUpperCase();
 
     const confirmed = await confirmAction({
@@ -217,10 +235,11 @@ export default function CustomerFormModal({
           ? [
               {
                 label: 'Credit Balance',
-                value: `₹${Number(creditBalance).toLocaleString('en-IN')}`,
+                value: formatCurrency(creditBalance),
               },
             ]
           : []),
+        ...(cleanGstin ? [{ label: jurProfile.taxIdLabel || 'Tax ID', value: cleanGstin }] : []),
       ],
       warningMessage: isEdit
         ? 'Customer updates will reflect immediately across all POS customer lookups and CRM history.'
@@ -388,7 +407,7 @@ export default function CustomerFormModal({
             type="text"
             required
             autoFocus
-            placeholder="e.g. Ramesh Patel, Ananya Sharma"
+            placeholder="e.g. Alex Morgan, Sarah Connor"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="input-field text-xs"
@@ -399,20 +418,20 @@ export default function CustomerFormModal({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-bold text-foreground block mb-1">
-              Mobile Number (10 Digits) <span className="text-danger">*</span>
+              Mobile / Phone Number <span className="text-danger">*</span>
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono font-semibold">
-                +91
+                {dialCode}
               </span>
               <input
                 type="tel"
                 required
-                maxLength={10}
-                placeholder="9876543210"
+                maxLength={16}
+                placeholder={countryCode === 'IN' ? '9876543210' : '501234567'}
                 value={phone}
-                onChange={(e) => setPhone(clean10DigitPhone(e.target.value))}
-                className="input-field pl-12 text-xs font-mono font-semibold"
+                onChange={(e) => setPhone(cleanPhone(e.target.value))}
+                className="input-field pl-14 text-xs font-mono font-semibold"
               />
             </div>
           </div>
@@ -431,20 +450,16 @@ export default function CustomerFormModal({
           </div>
         </div>
 
-        {/* GSTIN & City */}
+        {/* Tax Registration & City */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-bold text-foreground block mb-1">
-              Customer GSTIN{' '}
-              <span className="text-muted-foreground font-normal">(B2B Invoices)</span>
-            </label>
-            <input
-              type="text"
-              maxLength={15}
-              placeholder="29AAAAA0000A1Z5"
+            <TaxRegistrationField
               value={gstin}
-              onChange={(e) => setGstin(e.target.value.toUpperCase())}
-              className="input-field text-xs font-mono uppercase"
+              onChange={setGstin}
+              countryCode={countryCode}
+              entityType="Customer"
+              required={false}
+              size="sm"
             />
           </div>
 
@@ -454,7 +469,7 @@ export default function CustomerFormModal({
             </label>
             <input
               type="text"
-              placeholder="e.g. Bengaluru, Mangaluru, Hyderabad"
+              placeholder="e.g. Downtown, City Center"
               value={city}
               onChange={(e) => setCity(e.target.value)}
               className="input-field text-xs"
@@ -470,7 +485,7 @@ export default function CustomerFormModal({
           </label>
           <input
             type="text"
-            placeholder="e.g. 100ft Road, Indiranagar, Bengaluru"
+            placeholder="e.g. 100ft Main Road, Commercial District"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             className="input-field text-xs"
@@ -494,7 +509,7 @@ export default function CustomerFormModal({
 
           <div>
             <label className="text-xs font-bold text-foreground block mb-1">
-              Opening Credit Balance (₹)
+              Opening Credit Balance ({currencySymbol})
             </label>
             <NumericInput
               min={0}

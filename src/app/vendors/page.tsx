@@ -24,6 +24,8 @@ export default function VendorsPage() {
     recordPurchasePayment,
     refreshAllData,
     currentUser,
+    formatCurrency,
+    dateLocale,
   } = useApp();
 
   // Search & Filter state
@@ -280,7 +282,7 @@ export default function VendorsPage() {
               </span>
             </div>
             <p className="text-2xl font-extrabold text-foreground font-tabular mt-1.5">
-              ₹{summaryMetrics.totalBilled.toLocaleString('en-IN')}
+              {formatCurrency(summaryMetrics.totalBilled)}
             </p>
             <p className="text-3xs text-muted-foreground mt-1">
               Across all verified purchase orders
@@ -297,7 +299,7 @@ export default function VendorsPage() {
               </span>
             </div>
             <p className="text-2xl font-extrabold text-positive font-tabular mt-1.5">
-              ₹{summaryMetrics.totalPaid.toLocaleString('en-IN')}
+              {formatCurrency(summaryMetrics.totalPaid)}
             </p>
             <p className="text-3xs text-muted-foreground mt-1">
               Verified bank, UPI & cash disbursements
@@ -326,7 +328,7 @@ export default function VendorsPage() {
             <p
               className={`text-2xl font-extrabold font-tabular mt-1.5 ${summaryMetrics.totalOutstanding > 0 ? 'text-danger' : 'text-emerald-600'}`}
             >
-              ₹{summaryMetrics.totalOutstanding.toLocaleString('en-IN')}
+              {formatCurrency(summaryMetrics.totalOutstanding)}
             </p>
             <div className="flex items-center gap-1.5 mt-1">
               {summaryMetrics.totalOverdueBills > 0 ? (
@@ -519,7 +521,7 @@ export default function VendorsPage() {
                         Outstanding Payable
                       </span>
                       <span className="font-extrabold text-base font-tabular">
-                        ₹{v.outstandingPayable.toLocaleString('en-IN')}
+                        {formatCurrency(v.outstandingPayable)}
                       </span>
                     </div>
 
@@ -584,7 +586,7 @@ export default function VendorsPage() {
                           {v.paymentTerms || 'Net 30'} ({v.leadTimeDays || 3}d)
                         </td>
                         <td className="px-4 py-3 text-right font-semibold text-foreground">
-                          ₹{v.totalBilledAmount.toLocaleString('en-IN')}
+                          {formatCurrency(v.totalBilledAmount)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button
@@ -597,7 +599,7 @@ export default function VendorsPage() {
                                 : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
                             }`}
                           >
-                            ₹{v.outstandingPayable.toLocaleString('en-IN')}
+                            {formatCurrency(v.outstandingPayable)}
                             <Icon name="ArrowTopRightOnSquareIcon" size={12} />
                           </button>
                         </td>

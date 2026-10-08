@@ -11,7 +11,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('COSKO Application Error:', error);
+    console.error('Application Error:', error);
   }, [error]);
 
   return (

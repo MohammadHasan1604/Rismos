@@ -12,7 +12,7 @@ export default function InventorySummaryCards({
   categoryFilter,
   storeScope,
 }: InventorySummaryCardsProps) {
-  const { inventory, selectedStore } = useApp();
+  const { inventory, selectedStore, formatCurrency, dateLocale } = useApp();
   const activeStore = storeScope || selectedStore;
 
   const { totalSKUs, totalQuantity, totalValue, lowStockCount, outOfStockCount } = useMemo(() => {
@@ -95,7 +95,7 @@ export default function InventorySummaryCards({
     {
       id: 'inv-sum-total',
       label: 'Total SKUs',
-      value: totalSKUs.toLocaleString('en-IN'),
+      value: totalSKUs.toLocaleString(dateLocale || 'en-IN'),
       sub: `Scope: ${scopeLabel}`,
       icon: 'CubeIcon',
       color: 'text-primary',
@@ -104,7 +104,7 @@ export default function InventorySummaryCards({
     {
       id: 'inv-sum-qty',
       label: 'Total Quantity',
-      value: totalQuantity.toLocaleString('en-IN') + ' units',
+      value: totalQuantity.toLocaleString(dateLocale || 'en-IN') + ' units',
       sub:
         activeStore === 'All Stores'
           ? 'Aggregated across all stores'
@@ -116,7 +116,7 @@ export default function InventorySummaryCards({
     {
       id: 'inv-sum-value',
       label: 'Inventory Value',
-      value: `₹${totalValue.toLocaleString('en-IN')}`,
+      value: formatCurrency(totalValue),
       sub: 'At purchase cost valuation',
       icon: 'CurrencyRupeeIcon',
       color: 'text-info',

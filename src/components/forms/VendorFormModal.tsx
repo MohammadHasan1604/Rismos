@@ -7,7 +7,10 @@ import NumericInput from '@/components/ui/NumericInput';
 import CategoryFormModal from './CategoryFormModal';
 import { useApp, Vendor } from '@/context/AppContext';
 import { toast } from 'sonner';
-import { validateAndNormalizeGstin } from '@/lib/gstUtils';
+import { COUNTRY_DIAL_CODES } from '@/lib/phoneUtils';
+import { getJurisdictionProfile } from '@/lib/localization/jurisdictions';
+import { validateTaxRegistrationId } from '@/lib/taxValidation';
+import TaxRegistrationField from '@/components/ui/TaxRegistrationField';
 
 interface VendorFormModalProps {
   open: boolean;
@@ -26,7 +29,11 @@ export default function VendorFormModal({
   quickMode = false,
   zIndex = 100,
 }: VendorFormModalProps) {
-  const { addVendor, updateVendor, categoriesList, confirmAction } = useApp();
+  const { addVendor, updateVendor, categoriesList, confirmAction, systemSettings, branding } = useApp();
+
+  const countryCode = systemSettings?.countryCode || branding?.countryCode || 'IN';
+  const jurProfile = getJurisdictionProfile(countryCode);
+  const dialCode = COUNTRY_DIAL_CODES[countryCode] || '+91';
 
   const [name, setName] = useState('');
   const [contactPerson, setContactPerson] = useState('');
@@ -137,9 +144,9 @@ export default function VendorFormModal({
     }
 
     if (gstin.trim()) {
-      const gstinCheck = validateAndNormalizeGstin(gstin);
-      if (!gstinCheck.isValid) {
-        toast.error(gstinCheck.error || 'Invalid GSTIN format');
+      const taxCheck = validateTaxRegistrationId(gstin, countryCode);
+      if (!taxCheck.valid) {
+        toast.error(taxCheck.error || `Invalid ${jurProfile.taxIdLabel || 'Tax ID'} format`);
         return;
       }
     }
@@ -157,7 +164,7 @@ export default function VendorFormModal({
         { label: 'Phone', value: phone.trim() || 'N/A' },
         { label: 'Category', value: category.trim() || 'General Hardware' },
         { label: 'Payment Terms', value: paymentTerms.trim() || 'Net 30' },
-        ...(cleanGstin ? [{ label: 'GSTIN', value: cleanGstin }] : []),
+        ...(cleanGstin ? [{ label: jurProfile.taxIdLabel || 'Tax ID', value: cleanGstin }] : []),
       ],
       warningMessage: isEdit
         ? 'Supplier profile modifications will immediately update across all purchase order pipelines and payable ledgers.'
@@ -292,7 +299,7 @@ export default function VendorFormModal({
               type="text"
               required
               autoFocus
-              placeholder="e.g. Polycab India Ltd, Foxconn Electronics"
+              placeholder="e.g. Apex Global Supplies, Foxconn Electronics"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="input-field text-xs"
@@ -305,7 +312,7 @@ export default function VendorFormModal({
               <label className="text-xs font-bold text-foreground block mb-1">Contact Person</label>
               <input
                 type="text"
-                placeholder="e.g. Rajesh Kumar"
+                placeholder="e.g. Alex Morgan"
                 value={contactPerson}
                 onChange={(e) => setContactPerson(e.target.value)}
                 className="input-field text-xs"
@@ -315,7 +322,7 @@ export default function VendorFormModal({
               <label className="text-xs font-bold text-foreground block mb-1">Phone Number</label>
               <input
                 type="tel"
-                placeholder="e.g. +91 98765 43210"
+                placeholder={`e.g. ${dialCode} 501234567`}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="input-field text-xs"
@@ -323,7 +330,7 @@ export default function VendorFormModal({
             </div>
           </div>
 
-          {/* Email & GSTIN */}
+          {/* Email & Tax Registration Number */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label className="text-xs font-bold text-foreground block mb-1">
@@ -338,16 +345,13 @@ export default function VendorFormModal({
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-foreground block mb-1">
-                GSTIN <span className="text-muted-foreground font-normal">(15 Characters)</span>
-              </label>
-              <input
-                type="text"
-                maxLength={15}
-                placeholder="29AAAAA0000A1Z5"
+              <TaxRegistrationField
                 value={gstin}
-                onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                className="input-field text-xs font-mono uppercase"
+                onChange={setGstin}
+                countryCode={countryCode}
+                entityType="Vendor"
+                required={false}
+                size="sm"
               />
             </div>
           </div>

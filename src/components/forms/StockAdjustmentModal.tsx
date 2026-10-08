@@ -49,7 +49,7 @@ export default function StockAdjustmentModal({
   onSuccess,
   zIndex = 100,
 }: StockAdjustmentModalProps) {
-  const { adjustStock, confirmAction } = useApp();
+  const { adjustStock, confirmAction, formatCurrency } = useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -230,7 +230,7 @@ export default function StockAdjustmentModal({
             <p className="text-3xs text-muted-foreground uppercase font-semibold">Store Location</p>
             <p className="text-sm font-bold text-primary">{item.store}</p>
             <p className="text-3xs text-muted-foreground mt-0.5 font-tabular">
-              Cost: ₹{item.costPrice.toLocaleString('en-IN')}/unit
+              Cost: {formatCurrency(item.costPrice)}/unit
             </p>
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useApp } from '@/context/AppContext';
 import Icon from '@/components/ui/AppIcon';
 import { LedgerEntry } from './types';
 import { PaymentProofData } from '@/components/ui/ProofViewerModal';
@@ -30,6 +31,7 @@ export const GeneralLedgerView: React.FC<GeneralLedgerViewProps> = ({
   ledgerEntries,
   onViewProof,
 }) => {
+  const { formatCurrency, dateLocale } = useApp();
   return (
     <div className="space-y-6 fade-in">
       {/* Ledger Filter & Search Bar */}
@@ -80,7 +82,7 @@ export const GeneralLedgerView: React.FC<GeneralLedgerViewProps> = ({
             Total Journal Debits
           </p>
           <p className="text-xl font-bold text-foreground font-tabular mt-1">
-            ₹{ledgerTotalDebit.toLocaleString('en-IN')}
+            {formatCurrency(ledgerTotalDebit)}
           </p>
         </div>
         <div className="card p-4">
@@ -88,7 +90,7 @@ export const GeneralLedgerView: React.FC<GeneralLedgerViewProps> = ({
             Total Journal Credits
           </p>
           <p className="text-xl font-bold text-foreground font-tabular mt-1">
-            ₹{ledgerTotalCredit.toLocaleString('en-IN')}
+            {formatCurrency(ledgerTotalCredit)}
           </p>
         </div>
         <div className="card p-4">
@@ -100,7 +102,7 @@ export const GeneralLedgerView: React.FC<GeneralLedgerViewProps> = ({
           >
             {Math.abs(ledgerTotalDebit - ledgerTotalCredit) < 0.05
               ? '✓ 100% Balanced'
-              : `Diff: ₹${Math.abs(ledgerTotalDebit - ledgerTotalCredit).toFixed(2)}`}
+              : `Diff: ${formatCurrency(Math.abs(ledgerTotalDebit - ledgerTotalCredit))}`}
           </p>
         </div>
       </div>
@@ -146,7 +148,7 @@ export const GeneralLedgerView: React.FC<GeneralLedgerViewProps> = ({
                       {le.entryNo}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                      {new Date(le.entryDate).toLocaleDateString('en-IN', {
+                      {new Date(le.entryDate).toLocaleDateString(dateLocale || 'en-IN', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',
@@ -165,10 +167,10 @@ export const GeneralLedgerView: React.FC<GeneralLedgerViewProps> = ({
                       {le.description}
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-foreground">
-                      {le.debit > 0 ? `₹${le.debit.toLocaleString('en-IN')}` : '-'}
+                      {le.debit > 0 ? formatCurrency(le.debit) : '-'}
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-foreground">
-                      {le.credit > 0 ? `₹${le.credit.toLocaleString('en-IN')}` : '-'}
+                      {le.credit > 0 ? formatCurrency(le.credit) : '-'}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {le.proofUrl ? (

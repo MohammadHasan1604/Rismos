@@ -37,7 +37,7 @@ interface StockAdjustmentFormProps {
 }
 
 export default function StockAdjustmentForm({ item, onClose }: StockAdjustmentFormProps) {
-  const { adjustStock } = useApp();
+  const { adjustStock, formatCurrency } = useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -104,7 +104,7 @@ export default function StockAdjustmentForm({ item, onClose }: StockAdjustmentFo
           <p className="text-2xs text-muted-foreground">Store</p>
           <p className="text-sm font-semibold text-foreground">{item.store}</p>
           <p className="text-2xs text-muted-foreground mt-0.5">
-            Cost: ₹{item.costPrice.toLocaleString('en-IN')}/unit
+            Cost: {formatCurrency(item.costPrice)}/unit
           </p>
         </div>
       </div>

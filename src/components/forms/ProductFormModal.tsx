@@ -12,6 +12,7 @@ import CustomSelect, { SelectOption } from '@/components/ui/CustomSelect';
 import NumericInput from '@/components/ui/NumericInput';
 import { toast } from 'sonner';
 import { StorageService } from '@/lib/storageService';
+import { getJurisdictionProfile } from '@/lib/localization/jurisdictions';
 
 interface ProductFormModalProps {
   open: boolean;
@@ -38,7 +39,15 @@ export default function ProductFormModal({
     brands,
     confirmAction,
     currentUser,
+    systemSettings,
+    branding,
+    formatCurrency,
   } = useApp();
+
+  const countryCode = systemSettings?.countryCode || branding?.countryCode || 'IN';
+  const currencySymbol = systemSettings?.currencySymbol || '₹';
+  const jurProfile = getJurisdictionProfile(countryCode);
+  const taxLabel = jurProfile?.taxLabel || 'Tax';
 
   const isSuperAdmin = currentUser?.role === 'Super Admin';
   const isStoreManager = currentUser?.role === 'Store Manager';
@@ -46,11 +55,11 @@ export default function ProductFormModal({
   const userStoreCode =
     currentUser?.store && currentUser.store !== 'All Stores' && currentUser.store !== 'ALL'
       ? currentUser.store
-      : 'BLR';
+      : (storesList[0]?.code || 'CENTRAL');
   const assignedStoreObj = storesList.find(
     (s) => s.code.toUpperCase() === userStoreCode.toUpperCase()
   );
-  const assignedStoreLabel = `${userStoreCode} · ${assignedStoreObj?.name || 'Cosko Store'}`;
+  const assignedStoreLabel = `${userStoreCode} · ${assignedStoreObj?.name || 'Store Hub'}`;
 
   const [images, setImages] = useState<string[]>([]);
   const [primaryImage, setPrimaryImage] = useState<string>('');
@@ -111,9 +120,9 @@ export default function ProductFormModal({
         value: v.name,
         label: v.name,
         sublabel: `${v.code} · ${v.category || 'General'}`,
-        badge: v.gstin ? 'GST' : undefined,
+        badge: v.gstin ? (taxLabel || 'Tax') : undefined,
       }));
-  }, [vendors]);
+  }, [vendors, taxLabel]);
 
   const brandOptions: SelectOption[] = React.useMemo(() => {
     return (brands || [])
@@ -463,10 +472,10 @@ export default function ProductFormModal({
       ...(isSalesManager
         ? [{ label: 'Operational Scope', value: 'Catalog info & local store stock' }]
         : [
-            { label: 'Cost Price', value: `₹${(payload.costPrice || 0).toLocaleString('en-IN')}` },
+            { label: 'Cost Price', value: formatCurrency(payload.costPrice || 0) },
             {
               label: 'Selling Price',
-              value: `₹${(payload.sellingPrice || 0).toLocaleString('en-IN')}`,
+              value: formatCurrency(payload.sellingPrice || 0),
             },
           ]),
       { label: 'Stock On Hand', value: `${payload.qtyOnHand} units` },
@@ -696,17 +705,17 @@ export default function ProductFormModal({
             </div>
           </div>
 
-          {/* Pricing & GST Tax */}
+          {/* Pricing & Tax Architecture */}
           <div className="space-y-3 pt-2">
             <h4 className="text-2xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
-              Pricing & GST Tax Architecture
+              Pricing & {taxLabel} Architecture
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {isSalesManager ? (
                 <div>
                   <label className="text-xs font-bold text-foreground block mb-1">
-                    Cost Price (₹){' '}
+                    Cost Price ({currencySymbol}){' '}
                     <span className="text-muted-foreground text-2xs">(Protected)</span>
                   </label>
                   <div className="input-field text-xs bg-muted/30 text-muted-foreground flex items-center justify-between cursor-not-allowed py-2">
@@ -719,7 +728,7 @@ export default function ProductFormModal({
               ) : (
                 <div>
                   <label className="text-xs font-bold text-foreground block mb-1">
-                    Cost Price (₹) <span className="text-danger">*</span>
+                    Cost Price ({currencySymbol}) <span className="text-danger">*</span>
                   </label>
                   <NumericInput
                     required
@@ -736,7 +745,7 @@ export default function ProductFormModal({
 
               <div>
                 <label className="text-xs font-bold text-foreground block mb-1">
-                  Selling Price (₹){' '}
+                  Selling Price ({currencySymbol}){' '}
                   {isSalesManager ? (
                     <span className="text-2xs text-muted-foreground">(Locked)</span>
                   ) : (
@@ -758,7 +767,7 @@ export default function ProductFormModal({
 
               <div>
                 <label className="text-xs font-bold text-foreground block mb-1">
-                  MRP (₹){' '}
+                  MRP ({currencySymbol}){' '}
                   {isSalesManager && (
                     <span className="text-2xs text-muted-foreground">(Locked)</span>
                   )}
@@ -777,7 +786,7 @@ export default function ProductFormModal({
 
               <div>
                 <label className="text-xs font-bold text-foreground block mb-1">
-                  GST Tax Rate (%){' '}
+                  {taxLabel} Tax Rate (%){' '}
                   {isSalesManager && (
                     <span className="text-2xs text-muted-foreground">(Locked)</span>
                   )}
@@ -798,12 +807,21 @@ export default function ProductFormModal({
                   }
                   className={`input-field text-xs font-medium ${isSalesManager ? 'bg-muted/30 text-muted-foreground cursor-not-allowed' : ''}`}
                 >
-                  <option value="">Select GST Rate...</option>
-                  <option value={0}>0% (Exempt)</option>
-                  <option value={5}>5% (Basic)</option>
-                  <option value={12}>12% (Standard)</option>
-                  <option value={18}>18% (Electronics)</option>
-                  <option value={28}>28% (Luxury / Spares)</option>
+                  <option value="">Select {taxLabel} Rate...</option>
+                  {(jurProfile?.standardTaxRates || [0, 5, 12, 18, 28]).map((rate) => (
+                    <option key={rate} value={rate}>
+                      {rate}% {rate === 0 ? '(Exempt / Zero)' : ''}
+                    </option>
+                  ))}
+                  {formData.taxRate !== undefined &&
+                    formData.taxRate !== ('' as unknown as number) &&
+                    !(jurProfile?.standardTaxRates || [0, 5, 12, 18, 28]).includes(
+                      Number(formData.taxRate)
+                    ) && (
+                      <option value={Number(formData.taxRate)}>
+                        {formData.taxRate}% (Custom / Preserved)
+                      </option>
+                    )}
                 </select>
               </div>
             </div>
@@ -811,11 +829,11 @@ export default function ProductFormModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-bold text-foreground block mb-1">
-                  HSN / SAC Code
+                  {jurProfile?.hasHsnSac ? 'HSN / SAC Code' : 'Tax / Commodity Code (Optional)'}
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. 85177090"
+                  placeholder={jurProfile?.hasHsnSac ? 'e.g. 85177090' : 'e.g. TAX-COMM-01'}
                   value={formData.hsn}
                   onChange={(e) => setFormData({ ...formData, hsn: e.target.value })}
                   className="input-field text-xs font-mono"

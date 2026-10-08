@@ -11,6 +11,7 @@ import StoreFormModal from './StoreFormModal';
 import ProductFormModal from './ProductFormModal';
 import PaymentMethodSelect from '@/components/ui/PaymentMethodSelect';
 import PaymentProofUpload from '@/components/ui/PaymentProofUpload';
+import { getJurisdictionProfile } from '@/lib/localization/jurisdictions';
 import { toast } from 'sonner';
 
 export interface PurchaseOrderLineItem {
@@ -51,9 +52,24 @@ export default function PurchaseOrderFormModal({
     updatePurchase,
     refreshAllData,
     confirmAction,
+    systemSettings,
+    branding,
+    formatCurrency,
   } = useApp();
 
-  const defaultStore = currentUser.role === 'Super Admin' ? 'CENTRAL' : currentUser.store || 'BLR';
+  const countryCode = systemSettings?.countryCode || branding?.countryCode || 'IN';
+  const currencySymbol = systemSettings?.currencySymbol || '₹';
+  const jurProfile = getJurisdictionProfile(countryCode);
+  const taxLabel = jurProfile?.taxLabel || 'Tax';
+
+  const defaultPaymentMethod = useMemo(() => {
+    return paymentMethods.find((m) => m.status === 'Active')?.name || 'Cash';
+  }, [paymentMethods]);
+
+  const defaultStore =
+    currentUser.role === 'Super Admin'
+      ? 'CENTRAL'
+      : (currentUser.store || storesList[0]?.code || 'CENTRAL');
 
   // PO Header Details
   const [vendorName, setVendorName] = useState('');
@@ -65,7 +81,7 @@ export default function PurchaseOrderFormModal({
   const [status, setStatus] = useState<'Ordered' | 'Received' | 'Pending'>('Ordered');
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Partial' | 'Unpaid'>('Unpaid');
   const [paidAmount, setPaidAmount] = useState<string | number>('');
-  const [paymentMethod, setPaymentMethod] = useState('UPI');
+  const [paymentMethod, setPaymentMethod] = useState(defaultPaymentMethod);
   const [paymentRef, setPaymentRef] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentProof, setPaymentProof] = useState<string | null>(null);
@@ -93,14 +109,14 @@ export default function PurchaseOrderFormModal({
         value: v.name,
         label: v.name,
         sublabel: `${v.code} · ${v.category || 'General'} · ${v.phone || ''}`,
-        badge: v.gstin ? 'GST' : undefined,
+        badge: v.gstin ? (taxLabel || 'Tax') : undefined,
       }));
-  }, [vendors]);
+  }, [vendors, taxLabel]);
 
   // Store options for CustomSelect
   const storeOptions: SelectOption[] = useMemo(() => {
     if (currentUser.role !== 'Super Admin') {
-      const userStore = currentUser.store || 'BLR';
+      const userStore = currentUser.store || storesList[0]?.code || 'CENTRAL';
       const found = storesList.find((s) => s.code === userStore);
       return [
         {
@@ -137,10 +153,10 @@ export default function PurchaseOrderFormModal({
     return Array.from(map.values()).map((p) => ({
       value: p.productId || p.id,
       label: `${p.name} (${p.sku})`,
-      sublabel: `Cost: ₹${p.costPrice.toLocaleString('en-IN')} · GST: ${p.taxRate || 0}% · Stock: ${p.qtyOnHand}`,
+      sublabel: `Cost: ${formatCurrency(p.costPrice)} · ${taxLabel}: ${p.taxRate || 0}% · Stock: ${p.qtyOnHand}`,
       badge: p.brand || undefined,
     }));
-  }, [inventory]);
+  }, [inventory, formatCurrency, taxLabel]);
 
   // Helper to calculate line item values
   const calculateLineItem = (
@@ -609,7 +625,7 @@ export default function PurchaseOrderFormModal({
         if (paymentStatus === 'Partial') {
           if (financials.paidAmount <= 0 || financials.paidAmount >= financials.grandTotal) {
             toast.error(
-              `Partial payment requires a paid amount between ₹0.01 and ₹${(financials.grandTotal - 0.01).toLocaleString('en-IN')}`
+              `Partial payment requires a paid amount between ${formatCurrency(0.01)} and ${formatCurrency(financials.grandTotal - 0.01)}`
             );
             setIsSubmitting(false);
             return;
@@ -617,7 +633,7 @@ export default function PurchaseOrderFormModal({
         } else if (paymentStatus === 'Paid') {
           if (financials.paidAmount !== financials.grandTotal) {
             toast.error(
-              `Full payment requires paid amount to equal grand total (₹${financials.grandTotal.toLocaleString('en-IN')})`
+              `Full payment requires paid amount to equal grand total (${formatCurrency(financials.grandTotal)})`
             );
             setIsSubmitting(false);
             return;
@@ -673,25 +689,25 @@ export default function PurchaseOrderFormModal({
           },
           { label: 'Order Status', value: status },
           { label: 'Payment Status', value: paymentStatus },
-          { label: 'Subtotal', value: `₹${financials.subtotal.toLocaleString('en-IN')}` },
+          { label: 'Subtotal', value: formatCurrency(financials.subtotal) },
           ...(financials.totalTax > 0
-            ? [{ label: 'Taxes', value: `₹${financials.totalTax.toLocaleString('en-IN')}` }]
+            ? [{ label: taxLabel, value: formatCurrency(financials.totalTax) }]
             : []),
           ...(financials.totalDiscount > 0
             ? [
                 {
                   label: 'Discount',
-                  value: `-₹${financials.totalDiscount.toLocaleString('en-IN')}`,
+                  value: `-${formatCurrency(financials.totalDiscount)}`,
                 },
               ]
             : []),
           {
             label: 'Grand Total Value',
-            value: `₹${financials.grandTotal.toLocaleString('en-IN')}`,
+            value: formatCurrency(financials.grandTotal),
             highlighted: true,
           },
           ...(financials.paidAmount > 0
-            ? [{ label: 'Paid Amount', value: `₹${financials.paidAmount.toLocaleString('en-IN')}` }]
+            ? [{ label: 'Paid Amount', value: formatCurrency(financials.paidAmount) }]
             : []),
         ],
         warningMessage:
@@ -928,9 +944,9 @@ export default function PurchaseOrderFormModal({
                     <th className="px-3 py-2 w-10 text-center">#</th>
                     <th className="px-3 py-2 min-w-[260px]">Product / SKU</th>
                     <th className="px-3 py-2 w-28 text-center">Qty</th>
-                    <th className="px-3 py-2 w-28">Cost (₹)</th>
-                    <th className="px-3 py-2 w-24">GST (%)</th>
-                    <th className="px-3 py-2 w-24">Disc (₹)</th>
+                    <th className="px-3 py-2 w-28">Cost ({currencySymbol})</th>
+                    <th className="px-3 py-2 w-24">{taxLabel} (%)</th>
+                    <th className="px-3 py-2 w-24">Disc ({currencySymbol})</th>
                     <th className="px-3 py-2 w-28 text-right font-tabular">Line Total</th>
                     <th className="px-3 py-2 w-12 text-center"></th>
                   </tr>
@@ -1053,11 +1069,17 @@ export default function PurchaseOrderFormModal({
                           }
                           className="input-field text-xs h-8 font-medium text-center"
                         >
-                          <option value={0}>0%</option>
-                          <option value={5}>5%</option>
-                          <option value={12}>12%</option>
-                          <option value={18}>18%</option>
-                          <option value={28}>28%</option>
+                          {(jurProfile?.standardTaxRates || [0, 5, 12, 18, 28]).map((rate) => (
+                            <option key={rate} value={rate}>
+                              {rate}%
+                            </option>
+                          ))}
+                          {item.taxRate !== undefined &&
+                            !(jurProfile?.standardTaxRates || [0, 5, 12, 18, 28]).includes(
+                              item.taxRate
+                            ) && (
+                              <option value={item.taxRate}>{item.taxRate}% (Custom)</option>
+                            )}
                         </select>
                       </td>
 
@@ -1078,14 +1100,10 @@ export default function PurchaseOrderFormModal({
 
                       {/* Calculated Line Total */}
                       <td className="px-3 py-2.5 text-right font-tabular font-extrabold text-foreground">
-                        ₹
-                        {item.lineTotal.toLocaleString('en-IN', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
+                        {formatCurrency(item.lineTotal)}
                         {item.taxAmount > 0 && (
                           <span className="block text-3xs font-normal text-muted-foreground">
-                            (Tax: ₹{item.taxAmount.toFixed(2)})
+                            ({taxLabel}: {formatCurrency(item.taxAmount)})
                           </span>
                         )}
                       </td>
@@ -1191,7 +1209,7 @@ export default function PurchaseOrderFormModal({
 
                     <div>
                       <label className="text-3xs font-bold text-foreground block mb-1">
-                        Unit Cost (₹)
+                        Unit Cost ({currencySymbol})
                       </label>
                       <NumericInput
                         min={0}
@@ -1209,7 +1227,7 @@ export default function PurchaseOrderFormModal({
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-3xs font-bold text-foreground block mb-1">
-                        GST Tax Rate
+                        {taxLabel} Tax Rate
                       </label>
                       <select
                         value={item.taxRate}
@@ -1218,17 +1236,23 @@ export default function PurchaseOrderFormModal({
                         }
                         className="input-field text-xs h-7 font-medium"
                       >
-                        <option value={0}>0%</option>
-                        <option value={5}>5%</option>
-                        <option value={12}>12%</option>
-                        <option value={18}>18%</option>
-                        <option value={28}>28%</option>
+                        {(jurProfile?.standardTaxRates || [0, 5, 12, 18, 28]).map((rate) => (
+                          <option key={rate} value={rate}>
+                            {rate}%
+                          </option>
+                        ))}
+                        {item.taxRate !== undefined &&
+                          !(jurProfile?.standardTaxRates || [0, 5, 12, 18, 28]).includes(
+                            item.taxRate
+                          ) && (
+                            <option value={item.taxRate}>{item.taxRate}% (Custom)</option>
+                          )}
                       </select>
                     </div>
 
                     <div>
                       <label className="text-3xs font-bold text-foreground block mb-1">
-                        Discount (₹)
+                        Discount ({currencySymbol})
                       </label>
                       <NumericInput
                         min={0}
@@ -1246,11 +1270,7 @@ export default function PurchaseOrderFormModal({
                   <div className="flex items-center justify-between pt-1 border-t border-border/40 text-xs">
                     <span className="text-muted-foreground font-semibold">Row Total:</span>
                     <span className="font-extrabold font-tabular text-foreground">
-                      ₹
-                      {item.lineTotal.toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                      {formatCurrency(item.lineTotal)}
                     </span>
                   </div>
                 </div>
@@ -1284,7 +1304,7 @@ export default function PurchaseOrderFormModal({
                   Items Subtotal
                 </span>
                 <span className="text-sm font-bold text-foreground font-tabular">
-                  ₹{financials.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  {formatCurrency(financials.subtotal)}
                 </span>
               </div>
 
@@ -1293,23 +1313,23 @@ export default function PurchaseOrderFormModal({
                   Total Discount
                 </span>
                 <span className="text-sm font-bold text-foreground font-tabular">
-                  ₹{financials.totalDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  {formatCurrency(financials.totalDiscount)}
                 </span>
               </div>
 
               <div className="p-2.5 rounded-lg bg-muted/30 border border-border/60">
                 <span className="text-2xs text-muted-foreground block font-medium">
-                  Total GST / Tax
+                  Total {taxLabel}
                 </span>
                 <span className="text-sm font-bold text-foreground font-tabular">
-                  ₹{financials.totalTax.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  {formatCurrency(financials.totalTax)}
                 </span>
               </div>
 
               <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/30">
                 <span className="text-2xs text-primary block font-bold">Grand Total</span>
                 <span className="text-base font-extrabold text-primary font-tabular">
-                  ₹{financials.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  {formatCurrency(financials.grandTotal)}
                 </span>
               </div>
             </div>
@@ -1343,13 +1363,13 @@ export default function PurchaseOrderFormModal({
                 >
                   <option value="Unpaid">Unpaid (Credit / On Account)</option>
                   <option value="Partial">Partial Payment</option>
-                  <option value="Paid">Fully Paid (Immediate Bank/Cash)</option>
+                  <option value="Paid">Fully Paid (Immediate Settlement)</option>
                 </select>
               </div>
 
               <div>
                 <label className="text-2xs font-bold text-foreground block mb-1">
-                  Paid Amount (₹)
+                  Paid Amount ({currencySymbol})
                 </label>
                 <NumericInput
                   min={0}
@@ -1375,7 +1395,7 @@ export default function PurchaseOrderFormModal({
                   Payments for this bill are managed via{' '}
                   <strong>{purchase.payments.length} verified transaction(s)</strong>. Total Paid:{' '}
                   <strong className="text-emerald-600">
-                    ₹{(purchase.paidAmount || 0).toLocaleString('en-IN')}
+                    {formatCurrency(purchase.paidAmount || 0)}
                   </strong>
                   .
                 </span>
@@ -1405,11 +1425,15 @@ export default function PurchaseOrderFormModal({
                   </div>
                   <div>
                     <label className="text-3xs font-semibold text-muted-foreground block mb-0.5">
-                      UTR / Transaction Reference
+                      {countryCode === 'IN' ? 'UTR / Transaction Reference' : 'Transaction Reference'}
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. UPI Ref / UTR (auto if blank)"
+                      placeholder={
+                        countryCode === 'IN'
+                          ? 'e.g. UTR / Bank Reference (auto if blank)'
+                          : 'e.g. Transaction Ref / Voucher # (auto if blank)'
+                      }
                       value={paymentRef}
                       onChange={(e) => setPaymentRef(e.target.value)}
                       className="input-field text-xs h-8 font-mono"
@@ -1435,7 +1459,7 @@ export default function PurchaseOrderFormModal({
                   onChange={(url) => setPaymentProof(url)}
                   required={true}
                   label="Advance Payment Proof * (Receipt / Voucher / Screenshot)"
-                  helperText="Upload receipt, UPI screenshot, Cheque/Bank voucher (JPG, PNG, WebP, PDF up to 10MB) — Required"
+                  helperText="Upload receipt, voucher, or bank transfer confirmation (JPG, PNG, WebP, PDF up to 10MB) — Required"
                   storeCode={store}
                   relatedEntityType="PurchasePayment"
                 />
@@ -1451,7 +1475,7 @@ export default function PurchaseOrderFormModal({
                   financials.remainingAmount > 0 ? 'text-danger' : 'text-success'
                 }`}
               >
-                ₹{financials.remainingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                {formatCurrency(financials.remainingAmount)}
               </span>
             </div>
           </div>

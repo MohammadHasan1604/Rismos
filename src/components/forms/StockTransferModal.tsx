@@ -10,7 +10,7 @@ import { useApp, StoreHub, InventoryItem } from '@/context/AppContext';
 import { toast } from 'sonner';
 import {
   calculateTransferLineItem,
-  formatTransferINR,
+  formatTransferAmount,
   formatTransferMargin,
   getTransferProfitColorClass,
   round2,
@@ -35,8 +35,20 @@ export default function StockTransferModal({
   onSuccess,
   zIndex = 100,
 }: StockTransferModalProps) {
-  const { inventory, storesList, currentUser, transferStock, refreshAllData, confirmAction } =
-    useApp();
+  const {
+    inventory,
+    storesList,
+    currentUser,
+    transferStock,
+    refreshAllData,
+    confirmAction,
+    branding,
+    systemSettings,
+  } = useApp();
+
+  const currencyCode = systemSettings?.currencyCode || branding?.baseCurrency?.slice(0, 3) || 'INR';
+  const currencySymbol = systemSettings?.currencySymbol || '₹';
+  const locale = branding?.locale || 'en-IN';
 
   const defaultSource =
     initialSourceStore || (currentUser.role === 'Super Admin' ? 'CENTRAL' : currentUser.store);
@@ -215,10 +227,10 @@ export default function StockTransferModal({
         { label: 'Product Name', value: activeItem.name, highlighted: true },
         { label: 'SKU', value: activeItem.sku },
         { label: 'Transfer Quantity', value: `${qtyNum} unit(s)` },
-        { label: 'Transfer Price/Unit', value: `₹${effectivePrice.toLocaleString('en-IN')}` },
+        { label: 'Transfer Price/Unit', value: formatTransferAmount(effectivePrice, { currencyCode, currencySymbol, locale }) },
         {
           label: 'Total Transfer Value',
-          value: `₹${(effectivePrice * qtyNum).toLocaleString('en-IN')}`,
+          value: formatTransferAmount(effectivePrice * qtyNum, { currencyCode, currencySymbol, locale }),
         },
       ],
       warningMessage: `This will immediately deduct ${qtyNum} units from ${sourceStore} and credit them into ${destStore}.`,
@@ -347,7 +359,7 @@ export default function StockTransferModal({
                 options={sourceInventoryItems.map((it) => ({
                   value: it.id,
                   label: it.name,
-                  sublabel: `SKU: ${it.sku} · Avail: ${it.qtyOnHand} pcs · Base Cost: ${formatTransferINR(it.costPrice)}`,
+                  sublabel: `SKU: ${it.sku} · Avail: ${it.qtyOnHand} pcs · Base Cost: ${formatTransferAmount(it.costPrice, { currencyCode, currencySymbol, locale })}`,
                 }))}
                 searchable={true}
                 size="sm"
@@ -391,7 +403,7 @@ export default function StockTransferModal({
 
             <div>
               <label className="text-xs font-bold text-foreground block mb-1">
-                Transfer Price / Unit (₹) <span className="text-danger">*</span>
+                Transfer Price / Unit ({currencySymbol}) <span className="text-danger">*</span>
               </label>
               <NumericInput
                 required
@@ -411,18 +423,18 @@ export default function StockTransferModal({
             <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-2 font-tabular text-xs">
               <div className="flex justify-between text-muted-foreground">
                 <span>
-                  Inventory Cost ({transferQty || 0} × {formatTransferINR(unitCost)}):
+                  Inventory Cost ({transferQty || 0} × {formatTransferAmount(unitCost, { currencyCode, currencySymbol, locale })}):
                 </span>
                 <span className="font-semibold text-foreground">
-                  {formatTransferINR(lineCalc.lineTotalCost)}
+                  {formatTransferAmount(lineCalc.lineTotalCost, { currencyCode, currencySymbol, locale })}
                 </span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>
-                  Transfer Value ({transferQty || 0} × {formatTransferINR(effectivePrice)}):
+                  Transfer Value ({transferQty || 0} × {formatTransferAmount(effectivePrice, { currencyCode, currencySymbol, locale })}):
                 </span>
                 <span className="font-bold text-foreground">
-                  {formatTransferINR(lineCalc.lineTotalValue)}
+                  {formatTransferAmount(lineCalc.lineTotalValue, { currencyCode, currencySymbol, locale })}
                 </span>
               </div>
               <div
@@ -430,7 +442,7 @@ export default function StockTransferModal({
               >
                 <span>Gross Transfer Profit:</span>
                 <span>
-                  {formatTransferINR(lineCalc.lineProfit, { showPositiveSign: true })}{' '}
+                  {formatTransferAmount(lineCalc.lineProfit, { showPositiveSign: true, currencyCode, currencySymbol, locale })}{' '}
                   <span className="text-3xs font-semibold">
                     ({formatTransferMargin(lineCalc.profitMarginPercent)})
                   </span>

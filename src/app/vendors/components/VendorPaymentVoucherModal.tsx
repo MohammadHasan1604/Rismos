@@ -20,7 +20,7 @@ export const VendorPaymentVoucherModal: React.FC<VendorPaymentVoucherModalProps>
   currentUser,
   setProofViewerData,
 }) => {
-  const { branding } = useApp();
+  const { branding, formatCurrency, dateLocale } = useApp();
   if (!voucher) return null;
 
   return (
@@ -52,7 +52,7 @@ export const VendorPaymentVoucherModal: React.FC<VendorPaymentVoucherModalProps>
             <div className="text-right">
               <span className="badge-positive text-2xs font-bold px-2 py-0.5">PAID / SETTLED</span>
               <p className="text-3xs text-muted-foreground mt-1">
-                {new Date(voucher.paymentDate).toLocaleDateString('en-IN')}
+                {new Date(voucher.paymentDate).toLocaleDateString(dateLocale || 'en-IN')}
               </p>
             </div>
           </div>
@@ -89,7 +89,7 @@ export const VendorPaymentVoucherModal: React.FC<VendorPaymentVoucherModalProps>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total Bill Value:</span>
               <span className="font-bold text-foreground">
-                ₹{Number(voucher.totalCost).toLocaleString('en-IN')}
+                {formatCurrency(Number(voucher.totalCost))}
               </span>
             </div>
             <div className="flex justify-between">
@@ -104,12 +104,12 @@ export const VendorPaymentVoucherModal: React.FC<VendorPaymentVoucherModalProps>
             )}
             <div className="flex justify-between pt-1.5 border-t border-border font-extrabold text-sm text-emerald-600">
               <span>Disbursed Amount:</span>
-              <span>₹{Number(voucher.amount).toLocaleString('en-IN')}</span>
+              <span>{formatCurrency(Number(voucher.amount))}</span>
             </div>
             <div className="flex justify-between text-muted-foreground pt-1 border-t border-border/60">
               <span>Remaining Balance on Bill:</span>
               <span className="font-bold text-foreground">
-                ₹{Number(voucher.remainingBalance).toLocaleString('en-IN')}
+                {formatCurrency(Number(voucher.remainingBalance))}
               </span>
             </div>
           </div>

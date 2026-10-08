@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
 import PaymentMethodSelect from '@/components/ui/PaymentMethodSelect';
+import { useApp } from '@/context/AppContext';
 
 interface VoidRefundModalProps {
   sale: any | null;
@@ -16,6 +17,7 @@ export const VoidRefundModal: React.FC<VoidRefundModalProps> = ({
   onClose,
   onConfirmRefund,
 }) => {
+  const { formatCurrency } = useApp();
   const [refundMethod, setRefundMethod] = useState('Cash');
   const [isRefunding, setIsRefunding] = useState(false);
 
@@ -97,7 +99,7 @@ export const VoidRefundModal: React.FC<VoidRefundModalProps> = ({
           <div className="flex items-center justify-between pt-1 border-t border-border/60">
             <span className="font-bold text-foreground">Refund Total Amount:</span>
             <span className="font-extrabold text-danger text-sm font-tabular">
-              ₹{Number(sale.total).toLocaleString('en-IN')}
+              {formatCurrency(sale.total)}
             </span>
           </div>
         </div>

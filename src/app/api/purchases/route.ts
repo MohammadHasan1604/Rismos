@@ -688,7 +688,7 @@ export async function POST(req: NextRequest) {
               data: {
                 module: 'Purchases',
                 action: 'Create Purchase Order',
-                details: `Created Purchase Bill ${poNo} (Invoice #${invoiceNo}) from ${body.vendorName}. Total: ₹${totalCost.toFixed(2)}, Store: ${targetStore}`,
+                details: `Created Purchase Bill ${poNo} (Invoice #${invoiceNo}) from ${body.vendorName}. Total: ${totalCost.toFixed(2)}, Store: ${targetStore}`,
                 userEmail: user.email || user.name,
                 userRole: user.role,
                 storeCode: targetStore,

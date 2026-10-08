@@ -26,6 +26,7 @@ export default function UsersPage() {
     purchases,
     expenses,
     auditLogs,
+    formatCurrency,
   } = useApp();
 
   const [inviteModal, setInviteModal] = useState(false);
@@ -880,7 +881,7 @@ export default function UsersPage() {
                       Sales Revenue
                     </p>
                     <p className="text-lg font-bold text-foreground font-tabular mt-1">
-                      ₹{perf.revenue.toLocaleString('en-IN')}
+                      {formatCurrency(perf.revenue)}
                     </p>
                     <p className="text-3xs text-muted-foreground mt-0.5">
                       {perf.salesCount} total transactions
@@ -892,7 +893,7 @@ export default function UsersPage() {
                       Avg Order Value (AOV)
                     </p>
                     <p className="text-lg font-bold text-foreground font-tabular mt-1">
-                      ₹{Math.round(perf.aov).toLocaleString('en-IN')}
+                      {formatCurrency(Math.round(perf.aov))}
                     </p>
                     <p className="text-3xs text-muted-foreground mt-0.5">Per order metric</p>
                   </div>

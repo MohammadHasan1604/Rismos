@@ -21,7 +21,12 @@ export default function CustomersPage() {
     addAuditLog,
     currentUser,
     selectedStore,
+    formatCurrency,
+    systemSettings,
+    paymentMethods,
+    branding,
   } = useApp();
+  const currencySymbol = systemSettings?.currencySymbol || '';
 
   const isSuperAdmin = currentUser?.role === 'Super Admin';
   const effectiveCustomerStore =
@@ -50,7 +55,7 @@ export default function CustomersPage() {
   const openSettleCredit = (cust: Customer) => {
     setSettleCreditCustomer(cust);
     setSettleAmount(cust.creditBalance || '');
-    setSettleMethod('UPI');
+    const activeMethods = (paymentMethods || []).filter(m => m.status === 'Active'); setSettleMethod(activeMethods[0]?.name || 'Cash');
     setSettleRef('');
     setSettleProof(null);
     setSettleNotes(`Settlement of credit receivable for ${cust.name}`);
@@ -65,7 +70,7 @@ export default function CustomersPage() {
       return;
     }
     if (!settleRef.trim()) {
-      toast.error('Payment Reference / UTR number is required');
+      toast.error('Payment Reference is required');
       return;
     }
     setIsSettling(true);
@@ -79,9 +84,9 @@ export default function CustomersPage() {
         addAuditLog(
           'Accounting',
           'Receive Customer Payment',
-          `Received ₹${payAmt.toLocaleString('en-IN')} via ${settleMethod} (Ref: ${settleRef}) from ${settleCreditCustomer.name}. Outstanding balance updated to ₹${newBalance.toLocaleString('en-IN')}`
+          `Received ${formatCurrency(payAmt)} via ${settleMethod} (Ref: ${settleRef}) from ${settleCreditCustomer.name}. Outstanding balance updated to ${formatCurrency(newBalance)}`
         );
-        toast.success(`Payment of ₹${payAmt.toLocaleString('en-IN')} recorded successfully!`);
+        toast.success(`Payment of ${formatCurrency(payAmt)} recorded successfully!`);
         if (crmViewCustomer?.id === settleCreditCustomer.id) {
           setCrmViewCustomer((prev) => (prev ? { ...prev, creditBalance: newBalance } : null));
         }
@@ -115,7 +120,7 @@ export default function CustomersPage() {
             name: 'Historical Customer',
             phone: queryPhone,
             email: 'customer@legacy.internal',
-            city: 'Bengaluru',
+            city: branding.city || 'HQ City',
             tier: 'Regular',
             creditBalance: 0,
             totalSpend: 0,
@@ -239,7 +244,7 @@ export default function CustomersPage() {
       timelineEvents.push({
         date: s.createdAt || '22 Aug 2026',
         title: `Retail Purchase (${s.orderNo})`,
-        description: `Purchased items at ${s.store} Hub. Total: ₹${s.total.toLocaleString('en-IN')}`,
+        description: `Purchased items at ${s.store} Hub. Total: ${formatCurrency(s.total)}`,
         type: 'sale',
         source: 'RISMOS Application DB',
       });
@@ -386,13 +391,13 @@ export default function CustomersPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right font-tabular font-extrabold text-foreground">
-                          ₹{cust.totalSpend.toLocaleString('en-IN')}
+                          {formatCurrency(cust.totalSpend)}
                         </td>
                         <td className="px-4 py-3 text-right font-tabular">
                           <span
                             className={`font-bold ${cust.creditBalance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}
                           >
-                            ₹{cust.creditBalance.toLocaleString('en-IN')}
+                            {formatCurrency(cust.creditBalance)}
                           </span>
                           {cust.creditBalance > 0 && (
                             <button
@@ -477,10 +482,10 @@ export default function CustomersPage() {
                       </p>
                     </div>
                     <div className="record-meta">
-                      <p className="record-value">₹{cust.totalSpend.toLocaleString('en-IN')}</p>
+                      <p className="record-value">{formatCurrency(cust.totalSpend)}</p>
                       {(cust.creditBalance || 0) > 0 && (
                         <p className="text-2xs text-danger font-semibold mt-0.5">
-                          ₹{cust.creditBalance?.toLocaleString('en-IN')} due
+                          {formatCurrency(cust.creditBalance || 0)} due
                         </p>
                       )}
                     </div>
@@ -563,7 +568,7 @@ export default function CustomersPage() {
                     Total Spend
                   </p>
                   <p className="text-lg font-extrabold text-foreground font-tabular mt-0.5">
-                    ₹{crmViewCustomer.totalSpend.toLocaleString('en-IN')}
+                    {formatCurrency(crmViewCustomer.totalSpend)}
                   </p>
                   <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
                     Verified Retail Sales
@@ -587,7 +592,7 @@ export default function CustomersPage() {
                       )}
                     </div>
                     <p className="text-lg font-extrabold text-warning font-tabular mt-0.5">
-                      ₹{crmViewCustomer.creditBalance.toLocaleString('en-IN')}
+                      {formatCurrency(crmViewCustomer.creditBalance)}
                     </p>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">Outstanding Receivable</p>
@@ -723,7 +728,7 @@ export default function CustomersPage() {
                             <td className="px-3 py-2 text-muted-foreground">{s.createdAt}</td>
                             <td className="px-3 py-2 font-medium">{s.store}</td>
                             <td className="px-3 py-2 text-right font-bold font-tabular">
-                              ₹{s.total.toLocaleString('en-IN')}
+                              {formatCurrency(s.total)}
                             </td>
                           </tr>
                         ))}
@@ -805,7 +810,7 @@ export default function CustomersPage() {
                           </p>
                           <p className="text-muted-foreground mt-1">
                             {hasHistory
-                              ? `This customer has ${salesCount} sales invoices, ${repairCount} repair jobs, and ₹${deleteConfirmModal.totalSpend.toLocaleString('en-IN')} total spend. They will be safely Archived to maintain financial ledger history.`
+                              ? `This customer has ${salesCount} sales invoices, ${repairCount} repair jobs, and ${formatCurrency(deleteConfirmModal.totalSpend)} total spend. They will be safely Archived to maintain financial ledger history.`
                               : `This customer has 0 sales or service records. You can archive this profile, or Super Admins may permanently delete it.`}
                           </p>
                         </div>
@@ -859,7 +864,7 @@ export default function CustomersPage() {
               if (!isSettling) setSettleCreditCustomer(null);
             }}
             title={`Receive Customer Payment — ${settleCreditCustomer.name}`}
-            subtitle={`Mobile: ${settleCreditCustomer.phone} · Current Receivable: ₹${(settleCreditCustomer.creditBalance || 0).toLocaleString('en-IN')}`}
+            subtitle={`Mobile: ${settleCreditCustomer.phone} · Current Receivable: ${formatCurrency(settleCreditCustomer.creditBalance || 0)}`}
             size="md"
             zIndex={1150}
           >
@@ -870,7 +875,7 @@ export default function CustomersPage() {
                     Outstanding Credit Balance
                   </span>
                   <span className="text-base font-extrabold text-warning font-tabular">
-                    ₹{(settleCreditCustomer.creditBalance || 0).toLocaleString('en-IN')}
+                    {formatCurrency(settleCreditCustomer.creditBalance || 0)}
                   </span>
                 </div>
                 <button
@@ -886,7 +891,7 @@ export default function CustomersPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-foreground block mb-1">
-                    Amount Received (₹) <span className="text-danger">*</span>
+                    Amount Received ({currencySymbol}) <span className="text-danger">*</span>
                   </label>
                   <NumericInput
                     value={settleAmount}

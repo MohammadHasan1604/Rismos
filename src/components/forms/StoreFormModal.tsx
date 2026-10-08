@@ -21,7 +21,7 @@ export default function StoreFormModal({
   onSuccess,
   zIndex = 100,
 }: StoreFormModalProps) {
-  const { storesList, addStoreHub, updateStoreHub, confirmAction } = useApp();
+  const { storesList, addStoreHub, updateStoreHub, confirmAction, branding } = useApp();
 
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -58,7 +58,7 @@ export default function StoreFormModal({
       } else {
         setCode('');
         setName('');
-        setCity('Bengaluru');
+        setCity(branding.city || '');
         setAddress('');
         setOwner('');
         setPhone('');
@@ -128,7 +128,7 @@ export default function StoreFormModal({
       summaryItems: [
         { label: 'Store Code', value: cleanCode, highlighted: true },
         { label: 'Store Name', value: cleanName },
-        { label: 'City', value: city.trim() || 'Bengaluru' },
+        { label: 'City', value: city.trim() || branding.city || 'HQ City' },
         { label: 'Store Owner', value: owner.trim() || 'Store Owner' },
         { label: 'Initial Status', value: status },
       ],
@@ -144,7 +144,7 @@ export default function StoreFormModal({
       if (isEdit && store) {
         await updateStoreHub(store.id, {
           name: cleanName,
-          city: city.trim() || 'Bengaluru',
+          city: city.trim() || branding.city || 'HQ City',
           address: address.trim() || undefined,
           owner: owner.trim() || undefined,
           manager: owner.trim() || undefined,
@@ -171,7 +171,7 @@ export default function StoreFormModal({
         const created = await addStoreHub({
           code: cleanCode,
           name: cleanName,
-          city: city.trim() || 'Bengaluru',
+          city: city.trim() || branding.city || 'HQ City',
           address: address.trim() || '',
           owner: owner.trim() || '',
           manager: owner.trim() || '',
@@ -246,7 +246,7 @@ export default function StoreFormModal({
               maxLength={8}
               autoFocus
               disabled={isEdit}
-              placeholder="e.g. BLR, MUM"
+              placeholder="e.g. DXB, NYC, LON"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               className="input-field text-xs font-mono font-bold uppercase"
@@ -260,7 +260,7 @@ export default function StoreFormModal({
             <input
               type="text"
               required
-              placeholder="e.g. Bengaluru Flagship Experience Store"
+              placeholder="e.g. Flagship Experience Store"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="input-field text-xs"
@@ -277,7 +277,7 @@ export default function StoreFormModal({
             <input
               type="text"
               required
-              placeholder="e.g. Bengaluru, Hyderabad, Delhi"
+              placeholder="e.g. London, Dubai, New York, Singapore"
               value={city}
               onChange={(e) => setCity(e.target.value)}
               className="input-field text-xs"

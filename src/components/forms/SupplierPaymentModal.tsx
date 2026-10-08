@@ -25,10 +25,17 @@ export default function SupplierPaymentModal({
   onSuccess,
   zIndex = 100,
 }: SupplierPaymentModalProps) {
-  const { recordPurchasePayment, refreshAllData, confirmAction, paymentMethods } = useApp();
+  const { recordPurchasePayment, refreshAllData, confirmAction, paymentMethods, formatCurrency, systemSettings, branding } = useApp();
+
+  const defaultPayMethod = React.useMemo(() => {
+    return paymentMethods.find((m) => m.status === 'Active')?.name || 'Cash';
+  }, [paymentMethods]);
+
+  const currencySymbol = systemSettings?.currencySymbol || '₹';
+  const countryCode = systemSettings?.countryCode || branding?.countryCode || 'IN';
 
   const [payAmount, setPayAmount] = useState<number | ''>('');
-  const [payMethod, setPayMethod] = useState('UPI');
+  const [payMethod, setPayMethod] = useState(defaultPayMethod);
   const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
   const [payRef, setPayRef] = useState('');
   const [payNotes, setPayNotes] = useState('');
@@ -63,7 +70,7 @@ export default function SupplierPaymentModal({
       if (purchase) {
         const initialBal = remaining > 0 ? remaining : '';
         setPayAmount(initialBal);
-        setPayMethod('UPI');
+        setPayMethod(defaultPayMethod);
         setPayDate(new Date().toISOString().split('T')[0]);
         setPayRef('');
         setPayNotes(`Payment against ${purchase.invoiceNo || purchase.poNo}`);
@@ -101,7 +108,7 @@ export default function SupplierPaymentModal({
     e.preventDefault();
 
     if (!payAmount || Number(payAmount) <= 0.005) {
-      toast.error('Please enter a valid payment amount greater than ₹0');
+      toast.error(`Please enter a valid payment amount greater than ${formatCurrency(0)}`);
       return;
     }
 
@@ -109,7 +116,7 @@ export default function SupplierPaymentModal({
 
     if (amountNum > remaining + 0.01) {
       toast.error(
-        `Payment amount (₹${amountNum.toLocaleString('en-IN')}) cannot exceed remaining balance (₹${remaining.toLocaleString('en-IN')})`
+        `Payment amount (${formatCurrency(amountNum)}) cannot exceed remaining balance (${formatCurrency(remaining)})`
       );
       return;
     }
@@ -136,11 +143,11 @@ export default function SupplierPaymentModal({
         { label: 'Payment Date', value: payDate },
         {
           label: 'Remaining Balance After',
-          value: `₹${Math.max(0, remaining - amountNum).toLocaleString('en-IN')}`,
+          value: formatCurrency(Math.max(0, remaining - amountNum)),
         },
         {
           label: 'Payment Amount',
-          value: `₹${amountNum.toLocaleString('en-IN')}`,
+          value: formatCurrency(amountNum),
           highlighted: true,
         },
       ],
@@ -164,7 +171,7 @@ export default function SupplierPaymentModal({
 
       if (res.success) {
         toast.success(
-          `Payment of ₹${amountNum.toLocaleString('en-IN')} recorded for ${purchase.poNo}`
+          `Payment of ${formatCurrency(amountNum)} recorded for ${purchase.poNo}`
         );
         await refreshAllData();
         if (onSuccess) {
@@ -233,25 +240,19 @@ export default function SupplierPaymentModal({
           <div className="flex justify-between text-muted-foreground">
             <span>Bill Total:</span>
             <span className="font-semibold text-foreground">
-              ₹
-              {Number(purchase.totalAmount || 0).toLocaleString('en-IN', {
-                minimumFractionDigits: 2,
-              })}
+              {formatCurrency(Number(purchase.totalAmount || 0))}
             </span>
           </div>
           <div className="flex justify-between text-muted-foreground">
             <span>Already Paid:</span>
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-              ₹
-              {Number(purchase.paidAmount || 0).toLocaleString('en-IN', {
-                minimumFractionDigits: 2,
-              })}
+              {formatCurrency(Number(purchase.paidAmount || 0))}
             </span>
           </div>
           <div className="flex justify-between pt-1 border-t border-primary/20 font-bold">
             <span className="text-foreground">Remaining Balance:</span>
             <span className="text-amber-600 dark:text-amber-400 text-sm">
-              ₹{remaining.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              {formatCurrency(remaining)}
             </span>
           </div>
         </div>
@@ -264,14 +265,14 @@ export default function SupplierPaymentModal({
               onClick={() => setPayAmount(remaining)}
               className="btn-secondary text-2xs py-1 px-2.5 font-bold flex-1"
             >
-              Pay Full Balance (₹{remaining.toLocaleString('en-IN')})
+              Pay Full Balance ({formatCurrency(remaining)})
             </button>
             <button
               type="button"
               onClick={() => setPayAmount(Math.round((remaining / 2) * 100) / 100)}
               className="btn-secondary text-2xs py-1 px-2.5 font-semibold"
             >
-              Pay 50% (₹{(Math.round((remaining / 2) * 100) / 100).toLocaleString('en-IN')})
+              Pay 50% ({formatCurrency(Math.round((remaining / 2) * 100) / 100)})
             </button>
           </div>
         )}
@@ -280,7 +281,7 @@ export default function SupplierPaymentModal({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-bold text-foreground block mb-1">
-              Payment Amount (₹) <span className="text-danger">*</span>
+              Payment Amount ({currencySymbol}) <span className="text-danger">*</span>
             </label>
             <NumericInput
               required
@@ -322,12 +323,12 @@ export default function SupplierPaymentModal({
 
           <div>
             <label className="text-xs font-bold text-foreground block mb-1">
-              Reference / UTR No.{' '}
+              {countryCode === 'IN' ? 'Reference / UTR No.' : 'Transaction Reference'}{' '}
               <span className="text-muted-foreground font-normal">(Optional)</span>
             </label>
             <input
               type="text"
-              placeholder="e.g. UTR / IMPS / Cheque No"
+              placeholder={countryCode === "IN" ? "e.g. UTR / IMPS / Cheque No" : "e.g. Wire / Ref / Voucher No"}
               value={payRef}
               onChange={(e) => setPayRef(e.target.value)}
               className="input-field text-xs font-mono h-9"

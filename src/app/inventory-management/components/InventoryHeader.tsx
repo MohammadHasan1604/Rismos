@@ -7,7 +7,7 @@ import { useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
 
 export default function InventoryHeader() {
-  const { inventory, inventoryLedger, selectedStore, branding } = useApp();
+  const { inventory, inventoryLedger, selectedStore, branding, formatCurrency, dateLocale } = useApp();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [ledgerModalOpen, setLedgerModalOpen] = useState(false);
 
@@ -119,7 +119,7 @@ export default function InventoryHeader() {
                 {inventoryLedger.map((entry) => (
                   <tr key={`led-row-${entry.id}`} className="table-row">
                     <td className="table-cell text-3xs text-muted-foreground whitespace-nowrap">
-                      {new Date(entry.createdAt).toLocaleString('en-IN', {
+                      {new Date(entry.createdAt).toLocaleString(dateLocale || 'en-IN', {
                         day: '2-digit',
                         month: 'short',
                         hour: '2-digit',
@@ -155,7 +155,7 @@ export default function InventoryHeader() {
                     >
                       {entry.quantity > 0 ? `+${entry.quantity}` : entry.quantity}
                     </td>
-                    <td className="table-cell text-right">₹{entry.unitCost}</td>
+                    <td className="table-cell text-right">{formatCurrency(entry.unitCost)}</td>
                     <td className="table-cell text-3xs text-muted-foreground">
                       <p className="font-mono text-foreground">{entry.referenceNo}</p>
                       <p>{entry.createdBy}</p>
@@ -199,10 +199,10 @@ export default function InventoryHeader() {
                   <span>
                     {entry.storeCode} · {entry.referenceNo}
                   </span>
-                  <span className="font-tabular">₹{entry.unitCost}</span>
+                  <span className="font-tabular">{formatCurrency(entry.unitCost)}</span>
                 </div>
                 <p className="text-3xs text-muted-foreground mt-0.5">
-                  {new Date(entry.createdAt).toLocaleString('en-IN', {
+                  {new Date(entry.createdAt).toLocaleString(dateLocale || 'en-IN', {
                     day: '2-digit',
                     month: 'short',
                     hour: '2-digit',

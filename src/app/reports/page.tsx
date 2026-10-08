@@ -23,7 +23,7 @@ const DATE_PERIODS = [
 ];
 
 export default function ReportsPage() {
-  const { storesList, selectedStore, currentUser } = useApp();
+  const { storesList, selectedStore, currentUser, formatCurrency, dateLocale } = useApp();
 
   // Local report filters (independent of global context for reports-specific control)
   const [activeTab, setActiveTab] = useState<ReportTab>('overview');
@@ -336,7 +336,7 @@ export default function ReportsPage() {
                   Total Sales Revenue
                 </span>
                 <p className="text-2xl font-extrabold text-foreground font-tabular">
-                  ₹{fmt(overviewData.totalRevenue)}
+                  {fmt(overviewData.totalRevenue)}
                 </p>
                 <span className="badge-success text-3xs">{overviewData.invoiceCount} Invoices</span>
               </button>
@@ -349,7 +349,7 @@ export default function ReportsPage() {
                   Gross Trading Profit
                 </span>
                 <p className="text-2xl font-extrabold text-success font-tabular">
-                  ₹{fmt(overviewData.totalGrossProfit)}
+                  {fmt(overviewData.totalGrossProfit)}
                 </p>
                 <span className="text-2xs text-muted-foreground font-tabular">
                   Margin: {overviewData.grossMarginPct}%
@@ -361,10 +361,10 @@ export default function ReportsPage() {
                   Cost of Goods Sold
                 </span>
                 <p className="text-2xl font-extrabold text-foreground font-tabular">
-                  ₹{fmt(overviewData.totalCOGS)}
+                  {fmt(overviewData.totalCOGS)}
                 </p>
                 <span className="text-2xs text-muted-foreground font-tabular">
-                  Avg Order: ₹{fmtDec(overviewData.avgOrderValue)}
+                  Avg Order: {fmtDec(overviewData.avgOrderValue)}
                 </span>
               </div>
 
@@ -373,7 +373,7 @@ export default function ReportsPage() {
                   Total Purchase Spend
                 </span>
                 <p className="text-2xl font-extrabold text-info font-tabular">
-                  ₹{fmt(overviewData.totalPurchaseSpend)}
+                  {fmt(overviewData.totalPurchaseSpend)}
                 </p>
                 <span className="badge-info text-3xs">
                   {overviewData.purchaseOrderCount} Purchase Orders
@@ -388,7 +388,7 @@ export default function ReportsPage() {
                   Tax Collected
                 </span>
                 <p className="text-lg font-bold text-foreground font-tabular">
-                  ₹{fmt(overviewData.totalTax)}
+                  {fmt(overviewData.totalTax)}
                 </p>
               </div>
               <div className="card p-4 space-y-1">
@@ -396,7 +396,7 @@ export default function ReportsPage() {
                   Discounts Given
                 </span>
                 <p className="text-lg font-bold text-warning font-tabular">
-                  ₹{fmt(overviewData.totalDiscount)}
+                  {fmt(overviewData.totalDiscount)}
                 </p>
               </div>
               <div className="card p-4 space-y-1">
@@ -404,7 +404,7 @@ export default function ReportsPage() {
                   Inventory Cost Value
                 </span>
                 <p className="text-lg font-bold text-foreground font-tabular">
-                  ₹{fmt(overviewData.inventoryCostValue)}
+                  {fmt(overviewData.inventoryCostValue)}
                 </p>
                 <span className="text-2xs text-muted-foreground">
                   {overviewData.activeSKUs} active SKUs
@@ -415,11 +415,10 @@ export default function ReportsPage() {
                   Inventory Retail Value
                 </span>
                 <p className="text-lg font-bold text-info font-tabular">
-                  ₹{fmt(overviewData.inventoryRetailValue)}
+                  {fmt(overviewData.inventoryRetailValue)}
                 </p>
                 <span className="badge-info text-3xs">
-                  Unrealized: ₹
-                  {fmt(
+                  Unrealized: {fmt(
                     (overviewData.inventoryRetailValue || 0) -
                       (overviewData.inventoryCostValue || 0)
                   )}
@@ -442,7 +441,7 @@ export default function ReportsPage() {
                 </div>
                 <div className="pt-3 border-t border-border flex items-center justify-between">
                   <span className="text-2xs font-mono text-muted-foreground">
-                    Revenue: ₹{fmt(overviewData.totalRevenue)}
+                    Revenue: {fmt(overviewData.totalRevenue)}
                   </span>
                   <button
                     onClick={() => handleExport('overview')}
@@ -460,8 +459,7 @@ export default function ReportsPage() {
                   </div>
                   <h3 className="text-base font-bold text-foreground">Inventory Valuation</h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Cost: ₹{fmt(overviewData.inventoryCostValue)} vs Retail: ₹
-                    {fmt(overviewData.inventoryRetailValue)}.
+                    Cost: {fmt(overviewData.inventoryCostValue)} vs Retail: {fmt(overviewData.inventoryRetailValue)}.
                   </p>
                 </div>
                 <div className="pt-3 border-t border-border flex items-center justify-between">
@@ -484,13 +482,12 @@ export default function ReportsPage() {
                   </div>
                   <h3 className="text-base font-bold text-foreground">Procurement Summary</h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {overviewData.purchaseOrderCount} purchase orders totaling ₹
-                    {fmt(overviewData.totalPurchaseSpend)}.
+                    {overviewData.purchaseOrderCount} purchase orders totaling {fmt(overviewData.totalPurchaseSpend)}.
                   </p>
                 </div>
                 <div className="pt-3 border-t border-border flex items-center justify-between">
                   <span className="text-2xs font-mono text-muted-foreground">
-                    Paid: ₹{fmt(overviewData.totalPurchasePaid)}
+                    Paid: {fmt(overviewData.totalPurchasePaid)}
                   </span>
                   <button
                     onClick={() => handleExport('suppliers')}
@@ -573,19 +570,19 @@ export default function ReportsPage() {
                           {s.totalUnits.toLocaleString('en-IN')}
                         </td>
                         <td className="px-4 py-3 text-right font-tabular">
-                          ₹{fmtDec(s.avgUnitPrice)}
+                          {fmtDec(s.avgUnitPrice)}
                         </td>
                         <td className="px-4 py-3 text-right font-bold text-foreground font-tabular">
-                          ₹{fmt(s.totalSpend)}
+                          {fmt(s.totalSpend)}
                         </td>
                         <td className="px-4 py-3 text-right font-tabular text-success font-semibold">
-                          ₹{fmt(s.totalPaid)}
+                          {fmt(s.totalPaid)}
                         </td>
                         <td className="px-4 py-3 text-right font-tabular text-muted-foreground">
-                          ₹{fmt(s.totalCredits)}
+                          {fmt(s.totalCredits)}
                         </td>
                         <td className="px-4 py-3 text-right font-tabular text-danger font-semibold">
-                          ₹{fmt(s.totalPending)}
+                          {fmt(s.totalPending)}
                         </td>
                       </tr>
                     ))
@@ -605,16 +602,16 @@ export default function ReportsPage() {
                       </td>
                       <td className="px-4 py-3 text-right font-tabular"></td>
                       <td className="px-4 py-3 text-right font-tabular text-foreground">
-                        ₹{fmt(supplierData.totals.totalSpend)}
+                        {fmt(supplierData.totals.totalSpend)}
                       </td>
                       <td className="px-4 py-3 text-right font-tabular text-success">
-                        ₹{fmt(supplierData.totals.totalPaid)}
+                        {fmt(supplierData.totals.totalPaid)}
                       </td>
                       <td className="px-4 py-3 text-right font-tabular text-muted-foreground">
-                        ₹{fmt(supplierData.totals.totalCredits)}
+                        {fmt(supplierData.totals.totalCredits)}
                       </td>
                       <td className="px-4 py-3 text-right font-tabular text-danger">
-                        ₹{fmt(supplierData.totals.totalPending)}
+                        {fmt(supplierData.totals.totalPending)}
                       </td>
                     </tr>
                   )}
@@ -633,9 +630,7 @@ export default function ReportsPage() {
                   Top-Selling & Most Profitable Products
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {productData.recordCount} products · Revenue: ₹
-                  {fmt(productData.totals?.totalRevenue || 0)} · Profit: ₹
-                  {fmt(productData.totals?.totalProfit || 0)}
+                  {productData.recordCount} products · Revenue: {fmt(productData.totals?.totalRevenue || 0)} · Profit: {fmt(productData.totals?.totalProfit || 0)}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -703,13 +698,13 @@ export default function ReportsPage() {
                           {p.unitsSold}
                         </td>
                         <td className="px-4 py-3 text-right font-tabular font-bold text-foreground">
-                          ₹{fmt(p.totalRevenue)}
+                          {fmt(p.totalRevenue)}
                         </td>
                         <td className="px-4 py-3 text-right font-tabular text-muted-foreground">
-                          ₹{fmt(p.totalCost)}
+                          {fmt(p.totalCost)}
                         </td>
                         <td className="px-4 py-3 text-right font-tabular font-bold text-success">
-                          ₹{fmt(p.totalProfit)}
+                          {fmt(p.totalProfit)}
                         </td>
                         <td className="px-4 py-3 text-right font-tabular text-muted-foreground">
                           {p.grossMarginPct}%
@@ -728,13 +723,13 @@ export default function ReportsPage() {
                         {productData.totals.unitsSold}
                       </td>
                       <td className="px-4 py-3 text-right font-tabular text-foreground">
-                        ₹{fmt(productData.totals.totalRevenue)}
+                        {fmt(productData.totals.totalRevenue)}
                       </td>
                       <td className="px-4 py-3 text-right font-tabular text-muted-foreground">
-                        ₹{fmt(productData.totals.totalCost)}
+                        {fmt(productData.totals.totalCost)}
                       </td>
                       <td className="px-4 py-3 text-right font-tabular text-success">
-                        ₹{fmt(productData.totals.totalProfit)}
+                        {fmt(productData.totals.totalProfit)}
                       </td>
                       <td className="px-4 py-3 text-right font-tabular">
                         {productData.totals.totalRevenue > 0
@@ -824,13 +819,13 @@ export default function ReportsPage() {
                         </td>
                         <td className="px-4 py-3 text-right font-tabular">{emp.customerCount}</td>
                         <td className="px-4 py-3 text-right font-tabular">
-                          ₹{fmtDec(emp.avgOrderValue)}
+                          {fmtDec(emp.avgOrderValue)}
                         </td>
                         <td className="px-4 py-3 text-right font-tabular font-bold text-foreground">
-                          ₹{fmt(emp.totalRevenue)}
+                          {fmt(emp.totalRevenue)}
                         </td>
                         <td className="px-4 py-3 text-right font-tabular font-bold text-success">
-                          ₹{fmt(emp.totalGrossProfit)}
+                          {fmt(emp.totalGrossProfit)}
                         </td>
                       </tr>
                     ))
@@ -850,10 +845,10 @@ export default function ReportsPage() {
                       </td>
                       <td className="px-4 py-3 text-right font-tabular"></td>
                       <td className="px-4 py-3 text-right font-tabular text-foreground">
-                        ₹{fmt(employeeData.totals.totalRevenue)}
+                        {fmt(employeeData.totals.totalRevenue)}
                       </td>
                       <td className="px-4 py-3 text-right font-tabular text-success">
-                        ₹{fmt(employeeData.totals.totalGrossProfit)}
+                        {fmt(employeeData.totals.totalGrossProfit)}
                       </td>
                     </tr>
                   )}

@@ -247,7 +247,7 @@ export default function WorkActivityPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `cosko_work_activity_${period}_${Date.now()}.csv`;
+      a.download = `work_activity_${period}_${Date.now()}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

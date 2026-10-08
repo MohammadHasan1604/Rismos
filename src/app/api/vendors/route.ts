@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest, createAuditLog, validatePhysicalStore } from '@/lib/authPipeline';
 import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent } from '@/lib/realtime';
-import { validateAndNormalizeGstin } from '@/lib/gstUtils';
+import { validateTaxRegistrationId } from '@/lib/taxValidation';
 import { executeWithIdempotency } from '@/lib/idempotency';
 
 /**
@@ -198,11 +198,12 @@ export async function POST(req: NextRequest) {
       targetStoreCode = user.store;
     }
 
-    const gstinValidation = validateAndNormalizeGstin(body.gstin);
-    if (!gstinValidation.isValid) {
+    const effectiveCountry = (body.countryCode || 'IN').toUpperCase().trim();
+    const gstinValidation = validateTaxRegistrationId(body.gstin, effectiveCountry);
+    if (!gstinValidation.valid) {
       return NextResponse.json(
         {
-          error: gstinValidation.error || 'Invalid Indian GSTIN format.',
+          error: gstinValidation.error || 'Invalid Tax Registration format.',
         },
         { status: 400 }
       );
@@ -351,11 +352,12 @@ export async function PUT(req: NextRequest) {
     }
 
     if (body.gstin !== undefined && body.gstin !== null) {
-      const gstinValidation = validateAndNormalizeGstin(body.gstin);
-      if (!gstinValidation.isValid) {
+      const effectiveCountry = (body.countryCode || 'IN').toUpperCase().trim();
+      const gstinValidation = validateTaxRegistrationId(body.gstin, effectiveCountry);
+      if (!gstinValidation.valid) {
         return NextResponse.json(
           {
-            error: gstinValidation.error || 'Invalid Indian GSTIN format.',
+            error: gstinValidation.error || 'Invalid Tax Registration format.',
           },
           { status: 400 }
         );

@@ -12,7 +12,7 @@ interface ProductDetailModalProps {
 }
 
 export default function ProductDetailModal({ item, onClose }: ProductDetailModalProps) {
-  const { currentUser } = useApp();
+  const { currentUser, formatCurrency } = useApp();
   const isSuperAdmin = currentUser.role === 'Super Admin';
   const isSalesManager = currentUser.role === 'Sales Manager';
   const [storeStockOpen, setStoreStockOpen] = useState(false);
@@ -114,7 +114,7 @@ export default function ProductDetailModal({ item, onClose }: ProductDetailModal
               <div className="p-3 rounded-lg border border-border bg-card">
                 <p className="text-2xs text-muted-foreground uppercase font-semibold">Cost Price</p>
                 <p className="text-sm font-bold text-foreground mt-0.5 font-tabular">
-                  ₹{item.costPrice.toLocaleString('en-IN')}
+                  {formatCurrency(item.costPrice)}
                 </p>
               </div>
             )}
@@ -124,7 +124,7 @@ export default function ProductDetailModal({ item, onClose }: ProductDetailModal
                 Selling Price
               </p>
               <p className="text-sm font-bold text-success mt-0.5 font-tabular">
-                ₹{item.sellingPrice.toLocaleString('en-IN')}
+                {formatCurrency(item.sellingPrice)}
               </p>
             </div>
 
@@ -132,7 +132,7 @@ export default function ProductDetailModal({ item, onClose }: ProductDetailModal
               <p className="text-2xs text-muted-foreground uppercase font-semibold">MRP</p>
               <p className="text-sm font-bold text-muted-foreground mt-0.5 font-tabular">
                 {item.mrp !== undefined && item.mrp !== null
-                  ? `₹${item.mrp.toLocaleString('en-IN')}`
+                  ? formatCurrency(item.mrp)
                   : '—'}
               </p>
             </div>

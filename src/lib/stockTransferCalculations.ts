@@ -220,41 +220,74 @@ export function validateTransferItem(input: {
 }
 
 /**
- * Format an amount in Indian Rupees (₹) with mathematically correct positive, negative, and zero signs.
- * - Negative amounts: `-₹1,234.56` (never `+₹-1,234` or `₹-1,234`)
- * - Positive amounts (with showPositiveSign): `+₹1,234.56`
- * - Positive amounts (without showPositiveSign): `₹1,234.56`
- * - Zero amounts: `₹0.00`
+ * Neutral Localized Transfer Amount Formatter
+ * Formats a stock transfer monetary value with mathematical sign support (+, -, zero)
+ * according to the active currency and locale.
+ */
+export function formatTransferAmount(
+  amount: number | null | undefined,
+  options: {
+    showPositiveSign?: boolean;
+    decimals?: number;
+    currencyCode?: string;
+    currencySymbol?: string;
+    locale?: string;
+    countryCode?: string;
+  } = {}
+): string {
+  const num = typeof amount === 'number' && isFinite(amount) ? round2(amount) : 0;
+  const decimals = options.decimals !== undefined ? options.decimals : 2;
+  const currencySymbol = options.currencySymbol !== undefined
+    ? options.currencySymbol
+    : (options.currencyCode === 'AED' ? 'AED' : options.currencyCode === 'USD' ? '$' : options.currencyCode === 'GBP' ? '£' : options.currencyCode === 'SAR' ? 'SAR' : options.currencyCode === 'AUD' ? 'A$' : options.currencyCode === 'ZAR' ? 'R' : options.currencyCode === 'INR' ? '₹' : (options.currencyCode || ''));
+  const locale = options.locale || 'en-US';
+
+  // Handle zero cleanly (avoid -0.00 or +0.00)
+  if (Math.abs(num) < 0.00001) {
+    const zeroValue = decimals === 0 ? '0' : '0.00';
+    return currencySymbol.length > 1 ? `${currencySymbol} ${zeroValue}` : `${currencySymbol}${zeroValue}`;
+  }
+
+  const absFormatted = Math.abs(num).toLocaleString(locale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+
+  const formattedWithSymbol = currencySymbol.length > 1
+    ? `${currencySymbol} ${absFormatted}`
+    : `${currencySymbol}${absFormatted}`;
+
+  if (num < 0) {
+    return `-${formattedWithSymbol}`;
+  }
+
+  if (options.showPositiveSign) {
+    return `+${formattedWithSymbol}`;
+  }
+
+  return formattedWithSymbol;
+}
+
+/**
+ * Backward compatibility alias for legacy call sites.
+ * Delegates to formatTransferAmount with INR currency defaults.
  */
 export function formatTransferINR(
   amount: number | null | undefined,
   options: {
     showPositiveSign?: boolean;
     decimals?: number;
+    currencyCode?: string;
+    currencySymbol?: string;
+    locale?: string;
   } = {}
 ): string {
-  const num = typeof amount === 'number' && isFinite(amount) ? round2(amount) : 0;
-  const decimals = options.decimals !== undefined ? options.decimals : 2;
-
-  // Handle zero cleanly (avoid -0.00 or +0.00)
-  if (Math.abs(num) < 0.00001) {
-    return decimals === 0 ? '₹0' : '₹0.00';
-  }
-
-  const absFormatted = Math.abs(num).toLocaleString('en-IN', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
+  return formatTransferAmount(amount, {
+    currencyCode: 'INR',
+    currencySymbol: '₹',
+    locale: 'en-IN',
+    ...options,
   });
-
-  if (num < 0) {
-    return `-₹${absFormatted}`;
-  }
-
-  if (options.showPositiveSign) {
-    return `+₹${absFormatted}`;
-  }
-
-  return `₹${absFormatted}`;
 }
 
 /**

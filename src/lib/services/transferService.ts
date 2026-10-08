@@ -5,7 +5,7 @@ import {
   calculateTransferTotals,
   validateTransferHeader,
   validateTransferItem,
-  formatTransferINR,
+  formatTransferAmount,
 } from '../stockTransferCalculations';
 import { TaxService } from './taxService';
 
@@ -302,7 +302,7 @@ export async function executeStockTransfer(input: CreateTransferInput) {
         data: {
           module: 'Central Profit',
           action: 'Execute Stock Transfer',
-          details: `Dispatched ${totalUnits} units from ${sourceStore} to ${destStore} (Transfer Value: ${formatTransferINR(totalTransferValue)}, Central Profit: ${formatTransferINR(grossProfit, { showPositiveSign: true })})`,
+          details: `Dispatched ${totalUnits} units from ${sourceStore} to ${destStore} (Transfer Value: ${formatTransferAmount(totalTransferValue, { currencyCode: taxContext.currencyCode, currencySymbol: taxContext.currencySymbol })}, Central Profit: ${formatTransferAmount(grossProfit, { showPositiveSign: true, currencyCode: taxContext.currencyCode, currencySymbol: taxContext.currencySymbol })})`,
           userEmail: input.requestedBy,
           userRole: 'Super Admin',
           storeCode: sourceStore,

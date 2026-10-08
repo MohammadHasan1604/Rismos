@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useApp } from '@/context/AppContext';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
 
@@ -17,6 +18,7 @@ export const ReconciliationAuditModal: React.FC<ReconciliationAuditModalProps> =
   auditLoading,
   auditData,
 }) => {
+  const { formatCurrency } = useApp();
   return (
     <Modal
       open={open}
@@ -73,8 +75,7 @@ export const ReconciliationAuditModal: React.FC<ReconciliationAuditModalProps> =
                   <div className="space-y-0.5">
                     <p className="font-bold text-foreground">{p.test}</p>
                     <p className="text-3xs text-muted-foreground">
-                      Left: ₹{p.leftValue?.toLocaleString('en-IN')} | Right: ₹
-                      {p.rightValue?.toLocaleString('en-IN')}
+                      Left: {formatCurrency(p.leftValue)} | Right: {formatCurrency(p.rightValue)}
                     </p>
                   </div>
                   <span
@@ -94,7 +95,7 @@ export const ReconciliationAuditModal: React.FC<ReconciliationAuditModalProps> =
                 Net Sales Revenue
               </span>
               <span className="text-sm font-bold text-foreground mt-1 block">
-                ₹{auditData.sales?.netRevenue?.toLocaleString('en-IN')}
+                {formatCurrency(auditData.sales?.netRevenue)}
               </span>
               <span className="text-3xs text-muted-foreground">
                 {auditData.sales?.ordersCount} orders
@@ -106,7 +107,7 @@ export const ReconciliationAuditModal: React.FC<ReconciliationAuditModalProps> =
                 Vendor COGS
               </span>
               <span className="text-sm font-bold text-info mt-1 block">
-                ₹{auditData.sales?.cogs?.toLocaleString('en-IN')}
+                {formatCurrency(auditData.sales?.cogs)}
               </span>
               <span className="text-3xs text-muted-foreground">Actual cost</span>
             </div>
@@ -116,7 +117,7 @@ export const ReconciliationAuditModal: React.FC<ReconciliationAuditModalProps> =
                 Inventory Asset
               </span>
               <span className="text-sm font-bold text-foreground mt-1 block">
-                ₹{auditData.inventory?.totalAssetValue?.toLocaleString('en-IN')}
+                {formatCurrency(auditData.inventory?.totalAssetValue)}
               </span>
               <span className="text-3xs text-muted-foreground">
                 {auditData.inventory?.unitsOnHand} units on hand
@@ -128,7 +129,7 @@ export const ReconciliationAuditModal: React.FC<ReconciliationAuditModalProps> =
                 Vendor Payables
               </span>
               <span className="text-sm font-bold text-danger mt-1 block">
-                ₹{auditData.payables?.outstandingPayables?.toLocaleString('en-IN')}
+                {formatCurrency(auditData.payables?.outstandingPayables)}
               </span>
               <span className="text-3xs text-muted-foreground">Unpaid balance</span>
             </div>

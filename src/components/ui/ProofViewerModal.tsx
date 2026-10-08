@@ -3,6 +3,7 @@
 import React from 'react';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
+import { useApp } from '@/context/AppContext';
 
 export interface ProofViewerData {
   proofUrl?: string;
@@ -56,6 +57,7 @@ export function normalizeProofUrl(inputUrl?: string): string {
 }
 
 export default function ProofViewerModal({ open, onClose, data, proof }: ProofViewerModalProps) {
+  const { formatCurrency, dateLocale } = useApp();
   const activeData = proof || data;
   const isModalOpen = open !== undefined ? open : Boolean(activeData);
   const rawUrl = activeData?.proofUrl || activeData?.url;
@@ -137,7 +139,7 @@ export default function ProofViewerModal({ open, onClose, data, proof }: ProofVi
                 Amount Paid
               </span>
               <span className="text-base font-black text-emerald-600 font-tabular">
-                ₹{Number(activeData.amount).toLocaleString('en-IN')}
+                {formatCurrency(Number(activeData.amount))}
               </span>
             </div>
           )}
@@ -156,7 +158,7 @@ export default function ProofViewerModal({ open, onClose, data, proof }: ProofVi
           {activeData.referenceNo && (
             <div>
               <span className="text-3xs uppercase tracking-wider text-muted-foreground font-bold block">
-                UTR / Reference
+                Reference / Txn ID
               </span>
               <span
                 className="text-xs font-mono font-bold text-primary block truncate"

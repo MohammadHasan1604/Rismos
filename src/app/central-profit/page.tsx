@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import SuperAdminGuard from '@/components/SuperAdminGuard';
 import {
   calculateTransferLineItem,
-  formatTransferINR,
+  formatTransferAmount,
   formatTransferMargin,
   getTransferProfitColorClass,
   validateTransferHeader,
@@ -30,7 +30,18 @@ export default function CentralProfitPage() {
     defaultStoreTransferPrices,
     setDefaultStoreTransferPrice,
     currentUser,
+    branding,
+    systemSettings,
   } = useApp();
+
+  const currencyCode = systemSettings?.currencyCode || branding?.baseCurrency?.slice(0, 3) || 'USD';
+  const currencySymbol = systemSettings?.currencySymbol || '';
+  const locale = branding?.locale || 'en-US';
+
+  const formatTransferCurrency = (
+    amt: number | null | undefined,
+    opts?: { showPositiveSign?: boolean; decimals?: number }
+  ) => formatTransferAmount(amt, { currencyCode, currencySymbol, locale, ...opts });
 
   const [storeFilter, setStoreFilter] = useState('All Stores');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Completed' | 'Draft'>('All');
@@ -406,10 +417,13 @@ export default function CentralProfitPage() {
                 className="input-field text-xs py-1.5 px-3 w-full sm:w-auto"
               >
                 <option value="All Stores">All Destination Stores</option>
-                <option value="BLR">BLR (Bengaluru)</option>
-                <option value="HYD">HYD (Hyderabad)</option>
-                <option value="DEL">DEL (Delhi)</option>
-                <option value="MUM">MUM (Mumbai)</option>
+                {storesList
+                  .filter((s) => s.code !== 'CENTRAL')
+                  .map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.code} ({s.name})
+                    </option>
+                  ))}
               </select>
             )}
           </div>
@@ -421,7 +435,7 @@ export default function CentralProfitPage() {
                 Transfer Revenue
               </span>
               <span className="text-base font-extrabold text-foreground block font-tabular">
-                {formatTransferINR(totalTransferRevenue)}
+                {formatTransferCurrency(totalTransferRevenue)}
               </span>
               <span className="text-3xs text-muted-foreground">Gross Internal Value</span>
             </div>
@@ -431,7 +445,7 @@ export default function CentralProfitPage() {
                 Inventory Cost
               </span>
               <span className="text-base font-extrabold text-foreground block font-tabular">
-                {formatTransferINR(totalInventoryCost)}
+                {formatTransferCurrency(totalInventoryCost)}
               </span>
               <span className="text-3xs text-muted-foreground">Actual Vendor Cost</span>
             </div>
@@ -443,7 +457,7 @@ export default function CentralProfitPage() {
               <span
                 className={`text-base font-extrabold block font-tabular ${getTransferProfitColorClass(totalGrossTransferProfit)}`}
               >
-                {formatTransferINR(totalGrossTransferProfit, { showPositiveSign: true })}
+                {formatTransferCurrency(totalGrossTransferProfit, { showPositiveSign: true })}
               </span>
               <span className="text-3xs text-muted-foreground">Revenue − Cost</span>
             </div>
@@ -453,7 +467,7 @@ export default function CentralProfitPage() {
                 Central Expenses
               </span>
               <span className="text-base font-extrabold text-warning block font-tabular">
-                {formatTransferINR(centralExpenses)}
+                {formatTransferCurrency(centralExpenses)}
               </span>
               <span className="text-3xs text-muted-foreground">Logistics & Ops</span>
             </div>
@@ -465,7 +479,7 @@ export default function CentralProfitPage() {
               <span
                 className={`text-base font-extrabold block font-tabular ${getTransferProfitColorClass(netCentralProfit)}`}
               >
-                {formatTransferINR(netCentralProfit, { showPositiveSign: true })}
+                {formatTransferCurrency(netCentralProfit, { showPositiveSign: true })}
               </span>
               <span className="text-3xs text-muted-foreground">Gross Profit − Exp</span>
             </div>
@@ -519,15 +533,15 @@ export default function CentralProfitPage() {
                         <tr key={`sb-${s.store}`} className="hover:bg-muted/30">
                           <td className="px-4 py-3 font-bold text-foreground">{s.store}</td>
                           <td className="px-4 py-3 text-right text-muted-foreground">
-                            {formatTransferINR(s.cost)}
+                            {formatTransferCurrency(s.cost)}
                           </td>
                           <td className="px-4 py-3 text-right font-semibold">
-                            {formatTransferINR(s.revenue)}
+                            {formatTransferCurrency(s.revenue)}
                           </td>
                           <td
                             className={`px-4 py-3 text-right font-extrabold ${getTransferProfitColorClass(s.profit)}`}
                           >
-                            {formatTransferINR(s.profit, { showPositiveSign: true })}
+                            {formatTransferCurrency(s.profit, { showPositiveSign: true })}
                           </td>
                           <td
                             className={`px-4 py-3 text-right font-bold ${getTransferProfitColorClass(s.profit)}`}
@@ -582,12 +596,12 @@ export default function CentralProfitPage() {
                           </td>
                           <td className="px-4 py-3 text-right font-bold">{p.qty}</td>
                           <td className="px-4 py-3 text-right font-semibold">
-                            {formatTransferINR(p.revenue)}
+                            {formatTransferCurrency(p.revenue)}
                           </td>
                           <td
                             className={`px-4 py-3 text-right font-extrabold ${getTransferProfitColorClass(p.profit)}`}
                           >
-                            {formatTransferINR(p.profit, { showPositiveSign: true })}
+                            {formatTransferCurrency(p.profit, { showPositiveSign: true })}
                           </td>
                           <td
                             className={`px-4 py-3 text-right font-bold ${getTransferProfitColorClass(p.profit)}`}
@@ -658,15 +672,15 @@ export default function CentralProfitPage() {
                       </td>
                       <td className="px-4 py-3 text-right font-extrabold">{t.qty}</td>
                       <td className="px-4 py-3 text-right text-muted-foreground">
-                        {formatTransferINR(t.purchaseCost)}
+                        {formatTransferCurrency(t.purchaseCost)}
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-foreground">
-                        {formatTransferINR(t.transferPrice)}
+                        {formatTransferCurrency(t.transferPrice)}
                       </td>
                       <td
                         className={`px-4 py-3 text-right font-extrabold ${getTransferProfitColorClass(t.transferProfit)}`}
                       >
-                        {formatTransferINR(t.transferProfit, { showPositiveSign: true })}
+                        {formatTransferCurrency(t.transferProfit, { showPositiveSign: true })}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -817,7 +831,7 @@ export default function CentralProfitPage() {
                   <input
                     type="text"
                     disabled
-                    value={`₹${unitCost.toLocaleString('en-IN')}`}
+                    value={formatTransferAmount(unitCost, { currencyCode, currencySymbol, locale })}
                     className="input-field text-xs bg-muted/50 font-bold text-muted-foreground cursor-not-allowed"
                   />
                   <p className="text-3xs text-muted-foreground mt-0.5">Authoritative cost basis</p>
@@ -830,7 +844,7 @@ export default function CentralProfitPage() {
                   <NumericInput
                     min={0}
                     required
-                    placeholder={`Reference Cost: ₹${unitCost.toLocaleString('en-IN')}`}
+                    placeholder={`Reference Cost: ${formatTransferAmount(unitCost, { currencyCode, currencySymbol, locale })}`}
                     value={customTransferPriceInput}
                     onChange={(val) => setCustomTransferPriceInput(val)}
                     className="input-field text-xs font-bold text-primary"
@@ -868,7 +882,7 @@ export default function CentralProfitPage() {
                       Inventory Cost
                     </span>
                     <span className="text-xs font-bold text-foreground font-tabular">
-                      {formatTransferINR(totalInventoryCostCalc)}
+                      {formatTransferCurrency(totalInventoryCostCalc)}
                     </span>
                   </div>
 
@@ -877,7 +891,7 @@ export default function CentralProfitPage() {
                       Transfer Value
                     </span>
                     <span className="text-xs font-bold text-foreground font-tabular">
-                      {formatTransferINR(totalTransferValueCalc)}
+                      {formatTransferCurrency(totalTransferValueCalc)}
                     </span>
                   </div>
 
@@ -888,7 +902,7 @@ export default function CentralProfitPage() {
                     <span
                       className={`text-xs font-bold font-tabular ${getTransferProfitColorClass(unitProfitCalc)}`}
                     >
-                      {formatTransferINR(unitProfitCalc, { showPositiveSign: true })}
+                      {formatTransferCurrency(unitProfitCalc, { showPositiveSign: true })}
                     </span>
                   </div>
 
@@ -899,7 +913,7 @@ export default function CentralProfitPage() {
                     <span
                       className={`text-sm font-extrabold font-tabular ${getTransferProfitColorClass(totalGrossProfitCalc)}`}
                     >
-                      {formatTransferINR(totalGrossProfitCalc, { showPositiveSign: true })}
+                      {formatTransferCurrency(totalGrossProfitCalc, { showPositiveSign: true })}
                     </span>
                   </div>
 
@@ -957,24 +971,24 @@ export default function CentralProfitPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Inventory Cost / unit:</span>
-                  <span className="font-bold text-foreground">{formatTransferINR(unitCost)}</span>
+                  <span className="font-bold text-foreground">{formatTransferCurrency(unitCost)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Transfer Price / unit:</span>
                   <span className="font-bold text-primary">
-                    {formatTransferINR(effectiveTransferPrice)}
+                    {formatTransferCurrency(effectiveTransferPrice)}
                   </span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-border">
                   <span className="font-bold text-foreground">Total Inventory Cost:</span>
                   <span className="font-bold text-foreground">
-                    {formatTransferINR(totalInventoryCostCalc)}
+                    {formatTransferCurrency(totalInventoryCostCalc)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-bold text-foreground">Total Transfer Value:</span>
                   <span className="font-bold text-foreground">
-                    {formatTransferINR(totalTransferValueCalc)}
+                    {formatTransferCurrency(totalTransferValueCalc)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm pt-2 border-t border-border">
@@ -982,7 +996,7 @@ export default function CentralProfitPage() {
                   <span
                     className={`font-extrabold ${getTransferProfitColorClass(totalGrossProfitCalc)}`}
                   >
-                    {formatTransferINR(totalGrossProfitCalc, { showPositiveSign: true })}
+                    {formatTransferCurrency(totalGrossProfitCalc, { showPositiveSign: true })}
                   </span>
                 </div>
               </div>
@@ -1057,7 +1071,7 @@ export default function CentralProfitPage() {
                   </div>
                   <div>
                     <label className="text-3xs font-bold text-muted-foreground block mb-1">
-                      Default Transfer Price (₹)
+                      Default Transfer Price ({currencySymbol})
                     </label>
                     <NumericInput
                       min={0}
@@ -1097,7 +1111,7 @@ export default function CentralProfitPage() {
                             <span className="badge-info text-3xs">{p.storeCode}</span>
                           </td>
                           <td className="px-3 py-2 text-right font-extrabold text-primary">
-                            ₹{p.defaultTransferPrice.toLocaleString('en-IN')}
+                            {formatTransferAmount(p.defaultTransferPrice, { currencyCode, currencySymbol, locale })}
                           </td>
                         </tr>
                       );
@@ -1146,19 +1160,19 @@ export default function CentralProfitPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Purchase Cost / Unit:</span>
                   <span className="text-foreground">
-                    {formatTransferINR(viewTransferModal.purchaseCost)}
+                    {formatTransferCurrency(viewTransferModal.purchaseCost)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Transfer Price / Unit:</span>
                   <span className="font-bold text-primary">
-                    {formatTransferINR(viewTransferModal.transferPrice)}
+                    {formatTransferCurrency(viewTransferModal.transferPrice)}
                   </span>
                 </div>
                 <div className="flex justify-between pt-1 border-t border-border">
                   <span className="text-muted-foreground">Total Inventory Cost:</span>
                   <span className="font-semibold text-foreground">
-                    {formatTransferINR(
+                    {formatTransferCurrency(
                       viewTransferModal.totalCost ||
                         viewTransferModal.purchaseCost * viewTransferModal.qty
                     )}
@@ -1167,7 +1181,7 @@ export default function CentralProfitPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Transfer Value:</span>
                   <span className="font-semibold text-foreground">
-                    {formatTransferINR(
+                    {formatTransferCurrency(
                       viewTransferModal.totalTransferValue ||
                         viewTransferModal.transferPrice * viewTransferModal.qty
                     )}
@@ -1178,7 +1192,7 @@ export default function CentralProfitPage() {
                   <span
                     className={`font-extrabold ${getTransferProfitColorClass(viewTransferModal.transferProfit)}`}
                   >
-                    {formatTransferINR(viewTransferModal.transferProfit, {
+                    {formatTransferCurrency(viewTransferModal.transferProfit, {
                       showPositiveSign: true,
                     })}
                   </span>

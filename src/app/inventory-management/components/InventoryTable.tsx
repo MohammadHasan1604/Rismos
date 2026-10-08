@@ -66,6 +66,7 @@ export default function InventoryTable({
     sales,
     inventoryLedger,
     confirmAction,
+    formatCurrency,
   } = useApp();
 
   const isSuperAdmin = currentUser.role === 'Super Admin';
@@ -557,7 +558,7 @@ export default function InventoryTable({
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="font-extrabold font-tabular text-sm text-foreground">
-                        ₹{item.sellingPrice.toLocaleString('en-IN')}
+                        {formatCurrency(item.sellingPrice)}
                       </span>
                       <button
                         type="button"
@@ -741,7 +742,7 @@ export default function InventoryTable({
                           return (
                             <td key={`cell-${item.id}-cost`} className="table-cell">
                               <span className="font-tabular text-sm">
-                                ₹{item.costPrice.toLocaleString('en-IN')}
+                                {formatCurrency(item.costPrice)}
                               </span>
                             </td>
                           );
@@ -750,7 +751,7 @@ export default function InventoryTable({
                           return (
                             <td key={`cell-${item.id}-sell`} className="table-cell">
                               <span className="font-tabular text-sm font-medium">
-                                ₹{item.sellingPrice.toLocaleString('en-IN')}
+                                {formatCurrency(item.sellingPrice)}
                               </span>
                             </td>
                           );
@@ -760,7 +761,7 @@ export default function InventoryTable({
                             <td key={`cell-${item.id}-mrp`} className="table-cell">
                               <span className="font-tabular text-sm text-muted-foreground">
                                 {item.mrp !== undefined && item.mrp !== null
-                                  ? `₹${item.mrp.toLocaleString('en-IN')}`
+                                  ? formatCurrency(item.mrp)
                                   : '—'}
                               </span>
                             </td>

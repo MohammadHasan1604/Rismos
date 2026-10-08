@@ -553,7 +553,7 @@ export async function getDrillDownRecords(metricKey: string, filters: Accounting
         status: s.status,
         paymentMethod: s.paymentMethod,
         items: s.items
-          .map((it) => `${it.productName} (x${it.qty} @ ₹${Number(it.unitPrice)})`)
+          .map((it) => `${it.productName} (x${it.qty} @ ${Number(it.unitPrice)})`)
           .join(', '),
       }));
       const total = rows.reduce((acc, r) => acc + r.netRevenue, 0);
@@ -590,7 +590,7 @@ export async function getDrillDownRecords(metricKey: string, filters: Accounting
         revenue: Number(s.grandTotal),
         profit: Number(s.grossProfit),
         items: s.items
-          .map((it) => `${it.productName}: ${it.qty} x ₹${Number(it.unitCost)}`)
+          .map((it) => `${it.productName}: ${it.qty} x ${Number(it.unitCost)}`)
           .join(', '),
       }));
       const total = rows.reduce((acc, r) => acc + r.amount, 0);
@@ -684,7 +684,7 @@ export async function getDrillDownRecords(metricKey: string, filters: Accounting
         items: t.items
           .map(
             (it) =>
-              `${it.product?.name || 'Item'} (Qty: ${it.qty}, Cost: ₹${Number(it.costPerUnit)}, Billed: ₹${Number(it.transferPricePerUnit)})`
+              `${it.product?.name || 'Item'} (Qty: ${it.qty}, Cost: ${Number(it.costPerUnit)}, Billed: ${Number(it.transferPricePerUnit)})`
           )
           .join(', '),
       }));

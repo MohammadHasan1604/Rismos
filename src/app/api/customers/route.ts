@@ -619,7 +619,7 @@ export async function DELETE(req: NextRequest) {
         customer,
         hasHistory,
         message: hasHistory
-          ? `Customer "${target.name}" has business history (${salesCount} sales, ${repairCount} repairs, ₹${target.totalSpent} spend) and was archived safely.`
+          ? `Customer "${target.name}" has business history (${salesCount} sales, ${repairCount} repairs, ${target.totalSpent} spend) and was archived safely.`
           : `Customer "${target.name}" archived successfully.`,
       });
     }

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Modal from '@/components/ui/Modal';
+import { useApp } from '@/context/AppContext';
 import { DrillDownRecord } from './types';
 
 interface DrillDownModalProps {
@@ -31,6 +32,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
   filteredDrillDownRows,
   totalRecordsCount,
 }) => {
+  const { formatCurrency, dateLocale } = useApp();
   return (
     <Modal open={open} onClose={onClose} title={`Detailed Audit Drill-Down: ${title}`} size="xl">
       <div className="space-y-4">
@@ -50,7 +52,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
               Authoritative Total
             </span>
             <span className="text-2xl font-black text-primary font-tabular">
-              ₹{drillDownTotal.toLocaleString('en-IN')}
+              {formatCurrency(drillDownTotal)}
             </span>
           </div>
         </div>
@@ -95,7 +97,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                       {row.refNo}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                      {new Date(row.date).toLocaleDateString('en-IN')}
+                      {new Date(row.date).toLocaleDateString(dateLocale || 'en-IN')}
                     </td>
                     <td className="px-4 py-3 font-semibold text-foreground">{row.storeCode}</td>
                     <td className="px-4 py-3 max-w-[320px]">
@@ -107,7 +109,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                       )}
                     </td>
                     <td className="px-4 py-3 text-right font-black text-foreground">
-                      ₹{row.amount.toLocaleString('en-IN')}
+                      {formatCurrency(row.amount)}
                     </td>
                   </tr>
                 ))}

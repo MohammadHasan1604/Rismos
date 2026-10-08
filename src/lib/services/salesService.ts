@@ -64,6 +64,11 @@ export async function executePOSCheckout(input: CreateSaleInput) {
   // Authoritative Tax Context Resolution
   const taxContext = await TaxService.resolveTaxContext(storeCode);
 
+  const [brandingConfig, systemSettingsConfig] = await Promise.all([
+    prisma.brandingSetting.findUnique({ where: { id: 'cosko_branding_config' } }).catch(() => null),
+    prisma.systemSettings.findUnique({ where: { id: 'cosko_system_config' } }).catch(() => null),
+  ]);
+
   const lineTaxItems = input.items.map((item) => {
     const dbProduct = productMap.get(item.productId);
     return {
@@ -260,8 +265,39 @@ export async function executePOSCheckout(input: CreateSaleInput) {
           taxConfigVersion: taxContext.taxConfigVersion,
           taxRegistrationSnapshot: taxContext.taxRegistrationNumber || null,
           taxBreakdownJson: JSON.stringify(taxResult.taxBreakdown),
-          invoiceTemplateVersion: 1,
-          invoiceSnapshotJson: JSON.stringify(taxResult.invoiceSnapshot),
+          invoiceTemplateVersion: systemSettingsConfig?.invoiceTemplateVersion || 1,
+          invoiceSnapshotJson: JSON.stringify({
+            ...taxResult.invoiceSnapshot,
+            appName: brandingConfig?.appName || 'RISMOS',
+            tagline: brandingConfig?.tagline || 'Run Retail. Smarter.',
+            logoUrl: brandingConfig?.logoUrl || null,
+            businessLegalName:
+              systemSettingsConfig?.legalBusinessName ||
+              brandingConfig?.businessName ||
+              brandingConfig?.appName ||
+              'RISMOS',
+            businessAddress:
+              systemSettingsConfig?.gstBusinessAddress || brandingConfig?.businessAddress || '',
+            city: brandingConfig?.city || '',
+            state: systemSettingsConfig?.gstState || brandingConfig?.state || '',
+            pincode: brandingConfig?.pincode || '',
+            supportEmail: brandingConfig?.supportEmail || null,
+            supportPhone: brandingConfig?.supportPhone || null,
+            locale: taxContext.locale || (brandingConfig as any)?.locale || 'en-US',
+            invoiceHeader: systemSettingsConfig?.invoiceHeader || `${taxContext.taxRegime} INVOICE`,
+            invoiceFooter:
+              systemSettingsConfig?.invoiceFooter ||
+              `Thank you for shopping with ${brandingConfig?.appName || 'RISMOS'}!`,
+            invoiceTerms: systemSettingsConfig?.invoiceTerms || null,
+            invoiceAccentColor:
+              systemSettingsConfig?.invoiceAccentColor || (brandingConfig as any)?.primaryColor || '#002E86',
+            invoiceTemplateUrl: systemSettingsConfig?.invoiceTemplateUrl || null,
+            invoiceTemplateVersion: systemSettingsConfig?.invoiceTemplateVersion || 1,
+            invoiceFieldMapping: systemSettingsConfig?.invoiceFieldMapping || null,
+            showPaymentQr: Boolean(systemSettingsConfig?.showPaymentQr),
+            paymentUpiId: systemSettingsConfig?.paymentUpiId || null,
+            paymentBankDetails: systemSettingsConfig?.paymentBankDetails || null,
+          }),
           items: {
             create: preparedItems,
           },

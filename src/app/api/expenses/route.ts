@@ -240,7 +240,7 @@ export async function POST(req: NextRequest) {
               data: {
                 module: 'Expenses',
                 action: 'Create Expense',
-                details: `Recorded ₹${expenseAmt.toFixed(2)} for ${body.category} (${expenseStore}) via ${paymentMethod} (Ref: ${cleanRef}, Proof: ${proofUrl})`,
+                details: `Recorded ${expenseAmt.toFixed(2)} for ${body.category} (${expenseStore}) via ${paymentMethod} (Ref: ${cleanRef}, Proof: ${proofUrl})`,
                 userEmail: user.email || user.name,
                 userRole: user.role,
                 storeCode: expenseStore,
@@ -524,7 +524,7 @@ export async function DELETE(req: NextRequest) {
         await tx.auditLog.create({
           data: {
             module: 'EXPENSES',
-            action: `DELETED: Expense "${target.expenseNo}" (₹${target.amount})`,
+            action: `DELETED: Expense "${target.expenseNo}" (${target.amount})`,
             details: JSON.stringify({ expenseId: target.id, beforeState: target }),
             userEmail: user.email,
             userRole: user.role,

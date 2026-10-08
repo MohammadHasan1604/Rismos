@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useApp } from '@/context/AppContext';
 import Icon from '@/components/ui/AppIcon';
 import { ConsolidatedPnLData } from './types';
 
@@ -17,6 +18,7 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
   datePeriod,
   handleDrillDown,
 }) => {
+  const { formatCurrency } = useApp();
   return (
     <div className="space-y-6 fade-in">
       {/* Elimination Accounting Rule Notice */}
@@ -32,11 +34,11 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
             <p className="text-muted-foreground leading-relaxed">
               Internal Central → Retail store transfer revenue (
               <strong className="text-foreground">
-                ₹{consolidatedData.eliminatedTransferRevenue.toLocaleString('en-IN')}
+                {formatCurrency(consolidatedData.eliminatedTransferRevenue)}
               </strong>
               ) and transfer markups (
               <strong className="text-foreground">
-                ₹{consolidatedData.eliminatedTransferMarkup.toLocaleString('en-IN')}
+                {formatCurrency(consolidatedData.eliminatedTransferMarkup)}
               </strong>
               ) have been <strong>eliminated</strong> to prevent double-counting. Consolidated
               Profit reflects external sales to billed customers minus authoritative vendor
@@ -64,7 +66,7 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
             </span>
           </div>
           <p className="text-2xl font-black text-foreground font-tabular mt-2">
-            ₹{consolidatedData.netExternalRevenue.toLocaleString('en-IN')}
+            {formatCurrency(consolidatedData.netExternalRevenue)}
           </p>
           <p className="text-2xs text-success font-semibold mt-1 flex items-center gap-1">
             <Icon name="CheckCircleIcon" size={14} />
@@ -85,7 +87,7 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
             </span>
           </div>
           <p className="text-2xl font-black text-info font-tabular mt-2">
-            ₹{consolidatedData.vendorCOGS.toLocaleString('en-IN')}
+            {formatCurrency(consolidatedData.vendorCOGS)}
           </p>
           <p className="text-2xs text-muted-foreground mt-1">Actual procurement inventory cost</p>
         </div>
@@ -103,11 +105,10 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
             </span>
           </div>
           <p className="text-2xl font-black text-danger font-tabular mt-2">
-            ₹{consolidatedData.totalExpenses.toLocaleString('en-IN')}
+            {formatCurrency(consolidatedData.totalExpenses)}
           </p>
           <p className="text-2xs text-muted-foreground mt-1">
-            Store (₹{consolidatedData.storeOperatingExpenses.toLocaleString('en-IN')}) + Central (₹
-            {consolidatedData.centralExpenses.toLocaleString('en-IN')})
+            Store ({formatCurrency(consolidatedData.storeOperatingExpenses)}) + Central ({formatCurrency(consolidatedData.centralExpenses)})
           </p>
         </div>
 
@@ -118,7 +119,7 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
           <p
             className={`text-2xl font-black font-tabular mt-2 ${consolidatedData.consolidatedNetProfit >= 0 ? 'text-success' : 'text-danger'}`}
           >
-            ₹{consolidatedData.consolidatedNetProfit.toLocaleString('en-IN')}
+            {formatCurrency(consolidatedData.consolidatedNetProfit)}
           </p>
           <p className="text-2xs text-muted-foreground mt-1 font-tabular">
             Net Margin:{' '}
@@ -151,7 +152,7 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
               Gross External Sales Revenue (Billed to Customers)
             </span>
             <span className="font-bold text-foreground">
-              ₹{consolidatedData.netExternalRevenue.toLocaleString('en-IN')}
+              {formatCurrency(consolidatedData.netExternalRevenue)}
             </span>
           </div>
 
@@ -164,7 +165,7 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
               Less: Cost of Goods Sold (Authoritative Vendor Purchase Cost)
             </span>
             <span className="font-semibold text-info">
-              -₹{consolidatedData.vendorCOGS.toLocaleString('en-IN')}
+              -{formatCurrency(consolidatedData.vendorCOGS)}
             </span>
           </div>
 
@@ -173,7 +174,7 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
             <span className="text-base">Consolidated Gross Profit</span>
             <div className="text-right">
               <span className="text-lg text-primary">
-                ₹{consolidatedData.consolidatedGrossProfit.toLocaleString('en-IN')}
+                {formatCurrency(consolidatedData.consolidatedGrossProfit)}
               </span>
               <span className="text-xs text-muted-foreground ml-2">
                 ({consolidatedData.grossMarginPercent}% margin)
@@ -188,7 +189,7 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
           >
             <span>Store Operational Expenses (Rent, Salaries, Electricity, Repairs):</span>
             <span className="font-semibold text-danger">
-              -₹{consolidatedData.storeOperatingExpenses.toLocaleString('en-IN')}
+              -{formatCurrency(consolidatedData.storeOperatingExpenses)}
             </span>
           </div>
 
@@ -200,7 +201,7 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
           >
             <span>Central Operations & Freight Logistics Expenses:</span>
             <span className="font-semibold text-danger">
-              -₹{consolidatedData.centralExpenses.toLocaleString('en-IN')}
+              -{formatCurrency(consolidatedData.centralExpenses)}
             </span>
           </div>
 
@@ -211,7 +212,7 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
               <span
                 className={`text-xl sm:text-2xl ${consolidatedData.consolidatedNetProfit >= 0 ? 'text-success' : 'text-danger'}`}
               >
-                ₹{consolidatedData.consolidatedNetProfit.toLocaleString('en-IN')}
+                {formatCurrency(consolidatedData.consolidatedNetProfit)}
               </span>
               <span className="text-xs font-semibold text-muted-foreground block">
                 Net Margin: {consolidatedData.netMarginPercent}%
@@ -264,24 +265,24 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
                       {sc.ordersCount}
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-foreground">
-                      ₹{sc.revenue.toLocaleString('en-IN')}
+                      {formatCurrency(sc.revenue)}
                     </td>
                     <td className="px-4 py-3 text-right text-info font-medium">
-                      ₹{sc.cogs.toLocaleString('en-IN')}
+                      {formatCurrency(sc.cogs)}
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-success">
-                      ₹{sc.grossProfit.toLocaleString('en-IN')}
+                      {formatCurrency(sc.grossProfit)}
                     </td>
                     <td className="px-4 py-3 text-right text-muted-foreground">
                       {sc.grossMarginPercent.toFixed(1)}%
                     </td>
                     <td className="px-4 py-3 text-right text-danger font-medium">
-                      ₹{sc.expenses.toLocaleString('en-IN')}
+                      {formatCurrency(sc.expenses)}
                     </td>
                     <td
                       className={`px-4 py-3 text-right font-black ${sc.netProfit >= 0 ? 'text-success' : 'text-danger'}`}
                     >
-                      ₹{sc.netProfit.toLocaleString('en-IN')}
+                      {formatCurrency(sc.netProfit)}
                     </td>
                   </tr>
                 ))}

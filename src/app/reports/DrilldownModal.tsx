@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
+import { useApp } from '@/context/AppContext';
 
 interface DrilldownModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export default function DrilldownModal({
   startDate,
   endDate,
 }: DrilldownModalProps) {
+  const { formatCurrency, dateLocale } = useApp();
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -82,8 +84,7 @@ export default function DrilldownModal({
     }
   };
 
-  const fmt = (v: number) =>
-    v?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00';
+  const fmt = (v: number) => formatCurrency(v ?? 0);
 
   return (
     <Modal
@@ -153,18 +154,18 @@ export default function DrilldownModal({
                     <td className="px-3 py-2.5">{r.customer}</td>
                     <td className="px-3 py-2.5 text-muted-foreground">{r.cashier}</td>
                     <td className="px-3 py-2.5 text-muted-foreground font-mono text-2xs">
-                      {new Date(r.date).toLocaleDateString('en-IN')}
+                      {new Date(r.date).toLocaleDateString(dateLocale || 'en-IN')}
                     </td>
                     <td className="px-3 py-2.5 text-right font-tabular font-bold">{r.qty}</td>
-                    <td className="px-3 py-2.5 text-right font-tabular">₹{fmt(r.unitPrice)}</td>
+                    <td className="px-3 py-2.5 text-right font-tabular">{fmt(r.unitPrice)}</td>
                     <td className="px-3 py-2.5 text-right font-tabular text-muted-foreground">
-                      ₹{fmt(r.unitCost)}
+                      {fmt(r.unitCost)}
                     </td>
                     <td className="px-3 py-2.5 text-right font-tabular font-bold">
-                      ₹{fmt(r.lineTotal)}
+                      {fmt(r.lineTotal)}
                     </td>
                     <td className="px-3 py-2.5 text-right font-tabular font-bold text-success">
-                      ₹{fmt(r.lineProfit)}
+                      {fmt(r.lineProfit)}
                     </td>
                   </tr>
                 ))}
@@ -196,7 +197,7 @@ export default function DrilldownModal({
                       <span className="badge-info text-3xs">{r.store}</span>
                     </td>
                     <td className="px-3 py-2.5 text-muted-foreground font-mono text-2xs">
-                      {new Date(r.orderDate).toLocaleDateString('en-IN')}
+                      {new Date(r.orderDate).toLocaleDateString(dateLocale || 'en-IN')}
                     </td>
                     <td className="px-3 py-2.5">
                       <span
@@ -209,13 +210,13 @@ export default function DrilldownModal({
                       {r.totalUnits}
                     </td>
                     <td className="px-3 py-2.5 text-right font-tabular font-bold">
-                      ₹{fmt(r.totalCost)}
+                      {fmt(r.totalCost)}
                     </td>
                     <td className="px-3 py-2.5 text-right font-tabular text-success font-semibold">
-                      ₹{fmt(r.paidAmount)}
+                      {fmt(r.paidAmount)}
                     </td>
                     <td className="px-3 py-2.5 text-right font-tabular text-danger font-semibold">
-                      ₹{fmt(Math.max(0, r.totalCost - r.paidAmount - (r.creditAmount || 0)))}
+                      {fmt(Math.max(0, r.totalCost - r.paidAmount - (r.creditAmount || 0)))}
                     </td>
                   </tr>
                 ))}
@@ -253,13 +254,13 @@ export default function DrilldownModal({
                       <span className="badge-secondary text-3xs">{r.paymentMethod}</span>
                     </td>
                     <td className="px-3 py-2.5 text-muted-foreground font-mono text-2xs">
-                      {new Date(r.date).toLocaleDateString('en-IN')}
+                      {new Date(r.date).toLocaleDateString(dateLocale || 'en-IN')}
                     </td>
                     <td className="px-3 py-2.5 text-right font-tabular font-bold">
-                      ₹{fmt(r.grandTotal)}
+                      {fmt(r.grandTotal)}
                     </td>
                     <td className="px-3 py-2.5 text-right font-tabular font-bold text-success">
-                      ₹{fmt(r.grossProfit)}
+                      {fmt(r.grossProfit)}
                     </td>
                   </tr>
                 ))}

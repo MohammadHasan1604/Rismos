@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import ProofViewerModal, { PaymentProofData } from '@/components/ui/ProofViewerModal';
 
 export default function ExpensesPage() {
-  const { expenses, deleteExpense, selectedStore } = useApp();
+  const { expenses, deleteExpense, selectedStore, formatCurrency, systemSettings } = useApp();
+  const currencySymbol = systemSettings?.currencySymbol || '₹';
 
   // Master modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -76,15 +77,13 @@ export default function ExpensesPage() {
               Total Expenses
             </p>
             <h2 className="text-xl md:text-2xl font-extrabold text-foreground font-tabular mt-1">
-              ₹{totalExpense.toLocaleString('en-IN')}
+              {formatCurrency(totalExpense)}
             </h2>
             <p className="text-3xs text-muted-foreground mt-0.5">
               {filteredExpenses.length} transactions · {selectedStore}
             </p>
           </div>
-          <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-sm">
-            ₹
-          </div>
+          <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-sm">{currencySymbol}</div>
         </div>
 
         {/* Table */}
@@ -131,7 +130,7 @@ export default function ExpensesPage() {
                         <span className="badge-info text-3xs font-semibold">{exp.store}</span>
                       </td>
                       <td className="px-4 py-3 font-extrabold font-tabular text-foreground text-right">
-                        ₹{exp.amount.toLocaleString('en-IN')}
+                        {formatCurrency(exp.amount)}
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
                         {exp.paymentMethod}
@@ -205,7 +204,7 @@ export default function ExpensesPage() {
                   className="record-item"
                   onClick={() => handleOpenEdit(exp)}
                 >
-                  <div className="record-avatar bg-primary/10 text-primary">₹</div>
+                  <div className="record-avatar bg-primary/10 text-primary">{currencySymbol}</div>
                   <div className="record-content">
                     <p className="record-title">{exp.category}</p>
                     <p className="record-subtitle">{exp.description}</p>
@@ -214,7 +213,7 @@ export default function ExpensesPage() {
                     </p>
                   </div>
                   <div className="record-meta">
-                    <p className="record-value">₹{exp.amount.toLocaleString('en-IN')}</p>
+                    <p className="record-value">{formatCurrency(exp.amount)}</p>
                     <span className="badge-success text-3xs">{exp.status}</span>
                   </div>
                 </div>
@@ -249,7 +248,7 @@ export default function ExpensesPage() {
             </span>{' '}
             ({deletingExpense?.description}) for{' '}
             <span className="font-bold text-foreground">
-              ₹{deletingExpense?.amount.toLocaleString('en-IN')}
+              {formatCurrency(deletingExpense?.amount)}
             </span>
             ?
           </p>

@@ -520,7 +520,7 @@ export async function PUT(req: NextRequest) {
             data: {
               module: 'Sales',
               action: `Order ${status}`,
-              details: `Voided/refunded invoice ${existing.orderNo} (₹${Number(existing.grandTotal).toFixed(2)}) and restocked ${existing.items.length} item line(s) into ${existing.storeCode}`,
+              details: `Voided/refunded invoice ${existing.orderNo} (${Number(existing.grandTotal).toFixed(2)}) and restocked ${existing.items.length} item line(s) into ${existing.storeCode}`,
               userEmail: user.email || user.name,
               userRole: user.role,
               storeCode: existing.storeCode,
@@ -707,7 +707,7 @@ export async function DELETE(req: NextRequest) {
           data: {
             module: 'Sales',
             action: 'Void Sales Order',
-            details: `Voided and cancelled sales order ${existing.orderNo} (Total: ₹${Number(existing.grandTotal).toFixed(2)}) and restocked inventory items`,
+            details: `Voided and cancelled sales order ${existing.orderNo} (Total: ${Number(existing.grandTotal).toFixed(2)}) and restocked inventory items`,
             userEmail: user.email || user.name,
             userRole: user.role,
             storeCode: existing.storeCode,

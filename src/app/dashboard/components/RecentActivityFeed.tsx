@@ -7,7 +7,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { useApp } from '@/context/AppContext';
 
 export default function RecentActivityFeed() {
-  const { sales, purchases, stockTransfers, auditLogs, selectedStore, currentUser } = useApp();
+  const { sales, purchases, stockTransfers, auditLogs, selectedStore, currentUser, formatCurrency, dateLocale } = useApp();
   const isSuperAdmin = currentUser.role === 'Super Admin';
   const isStoreManager = currentUser.role === 'Store Manager';
   const isSalesManager = currentUser.role === 'Sales Manager';
@@ -24,9 +24,9 @@ export default function RecentActivityFeed() {
       color: 'text-primary',
       bg: 'bg-primary/10',
       title: `Invoice #${s.orderNo} raised`,
-      meta: `${s.customerName || 'Customer'} · ₹${(s.total || 0).toLocaleString('en-IN')} · ${s.store}`,
+      meta: `${s.customerName || 'Customer'} · ${formatCurrency(s.total || 0)} · ${s.store}`,
       time: s.createdAt
-        ? new Date(s.createdAt).toLocaleDateString('en-IN', {
+        ? new Date(s.createdAt).toLocaleDateString(dateLocale || 'en-IN', {
             day: '2-digit',
             month: 'short',
             hour: '2-digit',
@@ -44,9 +44,9 @@ export default function RecentActivityFeed() {
       color: 'text-info',
       bg: 'bg-info/10',
       title: `PO #${p.poNo} created`,
-      meta: `Vendor: ${p.vendorName || 'Supplier'} · ₹${(p.totalAmount || 0).toLocaleString('en-IN')}`,
+      meta: `Vendor: ${p.vendorName || 'Supplier'} · ${formatCurrency(p.totalAmount || 0)}`,
       time: p.createdAt
-        ? new Date(p.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+        ? new Date(p.createdAt).toLocaleDateString(dateLocale || 'en-IN', { day: '2-digit', month: 'short' })
         : 'Recent',
       badge: {
         variant: p.status === 'Received' ? ('active' as const) : ('pending' as const),
@@ -70,7 +70,7 @@ export default function RecentActivityFeed() {
           title: `Stock transfer #${t.transferNo}`,
           meta: `${t.sourceStore} → ${t.destStore} · ${t.productName} · ${t.qty} units`,
           time: t.createdAt
-            ? new Date(t.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+            ? new Date(t.createdAt).toLocaleDateString(dateLocale || 'en-IN', { day: '2-digit', month: 'short' })
             : 'Recent',
           badge: { variant: 'info' as const, label: t.status },
         }))

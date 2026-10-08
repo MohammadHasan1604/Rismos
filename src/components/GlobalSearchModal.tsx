@@ -6,7 +6,7 @@ import Icon from '@/components/ui/AppIcon';
 import Link from 'next/link';
 
 export default function GlobalSearchModal() {
-  const { searchOpen, setSearchOpen, inventory, customers, sales, branding, currentUser } =
+  const { searchOpen, setSearchOpen, inventory, customers, sales, branding, currentUser, formatCurrency } =
     useApp();
   const [query, setQuery] = useState('');
   const [mounted, setMounted] = useState(false);
@@ -147,7 +147,7 @@ export default function GlobalSearchModal() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <span className="text-sm font-semibold font-tabular">
-                        ₹{item.sellingPrice.toLocaleString('en-IN')}
+                        {formatCurrency(item.sellingPrice)}
                       </span>
                       <p className="text-2xs text-muted-foreground font-tabular">
                         {item.qtyOnHand} in stock
@@ -221,7 +221,7 @@ export default function GlobalSearchModal() {
                       </div>
                     </div>
                     <span className="text-sm font-bold text-foreground font-tabular">
-                      ₹{s.total.toLocaleString('en-IN')}
+                      {formatCurrency(s.total)}
                     </span>
                   </Link>
                 ))}

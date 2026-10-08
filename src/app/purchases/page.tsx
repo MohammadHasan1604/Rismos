@@ -7,6 +7,7 @@ import { useApp, PurchaseOrder } from '@/context/AppContext';
 import PurchaseOrderFormModal from '@/components/forms/PurchaseOrderFormModal';
 import SupplierPaymentModal from '@/components/forms/SupplierPaymentModal';
 import ProofViewerModal, { ProofViewerData } from '@/components/ui/ProofViewerModal';
+import { getJurisdictionProfile } from '@/lib/localization/jurisdictions';
 import { toast } from 'sonner';
 
 export default function PurchasesPage() {
@@ -22,7 +23,15 @@ export default function PurchasesPage() {
     currentUser,
     refreshAllData,
     recordPurchasePayment,
+    formatCurrency,
+    systemSettings,
+    branding,
   } = useApp();
+
+  const countryCode = systemSettings?.countryCode || branding?.countryCode || 'IN';
+  const jurProfile = getJurisdictionProfile(countryCode);
+  const taxLabel = jurProfile?.taxLabel || 'Tax';
+  const dateLocale = jurProfile?.defaultLocale || 'en-US';
 
   const [createPoModal, setCreatePoModal] = useState(false);
   const [editPoModal, setEditPoModal] = useState<PurchaseOrder | null>(null);
@@ -123,7 +132,7 @@ export default function PurchasesPage() {
                         className={`text-3xs font-semibold px-2 py-0.5 rounded ${po.paymentStatus === 'Paid' ? 'bg-positive/10 text-positive' : po.paymentStatus === 'Partial' ? 'bg-info/10 text-info' : 'bg-danger/10 text-danger'}`}
                       >
                         {po.paymentStatus === 'Partial'
-                          ? `Partial (Rem: ₹${(po.remainingAmount ?? po.totalAmount - (po.paidAmount || 0)).toLocaleString('en-IN')})`
+                          ? `Partial (Rem: ${formatCurrency(po.remainingAmount ?? po.totalAmount - (po.paidAmount || 0))})`
                           : po.paymentStatus}
                       </span>
                     </div>
@@ -139,7 +148,7 @@ export default function PurchasesPage() {
                     </div>
                     <div className="text-right">
                       <span className="text-sm font-extrabold font-tabular text-foreground block">
-                        ₹{po.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        {formatCurrency(po.totalAmount)}
                       </span>
                       {po.items && po.items.length > 0 && (
                         <button
@@ -174,9 +183,9 @@ export default function PurchasesPage() {
                             )}
                           </div>
                           <div className="text-right font-tabular shrink-0 text-muted-foreground">
-                            {it.qty} × ₹{it.unitCost.toLocaleString('en-IN')} ={' '}
+                            {it.qty} × {formatCurrency(it.unitCost)} ={' '}
                             <strong className="text-foreground">
-                              ₹{(it.lineTotal || it.qty * it.unitCost).toLocaleString('en-IN')}
+                              {formatCurrency(it.lineTotal || it.qty * it.unitCost)}
                             </strong>
                           </div>
                         </div>
@@ -188,7 +197,7 @@ export default function PurchasesPage() {
                           <div className="font-bold text-muted-foreground text-3xs uppercase tracking-wider flex items-center justify-between">
                             <span>Payment History ({po.payments.length})</span>
                             <span className="text-emerald-600 font-bold">
-                              Paid: ₹{(po.paidAmount || 0).toLocaleString('en-IN')}
+                              Paid: {formatCurrency(po.paidAmount || 0)}
                             </span>
                           </div>
                           {po.payments.map((p: any) => (
@@ -202,7 +211,7 @@ export default function PurchasesPage() {
                                 </span>
                                 <span className="text-muted-foreground">
                                   {new Date(p.paymentDate || p.createdAt).toLocaleDateString(
-                                    'en-IN'
+                                    dateLocale
                                   )}{' '}
                                   · {p.paymentMethod}
                                 </span>
@@ -240,7 +249,7 @@ export default function PurchasesPage() {
                                 )}
                               </div>
                               <span className="font-extrabold font-tabular text-emerald-600">
-                                ₹{Number(p.amount).toLocaleString('en-IN')}
+                                {formatCurrency(Number(p.amount))}
                               </span>
                             </div>
                           ))}
@@ -359,17 +368,17 @@ export default function PurchasesPage() {
 
                         {/* Subtotal & Tax breakdown */}
                         <td className="px-4 py-3 font-tabular text-2xs text-muted-foreground">
-                          <div>Sub: ₹{(po.subtotal ?? po.totalAmount).toLocaleString('en-IN')}</div>
+                          <div>Sub: {formatCurrency(po.subtotal ?? po.totalAmount)}</div>
                           {po.taxAmount ? (
                             <div className="text-3xs text-muted-foreground">
-                              Tax: ₹{po.taxAmount.toLocaleString('en-IN')}
+                              {taxLabel}: {formatCurrency(po.taxAmount)}
                             </div>
                           ) : null}
                         </td>
 
                         {/* Grand Total */}
                         <td className="px-4 py-3 font-extrabold font-tabular text-foreground">
-                          ₹{po.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          {formatCurrency(po.totalAmount)}
                         </td>
 
                         {/* Fulfillment Status */}
@@ -387,7 +396,7 @@ export default function PurchasesPage() {
                             className={`text-3xs font-bold px-2 py-0.5 rounded-full ${po.paymentStatus === 'Paid' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : po.paymentStatus === 'Partial' ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400' : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'}`}
                           >
                             {po.paymentStatus === 'Partial'
-                              ? `Partial (Rem: ₹${(po.remainingAmount ?? po.totalAmount - (po.paidAmount || 0)).toLocaleString('en-IN')})`
+                              ? `Partial (Rem: ${formatCurrency(po.remainingAmount ?? po.totalAmount - (po.paidAmount || 0))})`
                               : po.paymentStatus}
                           </span>
                         </td>
@@ -459,7 +468,7 @@ export default function PurchasesPage() {
                                     <th className="py-1 font-mono">SKU</th>
                                     <th className="py-1 text-center">Qty Ordered</th>
                                     <th className="py-1 text-right">Unit Cost</th>
-                                    <th className="py-1 text-center">GST Rate</th>
+                                    <th className="py-1 text-center">{taxLabel} Rate</th>
                                     <th className="py-1 text-right">Tax Amount</th>
                                     <th className="py-1 text-right">Line Total</th>
                                   </tr>
@@ -477,23 +486,16 @@ export default function PurchasesPage() {
                                         {it.qty}
                                       </td>
                                       <td className="py-1.5 text-right font-tabular">
-                                        ₹{it.unitCost.toLocaleString('en-IN')}
+                                        {formatCurrency(it.unitCost)}
                                       </td>
                                       <td className="py-1.5 text-center">
                                         {it.taxRate ? `${it.taxRate}%` : '0%'}
                                       </td>
                                       <td className="py-1.5 text-right font-tabular text-muted-foreground">
-                                        ₹
-                                        {(it.taxAmount || 0).toLocaleString('en-IN', {
-                                          minimumFractionDigits: 2,
-                                        })}
+                                        {formatCurrency(it.taxAmount || 0)}
                                       </td>
                                       <td className="py-1.5 text-right font-extrabold font-tabular text-foreground">
-                                        ₹
-                                        {(it.lineTotal || it.qty * it.unitCost).toLocaleString(
-                                          'en-IN',
-                                          { minimumFractionDigits: 2 }
-                                        )}
+                                        {formatCurrency(it.lineTotal || it.qty * it.unitCost)}
                                       </td>
                                     </tr>
                                   ))}
@@ -514,12 +516,12 @@ export default function PurchasesPage() {
                                   <div className="flex items-center gap-3 text-3xs font-tabular">
                                     <span>
                                       Total Cost:{' '}
-                                      <strong>₹{po.totalAmount.toLocaleString('en-IN')}</strong>
+                                      <strong>{formatCurrency(po.totalAmount)}</strong>
                                     </span>
                                     <span>
                                       Already Paid:{' '}
                                       <strong className="text-emerald-600">
-                                        ₹{(po.paidAmount || 0).toLocaleString('en-IN')}
+                                        {formatCurrency(po.paidAmount || 0)}
                                       </strong>
                                     </span>
                                     <span>
@@ -532,11 +534,7 @@ export default function PurchasesPage() {
                                             : 'text-emerald-600'
                                         }
                                       >
-                                        ₹
-                                        {(
-                                          po.remainingAmount ??
-                                          po.totalAmount - (po.paidAmount || 0)
-                                        ).toLocaleString('en-IN')}
+                                        {formatCurrency(po.remainingAmount ?? (po.totalAmount - (po.paidAmount || 0)))}
                                       </strong>
                                     </span>
                                   </div>
@@ -556,7 +554,7 @@ export default function PurchasesPage() {
                                           <th className="py-1 px-2.5">Payment Date</th>
                                           <th className="py-1 px-2.5 text-right">Amount</th>
                                           <th className="py-1 px-2.5">Payment Method</th>
-                                          <th className="py-1 px-2.5">Reference / UTR</th>
+                                          <th className="py-1 px-2.5">Reference</th>
                                           <th className="py-1 px-2.5 text-center">Payment Proof</th>
                                           <th className="py-1 px-2.5">Remarks</th>
                                           <th className="py-1 px-2.5">Recorded By</th>
@@ -571,10 +569,10 @@ export default function PurchasesPage() {
                                             <td className="py-1.5 px-2.5 text-muted-foreground">
                                               {new Date(
                                                 p.paymentDate || p.createdAt
-                                              ).toLocaleDateString('en-IN')}
+                                              ).toLocaleDateString(dateLocale)}
                                             </td>
                                             <td className="py-1.5 px-2.5 text-right font-extrabold text-emerald-600">
-                                              ₹{Number(p.amount).toLocaleString('en-IN')}
+                                              {formatCurrency(Number(p.amount))}
                                             </td>
                                             <td className="py-1.5 px-2.5 font-medium">
                                               {p.paymentMethod}

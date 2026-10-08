@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
-import { Vendor } from '@/context/AppContext';
+import { Vendor, useApp } from '@/context/AppContext';
 
 interface VendorBillsBreakdownModalProps {
   vendor: any | null;
@@ -16,6 +16,7 @@ export const VendorBillsBreakdownModal: React.FC<VendorBillsBreakdownModalProps>
   openPayNow,
   setProofViewerData,
 }) => {
+  const { formatCurrency, dateLocale } = useApp();
   const [billsFilter, setBillsFilter] = useState<'pending' | 'overdue' | 'all'>('pending');
   const [expandedPaymentPoId, setExpandedPaymentPoId] = useState<string | null>(null);
 
@@ -55,7 +56,7 @@ export const VendorBillsBreakdownModal: React.FC<VendorBillsBreakdownModalProps>
               Total Billed
             </span>
             <span className="text-base font-bold text-foreground font-tabular">
-              ₹{(vendor.totalBilledAmount || 0).toLocaleString('en-IN')}
+              {formatCurrency(vendor.totalBilledAmount || 0)}
             </span>
           </div>
           <div>
@@ -63,7 +64,7 @@ export const VendorBillsBreakdownModal: React.FC<VendorBillsBreakdownModalProps>
               Settled Payments
             </span>
             <span className="text-base font-bold text-emerald-600 font-tabular">
-              ₹{(vendor.totalPaidAmount || 0).toLocaleString('en-IN')}
+              {formatCurrency(vendor.totalPaidAmount || 0)}
             </span>
           </div>
           <div>
@@ -71,7 +72,7 @@ export const VendorBillsBreakdownModal: React.FC<VendorBillsBreakdownModalProps>
               Vendor Credits
             </span>
             <span className="text-base font-bold text-info font-tabular">
-              ₹{(vendor.totalCreditsAmount || 0).toLocaleString('en-IN')}
+              {formatCurrency(vendor.totalCreditsAmount || 0)}
             </span>
           </div>
           <div className="border-l border-border pl-3">
@@ -83,7 +84,7 @@ export const VendorBillsBreakdownModal: React.FC<VendorBillsBreakdownModalProps>
                 vendor.outstandingPayable > 0 ? 'text-danger' : 'text-emerald-600'
               }`}
             >
-              ₹{(vendor.outstandingPayable || 0).toLocaleString('en-IN')}
+              {formatCurrency(vendor.outstandingPayable || 0)}
             </span>
           </div>
         </div>
@@ -222,7 +223,7 @@ export const VendorBillsBreakdownModal: React.FC<VendorBillsBreakdownModalProps>
                       <span className="text-muted-foreground block">Order Date:</span>
                       <span className="font-semibold text-foreground">
                         {bill.orderDate
-                          ? new Date(bill.orderDate).toLocaleDateString('en-IN')
+                          ? new Date(bill.orderDate).toLocaleDateString(dateLocale || 'en-IN')
                           : '—'}
                       </span>
                     </div>
@@ -232,20 +233,20 @@ export const VendorBillsBreakdownModal: React.FC<VendorBillsBreakdownModalProps>
                         className={`font-semibold ${isOverdue ? 'text-danger' : 'text-foreground'}`}
                       >
                         {bill.effectiveDueDate
-                          ? new Date(bill.effectiveDueDate).toLocaleDateString('en-IN')
+                          ? new Date(bill.effectiveDueDate).toLocaleDateString(dateLocale || 'en-IN')
                           : 'Net 30'}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block">Original Amount:</span>
                       <span className="font-bold text-foreground">
-                        ₹{bill.totalCost.toLocaleString('en-IN')}
+                        {formatCurrency(bill.totalCost)}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block">Paid Amount:</span>
                       <span className="font-semibold text-emerald-600">
-                        ₹{(bill.paidAmount || 0).toLocaleString('en-IN')}
+                        {formatCurrency(bill.paidAmount || 0)}
                       </span>
                     </div>
                     <div>
@@ -255,7 +256,7 @@ export const VendorBillsBreakdownModal: React.FC<VendorBillsBreakdownModalProps>
                       <span
                         className={`font-extrabold text-xs ${bill.balance > 0 ? 'text-danger' : 'text-emerald-600'}`}
                       >
-                        ₹{bill.balance.toLocaleString('en-IN')}
+                        {formatCurrency(bill.balance)}
                       </span>
                     </div>
                   </div>
@@ -299,11 +300,11 @@ export const VendorBillsBreakdownModal: React.FC<VendorBillsBreakdownModalProps>
                                   </td>
                                   <td className="px-2.5 py-1.5 text-muted-foreground">
                                     {new Date(p.paymentDate || p.createdAt).toLocaleDateString(
-                                      'en-IN'
+                                      dateLocale || 'en-IN'
                                     )}
                                   </td>
                                   <td className="px-2.5 py-1.5 text-right font-extrabold text-emerald-600">
-                                    ₹{Number(p.amount).toLocaleString('en-IN')}
+                                    {formatCurrency(Number(p.amount))}
                                   </td>
                                   <td className="px-2.5 py-1.5">{p.paymentMethod}</td>
                                   <td className="px-2.5 py-1.5 font-mono text-muted-foreground">

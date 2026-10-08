@@ -173,8 +173,8 @@ async function analyzeDependencies(
         const parts: string[] = [];
         if (sales > 0) parts.push(`${sales} sales orders`);
         if (repairs > 0) parts.push(`${repairs} repair enquiries`);
-        if (result.totalSpent > 0) parts.push(`₹${result.totalSpent} total spent`);
-        if (result.creditBalance > 0) parts.push(`₹${result.creditBalance} credit balance`);
+        if (result.totalSpent > 0) parts.push(`${result.totalSpent} total spent`);
+        if (result.creditBalance > 0) parts.push(`${result.creditBalance} credit balance`);
         result.description =
           parts.length > 0
             ? `History: ${parts.join(', ')}. Will be archived.`
@@ -198,7 +198,7 @@ async function analyzeDependencies(
         const parts: string[] = [];
         if (purchases.length > 0) parts.push(`${purchases.length} purchase orders`);
         if (result.outstandingBalance > 0)
-          parts.push(`₹${result.outstandingBalance.toFixed(2)} outstanding`);
+          parts.push(`${result.outstandingBalance.toFixed(2)} outstanding`);
         result.description =
           parts.length > 0
             ? `Vendor has: ${parts.join(', ')}. Will be archived.`
@@ -236,7 +236,7 @@ async function analyzeDependencies(
         if (payments > 0) parts.push(`${payments} payments recorded`);
         if (grns > 0) parts.push(`${grns} GRNs received`);
         if (result.outstandingBalance > 0)
-          parts.push(`₹${result.outstandingBalance.toFixed(2)} outstanding`);
+          parts.push(`${result.outstandingBalance.toFixed(2)} outstanding`);
         result.description =
           parts.length > 0
             ? `PO has: ${parts.join(', ')}. Will be archived.`

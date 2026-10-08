@@ -306,7 +306,7 @@ export async function POST(req: NextRequest) {
     const paymentAmount = Math.round(Number(body.amount) * 100) / 100;
     if (isNaN(paymentAmount) || paymentAmount <= 0.005) {
       return NextResponse.json(
-        { error: 'Payment amount must be a positive number greater than ₹0' },
+        { error: 'Payment amount must be a positive number greater than 0' },
         { status: 400 }
       );
     }
@@ -391,7 +391,7 @@ export async function POST(req: NextRequest) {
 
             if (paymentAmount > remainingBeforePayment + 0.01) {
               throw new Error(
-                `Payment amount (₹${paymentAmount.toLocaleString('en-IN')}) exceeds the remaining balance (₹${remainingBeforePayment.toLocaleString('en-IN')})`
+                `Payment amount (${paymentAmount}) exceeds the remaining balance (${remainingBeforePayment})`
               );
             }
 
@@ -406,7 +406,7 @@ export async function POST(req: NextRequest) {
             });
             if (recentDuplicate) {
               throw new Error(
-                `A payment with reference "${cleanRef}" of ₹${paymentAmount} was already recorded within the last minute.`
+                `A payment with reference "${cleanRef}" of ${paymentAmount} was already recorded within the last minute.`
               );
             }
 
@@ -518,7 +518,7 @@ export async function POST(req: NextRequest) {
               data: {
                 module: 'Vendors / Payables',
                 action: 'Record Vendor Payment',
-                details: `Recorded ₹${paymentAmount.toFixed(2)} payment via ${paymentMethod} for Bill #${po.invoiceNo || po.poNo} (${po.vendor?.name || 'Vendor'}). Voucher: ${voucherNo}, Ref: ${cleanRef}, Proof: ${proofUrl}, Remaining: ₹${remainingAfterPayment.toFixed(2)}, Status: ${newPaymentStatus}`,
+                details: `Recorded ${paymentAmount.toFixed(2)} payment via ${paymentMethod} for Bill #${po.invoiceNo || po.poNo} (${po.vendor?.name || 'Vendor'}). Voucher: ${voucherNo}, Ref: ${cleanRef}, Proof: ${proofUrl}, Remaining: ${remainingAfterPayment.toFixed(2)}, Status: ${newPaymentStatus}`,
                 userEmail: user.email || user.name,
                 userRole: user.role,
                 storeCode: po.storeCode || 'CENTRAL',

@@ -60,8 +60,6 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
   templateConfig,
   className = '',
 }) => {
-  const config = templateConfig || parseInvoiceTemplateConfig(systemSettings?.invoiceFieldMapping);
-
   const snapshot = React.useMemo(() => {
     if (!order?.invoiceSnapshotJson) return null;
     try {
@@ -72,6 +70,8 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
       return null;
     }
   }, [order?.invoiceSnapshotJson]);
+
+  const config = templateConfig || parseInvoiceTemplateConfig(snapshot?.invoiceFieldMapping || systemSettings?.invoiceFieldMapping);
 
   const countryCode =
     snapshot?.countryCode ||
@@ -116,7 +116,15 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
       : formatTaxLabel(countryCode, systemSettings?.defaultTaxRate);
 
   const appName = snapshot?.appName || branding?.appName || 'RISMOS';
-  const primaryColor = branding?.primaryColor || '#002E86';
+  const primaryColor = snapshot?.invoiceAccentColor || branding?.primaryColor || '#002E86';
+  const logoUrl = snapshot?.logoUrl || branding?.logoUrl || null;
+  const legalBusinessName = snapshot?.businessLegalName || systemSettings?.legalBusinessName || branding?.businessName || appName;
+  const supportPhone = snapshot?.supportPhone || branding?.supportPhone || '';
+  const invoiceTerms = snapshot?.invoiceTerms !== undefined ? snapshot.invoiceTerms : systemSettings?.invoiceTerms;
+  const invoiceFooter = snapshot?.invoiceFooter || systemSettings?.invoiceFooter;
+  const invoiceTemplateUrl = snapshot?.invoiceTemplateUrl || systemSettings?.invoiceTemplateUrl || config.backgroundUrl;
+  const paymentUpiId = snapshot?.paymentUpiId || systemSettings?.paymentUpiId;
+  const paymentBankDetails = snapshot?.paymentBankDetails || systemSettings?.paymentBankDetails;
 
   const taxRegistrationNumber =
     snapshot?.taxRegistrationNumber ||
@@ -127,7 +135,9 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
     '';
 
   const watermarkOpacity =
-    (systemSettings?.watermarkOpacity !== undefined
+    (snapshot?.watermarkOpacity !== undefined
+      ? snapshot.watermarkOpacity
+      : systemSettings?.watermarkOpacity !== undefined
       ? systemSettings.watermarkOpacity
       : config.watermarkOpacity) / 100;
 
@@ -140,10 +150,10 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
 
   const isIndia = (countryCode || '').toUpperCase() === 'IN';
   const showPaymentQr = Boolean(
-    systemSettings?.showPaymentQr &&
+    (snapshot?.showPaymentQr !== undefined ? snapshot.showPaymentQr : systemSettings?.showPaymentQr) &&
       (isIndia
-        ? systemSettings?.paymentUpiId
-        : systemSettings?.paymentUpiId || systemSettings?.paymentBankDetails)
+        ? paymentUpiId
+        : paymentUpiId || paymentBankDetails)
   );
 
   const isCustomMapped = config.templateMode === 'custom_mapped';
@@ -181,11 +191,11 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
       `}</style>
 
       {/* Uploaded Background Template (if configured by client) */}
-      {(systemSettings?.invoiceTemplateUrl || config.backgroundUrl) && (
+      {invoiceTemplateUrl && (
         <div
           className="absolute inset-0 bg-cover bg-center pointer-events-none z-0"
           style={{
-            backgroundImage: `url(${systemSettings?.invoiceTemplateUrl || config.backgroundUrl})`,
+            backgroundImage: `url(${invoiceTemplateUrl})`,
             opacity: config.backgroundOpacity / 100,
           }}
         />
@@ -218,12 +228,16 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
               let content: React.ReactNode = null;
               switch (field.key) {
                 case 'logo':
-                  content = <AppLogo size={Math.round(field.fontSize * 2.5)} showText={true} />;
+                  content = logoUrl ? (
+                    <img src={logoUrl} alt={appName} style={{ maxHeight: `${Math.round(field.fontSize * 2.5)}px` }} className="object-contain" />
+                  ) : (
+                    <AppLogo size={Math.round(field.fontSize * 2.5)} showText={true} />
+                  );
                   break;
                 case 'businessName':
                   content = (
                     <span>
-                      {systemSettings?.legalBusinessName || branding?.businessName || appName}
+                      {legalBusinessName}
                     </span>
                   );
                   break;
@@ -314,22 +328,22 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
                         QR
                       </div>
                       <div className="text-[8px] font-mono mt-0.5 text-slate-600">
-                        {isIndia ? systemSettings?.paymentUpiId : 'DIGITAL PAY'}
+                        {isIndia ? (paymentUpiId || 'UPI') : 'DIGITAL PAY'}
                       </div>
                     </div>
                   );
                   break;
                 case 'terms':
-                  content = systemSettings?.invoiceTerms ? (
+                  content = invoiceTerms ? (
                     <div className="leading-tight text-[9px] text-slate-600 whitespace-pre-line">
-                      {systemSettings.invoiceTerms}
+                      {invoiceTerms}
                     </div>
                   ) : null;
                   break;
                 case 'footer':
                   content = (
                     <div>
-                      {systemSettings?.invoiceFooter ||
+                      {invoiceFooter ||
                         `Thank you for shopping with ${appName}! Run Retail. Smarter.`}
                     </div>
                   );
@@ -450,18 +464,22 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
               {/* Business Brand Details */}
               <div className="space-y-1 max-w-sm">
                 <div className="flex items-center gap-2.5 mb-2">
-                  <AppLogo size={36} showText={true} />
+                  {logoUrl ? (
+                    <img src={logoUrl} alt={appName} className="max-h-9 object-contain" />
+                  ) : (
+                    <AppLogo size={36} showText={true} />
+                  )}
                 </div>
                 <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
-                  {systemSettings?.legalBusinessName || branding?.businessName || appName}
+                  {legalBusinessName}
                 </h2>
                 {systemSettings?.showStoreAddress && formattedAddress && (
                   <p className="text-slate-600 text-[11px] leading-relaxed">{formattedAddress}</p>
                 )}
-                {branding?.supportPhone && (
+                {supportPhone && (
                   <p className="text-slate-600 text-[11px]">
                     Phone:{' '}
-                    <span className="font-medium text-slate-800">{branding.supportPhone}</span>
+                    <span className="font-medium text-slate-800">{supportPhone}</span>
                   </p>
                 )}
                 {taxRegistrationNumber && (
@@ -613,17 +631,17 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
                     <p className="font-bold text-slate-900 text-xs">
                       {isIndia ? 'Instant Digital Pay (UPI)' : 'Instant Digital Settlement'}
                     </p>
-                    {systemSettings?.paymentUpiId && (
+                    {paymentUpiId && (
                       <p className="text-[10px] font-mono text-slate-600">
-                        {systemSettings.paymentUpiId}
+                        {paymentUpiId}
                       </p>
                     )}
                   </div>
                 </div>
               )}
-              {systemSettings?.paymentBankDetails && (
+              {paymentBankDetails && (
                 <p className="text-[10px] text-slate-500 leading-relaxed font-mono">
-                  {systemSettings.paymentBankDetails}
+                  {paymentBankDetails}
                 </p>
               )}
             </div>
@@ -644,12 +662,23 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
                 </div>
               ) : null}
 
-              <div className="flex justify-between py-0.5">
-                <span className="text-slate-500">Total {taxLabel}:</span>
-                <span className="font-semibold text-slate-900">
-                  {formatMoney(order.taxTotal, currencyCode, locale)}
-                </span>
-              </div>
+              {snapshot?.taxBreakdown && typeof snapshot.taxBreakdown === 'object' && Object.keys(snapshot.taxBreakdown).length > 0 ? (
+                Object.entries(snapshot.taxBreakdown).map(([taxComponent, compAmount]) => (
+                  <div key={taxComponent} className="flex justify-between py-0.5 text-slate-600">
+                    <span className="text-slate-500">{taxComponent.toUpperCase()}:</span>
+                    <span className="font-medium text-slate-800">
+                      {formatMoney(Number(compAmount) || 0, currencyCode, locale)}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="flex justify-between py-0.5">
+                  <span className="text-slate-500">Total {taxLabel}:</span>
+                  <span className="font-semibold text-slate-900">
+                    {formatMoney(order.taxTotal, currencyCode, locale)}
+                  </span>
+                </div>
+              )}
 
               <div className="flex justify-between py-2 border-t-2 border-slate-900 text-sm font-extrabold text-slate-900">
                 <span className="uppercase">Grand Total:</span>
@@ -660,18 +689,18 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
 
           {/* Footer & Legal Terms */}
           <div className="border-t border-slate-200 pt-4 space-y-2 text-[10px] text-slate-500">
-            {systemSettings?.invoiceTerms && (
+            {invoiceTerms && (
               <div className="space-y-0.5">
                 <p className="font-bold text-slate-700 uppercase tracking-wide">
                   Terms & Warranty Conditions:
                 </p>
                 <p className="whitespace-pre-line leading-relaxed text-slate-600">
-                  {systemSettings.invoiceTerms}
+                  {invoiceTerms}
                 </p>
               </div>
             )}
             <p className="text-center font-bold text-slate-800 text-[11px] pt-3">
-              {systemSettings?.invoiceFooter ||
+              {invoiceFooter ||
                 `Thank you for shopping with ${appName}! Run Retail. Smarter.`}
             </p>
           </div>
