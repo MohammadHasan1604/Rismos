@@ -1,9 +1,5 @@
 import { prisma } from '../db';
-import {
-  getJurisdictionProfile,
-  JurisdictionProfile,
-  LAUNCH_JURISDICTIONS,
-} from '../localization/jurisdictions';
+import { getJurisdictionProfile } from '../localization/jurisdictions';
 
 export interface TaxContext {
   countryCode: string;
@@ -74,9 +70,17 @@ export class TaxService {
   /**
    * Resolves the authoritative tax context from store/system settings
    */
-  public static async resolveTaxContext(storeCode?: string): Promise<TaxContext> {
-    const sysSettings = await (prisma as any).systemSettings.findFirst().catch(() => null);
-    const branding = await (prisma as any).brandingSetting.findFirst().catch(() => null);
+  public static async resolveTaxContext(storeCodeOrOverrides?: string | any): Promise<TaxContext> {
+    let sysSettings: any = null;
+    let branding: any = null;
+
+    if (storeCodeOrOverrides && typeof storeCodeOrOverrides === 'object') {
+      sysSettings = storeCodeOrOverrides;
+      branding = storeCodeOrOverrides;
+    } else {
+      sysSettings = await (prisma as any).systemSettings.findFirst().catch(() => null);
+      branding = await (prisma as any).brandingSetting.findFirst().catch(() => null);
+    }
 
     const countryCode = (
       sysSettings?.countryCode ||
@@ -252,7 +256,7 @@ export class TaxService {
     totalTaxAmount = Math.round(totalTaxAmount * 100) / 100;
     const safeDiscount = Math.max(0, Math.round(Number(discountAmount || 0) * 100) / 100);
 
-    let grandTotal = context.taxInclusivePricing
+    const grandTotal = context.taxInclusivePricing
       ? Math.max(0, Math.round((subtotal + totalTaxAmount - safeDiscount) * 100) / 100)
       : Math.max(0, Math.round((subtotal + totalTaxAmount - safeDiscount) * 100) / 100);
 

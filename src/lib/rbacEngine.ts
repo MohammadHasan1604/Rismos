@@ -1431,9 +1431,10 @@ export class RBACEngine {
       } else {
         // Role permission check
         const defaultRolePerms = DEFAULT_ROLE_PERMISSIONS[user.role] || [];
+        const userPerms = Array.isArray(user.permissions) ? user.permissions : [];
         const hasPermission =
-          user.permissions.includes(request.requiredPermission) ||
-          user.permissions.includes('ALL_PERMISSIONS') ||
+          userPerms.includes(request.requiredPermission) ||
+          userPerms.includes('ALL_PERMISSIONS') ||
           defaultRolePerms.includes(request.requiredPermission);
         if (!hasPermission) {
           return {

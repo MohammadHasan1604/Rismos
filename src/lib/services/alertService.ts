@@ -41,7 +41,7 @@ export async function evaluateSystemAlerts(): Promise<AlertEvaluationSummary> {
     select: { id: true, email: true, name: true },
   });
 
-  let recipientUsers = [...superAdmins];
+  const recipientUsers = [...superAdmins];
 
   if (sysSettings.alertRecipientEmails) {
     const rawEmails = sysSettings.alertRecipientEmails

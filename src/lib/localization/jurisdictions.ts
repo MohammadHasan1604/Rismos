@@ -196,8 +196,8 @@ export const LAUNCH_JURISDICTIONS: Record<string, JurisdictionProfile> = {
     defaultTimezone: 'America/New_York',
     taxRegime: 'Sales Tax',
     taxLabel: 'Sales Tax',
-    defaultTaxRate: 6.25,
-    standardTaxRates: [0, 4, 6, 6.25, 7, 8.25, 8.875, 9.5],
+    defaultTaxRate: 0, // No universal federal sales tax; explicit state/local rate required per store/state
+    standardTaxRates: [0, 4, 6, 7, 8.25, 8.875, 9.5],
     taxIdLabel: 'Federal EIN / State Tax Permit',
     taxIdPlaceholder: '12-3456789',
     taxIdRegex: /^[0-9]{2}-?[0-9]{7}$/,

@@ -54,7 +54,15 @@
     "type-check:all": "npm run type-check:app && npm run type-check:tests && npm run type-check:scripts",
     "seed": "npx tsx scripts/seed-mysql.ts",
     "test": "npm run test:all",
-    "test:security": "npx tsx --env-file=.env scripts/run-security-tests.ts",
+    "test:unit": "npx tsx tests/final-closure-proof-whatsapp.test.ts",
+    "test:integration": "npx tsx tests/remediation.test.ts",
+    "test:security": "npx tsx tests/phase1-security.test.ts",
+    "test:rismos": "npx tsx tests/rismos-whitelabel.test.ts",
+    "test:localization": "npx tsx tests/localization-matrix.test.ts",
+    "test:invoice": "npx tsx tests/four-issue-hotfix.test.ts",
+    "test:database": "npx tsx tests/phase1-security-matrix.ts",
+    "test:responsive": "npx tsx tests/responsive-form-modal.test.ts",
+    "test:e2e": "npx tsx tests/e2e/production-journey.test.ts",
     "test:phase1": "npx tsx tests/phase1-security.test.ts",
     "test:matrix": "npx tsx tests/phase1-security-matrix.ts",
     "test:phase2": "npx tsx tests/phase2.test.ts",
@@ -63,7 +71,6 @@
     "test:deep": "npx tsx tests/phase3-deep-verification.test.ts",
     "test:phase4": "npx tsx tests/phase4-security-closure.test.ts",
     "test:final-phase2": "npx tsx tests/final-closure-phase2.test.ts",
-    "test:responsive": "npx tsx tests/responsive-form-modal.test.ts",
     "test:hotfix": "npx tsx tests/four-issue-hotfix.test.ts",
     "test:closure": "npx tsx tests/final-closure-proof-whatsapp.test.ts",
     "init:sequences": "npx tsx scripts/migrate-remediation-tables.ts",
@@ -73,7 +80,7 @@
     "test:password-reset": "npx tsx scripts/test-password-reset.ts",
     "test:remediation": "npx tsx tests/remediation.test.ts",
     "test:load-1000-concurrent": "npx tsx scripts/test-load-1000-concurrent.ts",
-    "test:all": "npx tsx tests/phase1-security.test.ts && npx tsx tests/phase1-security-matrix.ts && npx tsx tests/phase2.test.ts && npx tsx tests/phase2-realtime.test.ts && npx tsx tests/phase3.test.ts && npx tsx tests/phase3-deep-verification.test.ts && npx tsx tests/phase4-security-closure.test.ts && npx tsx tests/final-closure-phase2.test.ts && npx tsx tests/responsive-form-modal.test.ts && npx tsx tests/four-issue-hotfix.test.ts && npx tsx tests/final-closure-proof-whatsapp.test.ts && npx tsx tests/remediation.test.ts"
+    "test:all": "npx tsx tests/phase1-security.test.ts && npx tsx tests/rismos-whitelabel.test.ts && npx tsx tests/localization-matrix.test.ts && npx tsx tests/responsive-form-modal.test.ts && npx tsx tests/four-issue-hotfix.test.ts && npx tsx tests/phase1-security-matrix.ts && npx tsx tests/final-closure-proof-whatsapp.test.ts && npx tsx tests/remediation.test.ts && npx tsx tests/e2e/production-journey.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1121.0",

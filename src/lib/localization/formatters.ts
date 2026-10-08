@@ -80,6 +80,69 @@ export function formatMoney(
 }
 
 /**
+ * Compact currency formatter: e.g. "1.5M", "500K"
+ */
+export function formatCompactMoney(
+  amount: number | string | null | undefined,
+  currencyCodeOrOptions?: string | MoneyFormatOptions,
+  localeParam?: string
+): string {
+  const options: MoneyFormatOptions =
+    typeof currencyCodeOrOptions === 'string'
+      ? { currencyCode: currencyCodeOrOptions, locale: localeParam }
+      : currencyCodeOrOptions || {};
+
+  const numeric = typeof amount === 'number' ? amount : Number(amount || 0);
+  const safeAmount = isNaN(numeric) ? 0 : numeric;
+  const profile = getJurisdictionProfile(options.countryCode || 'IN');
+  const locale = options.locale || profile.defaultLocale;
+
+  try {
+    const compactStr = new Intl.NumberFormat(locale, {
+      notation: 'compact',
+      compactDisplay: 'short',
+      maximumFractionDigits: 1,
+    }).format(safeAmount);
+
+    let symbol = options.currencySymbol;
+    if (!symbol && options.currencyCode) {
+      const match = Object.values(LAUNCH_JURISDICTIONS).find(
+        (p) => p.defaultCurrencyCode.toUpperCase() === options.currencyCode?.toUpperCase()
+      );
+      if (match) symbol = match.defaultCurrencySymbol;
+    }
+    if (!symbol) symbol = profile.defaultCurrencySymbol;
+
+    if (symbol.length > 1 && !symbol.startsWith('$') && !symbol.startsWith('A$')) {
+      return `${symbol} ${compactStr}`;
+    }
+    return `${symbol}${compactStr}`;
+  } catch {
+    return formatMoney(safeAmount, options);
+  }
+}
+
+/**
+ * Returns currency context for the active or given jurisdiction
+ */
+export function getCurrencyContext(countryCode?: string | null): {
+  countryCode: string;
+  currencyCode: string;
+  currencySymbol: string;
+  locale: string;
+  timezone: string;
+} {
+  const profile = getJurisdictionProfile(countryCode);
+  return {
+    countryCode: profile.countryCode,
+    currencyCode: profile.defaultCurrencyCode,
+    currencySymbol: profile.defaultCurrencySymbol,
+    locale: profile.defaultLocale,
+    timezone: profile.defaultTimezone,
+  };
+}
+
+/**
  * Formats tax labels dynamically based on country profile:
  * e.g. "GST (18%)", "VAT (5%)", "Sales Tax (6.25%)"
  */

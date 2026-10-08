@@ -54,9 +54,9 @@ export async function getNextSequenceNumber(
       }
 
       await tx.$executeRaw`
-        INSERT INTO sequence_counters (prefix, current_value) 
-        VALUES (${prefix}, ${startVal})
-        ON DUPLICATE KEY UPDATE current_value = current_value + 1
+        INSERT INTO sequence_counters (prefix, current_value, updated_at) 
+        VALUES (${prefix}, ${startVal}, NOW())
+        ON DUPLICATE KEY UPDATE current_value = current_value + 1, updated_at = NOW()
       `;
 
       // Read back the committed counter value with lock
@@ -76,7 +76,7 @@ export async function getNextSequenceNumber(
 
       await tx.$executeRaw`
         UPDATE sequence_counters 
-        SET current_value = ${nextValue} 
+        SET current_value = ${nextValue}, updated_at = NOW() 
         WHERE prefix = ${prefix}
       `;
     }
