@@ -79,6 +79,16 @@ export const TaxTab: React.FC<TaxTabProps> = ({
       if (j.registrationTypes.length > 0) {
         setGstRegistrationType(j.registrationTypes[0]);
       }
+      // Incompatible jurisdiction-specific data: do NOT retain old tax ID (e.g. GSTIN -> UAE TRN)
+      if (taxRegistrationNumber) {
+        const isValidForNewJur = j.taxIdRegex ? j.taxIdRegex.test(taxRegistrationNumber.trim()) : false;
+        if (!isValidForNewJur) {
+          setTaxRegistrationNumber('');
+        }
+      }
+      if (code !== 'IN') {
+        setGstBusinessAddress('');
+      }
     }
   };
 

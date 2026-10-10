@@ -5,6 +5,7 @@ import { broadcastRealtimeEvent } from '@/lib/realtime';
 import { ensureStoredImage } from '@/lib/objectStorage';
 import { DEFAULT_BRANDING, invalidateBrandingCache } from '@/lib/branding';
 import { getJurisdictionProfile, LAUNCH_JURISDICTIONS } from '@/lib/localization/jurisdictions';
+import { validateTaxRegistrationId } from '@/lib/taxValidation';
 import { verifySensitiveAction } from '@/lib/sensitiveAction';
 
 const BRANDING_ID = 'cosko_branding_config';
@@ -168,6 +169,29 @@ export async function GET(req: NextRequest) {
       getOrCreateSystemSettings(),
     ]);
 
+    const systemCountryCode = (systemSettings as any).countryCode || 'IN';
+    const rawTaxReg = (systemSettings as any).taxRegistrationNumber;
+    let sanitizedTaxRegistrationNumber: string | null = null;
+    let sanitizedTaxJurisdictionState: string | null = null;
+
+    if (systemCountryCode === 'IN') {
+      sanitizedTaxRegistrationNumber = rawTaxReg || systemSettings.gstin || null;
+      sanitizedTaxJurisdictionState =
+        (systemSettings as any).taxJurisdictionState || systemSettings.gstState || null;
+    } else {
+      if (rawTaxReg) {
+        if (GSTIN_REGEX.test(rawTaxReg)) {
+          // Indian GSTIN leaked into foreign jurisdiction — strip it out
+          sanitizedTaxRegistrationNumber = null;
+        } else {
+          const valRes = validateTaxRegistrationId(rawTaxReg, systemCountryCode);
+          sanitizedTaxRegistrationNumber =
+            valRes.valid && !valRes.isOptionalOrUnregistered ? valRes.normalized : rawTaxReg;
+        }
+      }
+      sanitizedTaxJurisdictionState = (systemSettings as any).taxJurisdictionState || null;
+    }
+
     const payload = {
       success: true,
       branding: {
@@ -196,28 +220,26 @@ export async function GET(req: NextRequest) {
       },
       systemSettings: {
         // International Jurisdiction & Tax
-        countryCode: (systemSettings as any).countryCode || 'IN',
+        countryCode: systemCountryCode,
         currencyCode: (systemSettings as any).currencyCode || 'INR',
         currencySymbol: (systemSettings as any).currencySymbol || '₹',
         taxRegime: (systemSettings as any).taxRegime || 'GST',
         taxInclusivePricing: Boolean((systemSettings as any).taxInclusivePricing),
-        taxRegistrationNumber:
-          (systemSettings as any).taxRegistrationNumber || systemSettings.gstin,
-        taxJurisdictionState:
-          (systemSettings as any).taxJurisdictionState || systemSettings.gstState,
+        taxRegistrationNumber: sanitizedTaxRegistrationNumber,
+        taxJurisdictionState: sanitizedTaxJurisdictionState,
         jurisdictionConfig: (systemSettings as any).jurisdictionConfig || null,
         taxConfigVersion: Number((systemSettings as any).taxConfigVersion) || 1,
-        // Legacy GST Explicit Fields
-        gstin: systemSettings.gstin,
+        // Legacy GST Explicit Fields (only exposed for India)
+        gstin: systemCountryCode === 'IN' ? systemSettings.gstin : null,
         legalBusinessName: systemSettings.legalBusinessName,
         tradeName: systemSettings.tradeName,
-        gstState: systemSettings.gstState,
-        gstStateCode: systemSettings.gstStateCode,
-        gstRegistrationType: systemSettings.gstRegistrationType,
+        gstState: systemCountryCode === 'IN' ? systemSettings.gstState : null,
+        gstStateCode: systemCountryCode === 'IN' ? systemSettings.gstStateCode : null,
+        gstRegistrationType: systemCountryCode === 'IN' ? systemSettings.gstRegistrationType : null,
         defaultTaxRate: Number(systemSettings.defaultTaxRate),
         hsnMandatory: systemSettings.hsnMandatory,
         enableReverseCharge: systemSettings.enableReverseCharge,
-        gstBusinessAddress: systemSettings.gstBusinessAddress,
+        gstBusinessAddress: systemCountryCode === 'IN' ? systemSettings.gstBusinessAddress : null,
         // Invoice
         invoiceHeader: systemSettings.invoiceHeader || 'RISMOS Retail Enterprise',
         invoiceFooter: systemSettings.invoiceFooter,
@@ -444,23 +466,61 @@ export async function POST(req: NextRequest) {
       });
 
       // Synchronize systemSettings jurisdiction in lockstep
+      let updatedSystemSettings = null;
       if (jurProfile) {
-        await (prisma as any).systemSettings.upsert({
+        const existingSystem = await (prisma as any).systemSettings.findUnique({
+          where: { id: SYSTEM_SETTINGS_ID },
+        });
+
+        const systemUpdate: any = {
+          countryCode: jurProfile.countryCode,
+          currencyCode: jurProfile.defaultCurrencyCode,
+          currencySymbol: jurProfile.defaultCurrencySymbol,
+          taxRegime: jurProfile.taxRegime,
+          defaultTaxRate: jurProfile.defaultTaxRate,
+          taxInclusivePricing: jurProfile.taxInclusivePricingMode,
+        };
+
+        // Transition from India to non-India: clear Indian tax identity
+        if (
+          existingSystem &&
+          existingSystem.countryCode === 'IN' &&
+          jurProfile.countryCode !== 'IN'
+        ) {
+          systemUpdate.gstin = null;
+          systemUpdate.gstState = null;
+          systemUpdate.gstStateCode = null;
+          systemUpdate.gstBusinessAddress = null;
+          systemUpdate.taxJurisdictionState = null;
+          systemUpdate.paymentUpiId = null;
+
+          const currentTaxReg = existingSystem.taxRegistrationNumber || existingSystem.gstin;
+          if (currentTaxReg) {
+            const valResult = validateTaxRegistrationId(currentTaxReg, jurProfile.countryCode);
+            if (!valResult.valid) {
+              systemUpdate.taxRegistrationNumber = null;
+            }
+          }
+        } else if (
+          existingSystem &&
+          existingSystem.countryCode !== 'IN' &&
+          jurProfile.countryCode === 'IN'
+        ) {
+          // Transition to India: ensure foreign tax number doesn't become GSTIN
+          const currentTaxReg = existingSystem.taxRegistrationNumber;
+          if (currentTaxReg && !GSTIN_REGEX.test(currentTaxReg)) {
+            systemUpdate.taxRegistrationNumber = null;
+            systemUpdate.gstin = null;
+          }
+        }
+
+        updatedSystemSettings = await (prisma as any).systemSettings.upsert({
           where: { id: SYSTEM_SETTINGS_ID },
           create: {
             id: SYSTEM_SETTINGS_ID,
-            countryCode: jurProfile.countryCode,
-            currencyCode: jurProfile.defaultCurrencyCode,
-            currencySymbol: jurProfile.defaultCurrencySymbol,
-            taxRegime: jurProfile.taxRegime,
-            defaultTaxRate: jurProfile.defaultTaxRate,
+            ...systemUpdate,
           },
-          update: {
-            countryCode: jurProfile.countryCode,
-            currencyCode: jurProfile.defaultCurrencyCode,
-            currencySymbol: jurProfile.defaultCurrencySymbol,
-            taxRegime: jurProfile.taxRegime,
-          },
+          update: systemUpdate,
         });
       }
 
@@ -480,6 +540,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         branding: updated,
+        systemSettings: updatedSystemSettings,
         message: 'Business profile saved successfully',
       });
     }
@@ -545,11 +606,30 @@ export async function POST(req: NextRequest) {
           }
         }
       } else {
-        // Non-India country: tax registration number is saved as general tax number
-        if (data.taxRegistrationNumber !== undefined || data.gstin !== undefined) {
-          const regNum = String(data.taxRegistrationNumber || data.gstin || '').trim();
-          updateData.taxRegistrationNumber = regNum || null;
-          updateData.gstin = regNum || null;
+        // Non-India country: strictly reject invalid registration formats or Indian GSTIN leaking into foreign profile
+        updateData.gstin = null;
+        updateData.gstState = null;
+        updateData.gstStateCode = null;
+        updateData.gstBusinessAddress = null;
+
+        const regInput =
+          data.taxRegistrationNumber !== undefined ? data.taxRegistrationNumber : data.gstin;
+        if (regInput !== undefined && regInput !== null && String(regInput).trim() !== '') {
+          const rawVal = String(regInput).trim();
+          const valResult = validateTaxRegistrationId(rawVal, targetCountryCode);
+          if (!valResult.valid) {
+            return NextResponse.json(
+              {
+                error:
+                  valResult.error ||
+                  `Invalid ${jurProfile.taxIdLabel} format for ${jurProfile.countryName}.`,
+              },
+              { status: 400 }
+            );
+          }
+          updateData.taxRegistrationNumber = valResult.normalized || null;
+        } else {
+          updateData.taxRegistrationNumber = null;
         }
       }
 
@@ -557,12 +637,16 @@ export async function POST(req: NextRequest) {
         updateData.legalBusinessName = String(data.legalBusinessName).trim().slice(0, 255);
       if (data.tradeName !== undefined)
         updateData.tradeName = String(data.tradeName).trim().slice(0, 255);
-      if (data.gstState !== undefined)
-        updateData.gstState = String(data.gstState).trim().slice(0, 64);
-      if (data.gstStateCode !== undefined)
-        updateData.gstStateCode = String(data.gstStateCode).trim().slice(0, 16);
-      if (data.gstRegistrationType !== undefined)
-        updateData.gstRegistrationType = String(data.gstRegistrationType).trim().slice(0, 32);
+      if (targetCountryCode === 'IN') {
+        if (data.gstState !== undefined)
+          updateData.gstState = String(data.gstState).trim().slice(0, 64);
+        if (data.gstStateCode !== undefined)
+          updateData.gstStateCode = String(data.gstStateCode).trim().slice(0, 16);
+        if (data.gstRegistrationType !== undefined)
+          updateData.gstRegistrationType = String(data.gstRegistrationType).trim().slice(0, 32);
+        if (data.gstBusinessAddress !== undefined)
+          updateData.gstBusinessAddress = String(data.gstBusinessAddress).trim();
+      }
 
       if (data.defaultTaxRate !== undefined) {
         const rate = Number(data.defaultTaxRate);
@@ -577,8 +661,6 @@ export async function POST(req: NextRequest) {
       if (data.hsnMandatory !== undefined) updateData.hsnMandatory = Boolean(data.hsnMandatory);
       if (data.enableReverseCharge !== undefined)
         updateData.enableReverseCharge = Boolean(data.enableReverseCharge);
-      if (data.gstBusinessAddress !== undefined)
-        updateData.gstBusinessAddress = String(data.gstBusinessAddress).trim();
 
       // Increment version for audit trail
       const current = await (prisma as any).systemSettings.findUnique({
@@ -593,7 +675,7 @@ export async function POST(req: NextRequest) {
       });
 
       // Synchronize branding table country/currency in lockstep
-      await (prisma as any).brandingSetting.upsert({
+      const updatedBranding = await (prisma as any).brandingSetting.upsert({
         where: { id: BRANDING_ID },
         create: {
           id: BRANDING_ID,
@@ -631,6 +713,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         systemSettings: updated,
+        branding: updatedBranding,
         message: `${jurProfile.countryName} (${jurProfile.taxLabel}) settings saved successfully`,
       });
     }

@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
-import { checkRateLimit, recordFailedAttempt, getClientIp } from '@/lib/rateLimit';
+import { checkDurableRateLimit, recordDurableRateLimitAttempt, getClientIp } from '@/lib/rateLimit';
+import { buildTrustedResetUrl } from '@/lib/trustedOrigin';
 
 /**
  * POST /api/auth/send-reset-link
  * Initiates self-service password reset flow.
- * Rate-limited: Maximum 3 attempts per hour per email/IP.
+ * Rate-limited: Maximum 3 attempts per hour per account, 10 per 15 minutes per IP.
  * Security: Generic response on unknown email (prevents account enumeration).
  */
 export async function POST(req: NextRequest) {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     const clientIp = getClientIp(req);
 
     // Rate-limiting by IP (max 10 requests per 15 minutes)
-    const ipCheck = checkRateLimit(`pwd-reset:ip:${clientIp}`, 10);
+    const ipCheck = await checkDurableRateLimit(`pwd-reset:ip:${clientIp}`, 10, 900);
     if (!ipCheck.allowed) {
       return NextResponse.json(
         {
@@ -32,9 +33,10 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanEmail = body.email.toLowerCase().trim();
+    const emailHash = crypto.createHash('sha256').update(cleanEmail).digest('hex');
 
-    // Rate-limiting by email: max 3 requests per hour
-    const emailCheck = checkRateLimit(`pwd-reset:email:${cleanEmail}`, 3);
+    // Rate-limiting by account (hashed key): max 3 requests per hour
+    const emailCheck = await checkDurableRateLimit(`pwd-reset:account:${emailHash}`, 3, 3600);
     if (!emailCheck.allowed) {
       return NextResponse.json(
         {
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-    recordFailedAttempt(`pwd-reset:email:${cleanEmail}`, 3);
+    await recordDurableRateLimitAttempt(`pwd-reset:account:${emailHash}`, 3, 3600);
 
     // Lookup user in MySQL
     const user = await prisma.userAccount.findUnique({
@@ -85,19 +87,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Build reset URL
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.APP_URL ||
-      `${req.nextUrl.protocol}//${req.headers.get('host') || 'localhost:4028'}`;
-
-    const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`;
+    // Build trusted canonical reset URL (HTTPS enforced in prod, no host header injection)
+    const resetUrl = buildTrustedResetUrl(req, resetToken);
 
     // Send email with reset instructions
     const branding = await (prisma as any).brandingSetting.findFirst().catch(() => null);
     const appName = branding?.appName || 'RISMOS';
 
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: user.email,
       subject: `${appName} POS - Password Reset Request`,
       template: 'password-reset',
@@ -108,6 +105,10 @@ export async function POST(req: NextRequest) {
         appName,
       },
     });
+
+    if (!emailResult.success) {
+      console.warn(`[AUTH] Reset email dispatch failed for user ${user.id}: ${emailResult.error}`);
+    }
 
     // Record in Audit Log without exposing token
     try {

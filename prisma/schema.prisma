@@ -1039,7 +1039,7 @@ model SequenceCounter {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 26. PASSWORD RESETS — Enterprise 24-Hour Tokenized Self-Serve Reset Flow
+// 26. PASSWORD RESETS — Enterprise 15-Minute Tokenized Self-Serve Reset Flow
 // ──────────────────────────────────────────────────────────────────────────────
 model PasswordReset {
   id        String    @id @default(uuid())
@@ -1092,5 +1092,23 @@ model StepUpGrant {
   @@index([tokenHash])
   @@index([expiresAt])
   @@map("step_up_grants")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 29. SECURITY RATE LIMITS — Serverless-Durable Abuse Protection
+// ──────────────────────────────────────────────────────────────────────────────
+model SecurityRateLimit {
+  id               String   @id @default(uuid())
+  keyHash          String   @unique @map("key_hash") @db.VarChar(128)
+  attempts         Int      @default(1)
+  firstAttemptTime BigInt   @map("first_attempt_time")
+  blockedUntil     BigInt?  @map("blocked_until")
+  expiresAt        DateTime @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@index([keyHash])
+  @@index([expiresAt])
+  @@map("security_rate_limits")
 }
 

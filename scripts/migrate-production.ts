@@ -186,6 +186,27 @@ export async function runProductionMigrations(targetPrisma?: any) {
     console.log('  ✓ Table `step_up_grants` exists.');
   }
 
+  if (!existingTables.has('security_rate_limits')) {
+    console.log('Creating `security_rate_limits` table...');
+    await db.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS security_rate_limits (
+        id VARCHAR(191) NOT NULL PRIMARY KEY,
+        key_hash VARCHAR(128) NOT NULL UNIQUE,
+        attempts INT NOT NULL DEFAULT 1,
+        first_attempt_time BIGINT NOT NULL,
+        blocked_until BIGINT NULL,
+        expires_at DATETIME(3) NOT NULL,
+        created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+        INDEX idx_security_rate_limits_key_hash (key_hash),
+        INDEX idx_security_rate_limits_expires_at (expires_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    console.log('  ✅ Table `security_rate_limits` created.');
+  } else {
+    console.log('  ✓ Table `security_rate_limits` exists.');
+  }
+
   if (!existingTables.has('idempotency_records')) {
     console.log('Creating `idempotency_records` table...');
     await db.$executeRawUnsafe(`

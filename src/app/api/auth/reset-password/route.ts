@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
 import { validatePasswordAgainstPolicy } from '@/lib/passwordPolicyServer';
 import { invalidateUserSessions } from '@/lib/authPipeline';
-import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import { checkDurableRateLimit, getClientIp } from '@/lib/rateLimit';
 
 /**
  * POST /api/auth/reset-password
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const clientIp = getClientIp(req);
 
     // Rate limiting on password submission attempts (max 20 per 15 mins per IP)
-    const ipCheck = checkRateLimit(`pwd-reset-submit:ip:${clientIp}`, 20);
+    const ipCheck = await checkDurableRateLimit(`pwd-reset-submit:ip:${clientIp}`, 20, 900);
     if (!ipCheck.allowed) {
       return NextResponse.json(
         {
@@ -113,6 +113,14 @@ export async function POST(req: NextRequest) {
         if (tokenConsumption.count === 0) {
           throw new Error('TOKEN_ALREADY_CONSUMED_OR_EXPIRED');
         }
+
+        // Invalidate all other active recovery tokens for this user
+        await (tx as any).passwordReset.deleteMany({
+          where: {
+            userId: resetRecord.userId,
+            id: { not: resetRecord.id },
+          },
+        });
 
         // Update password and clear any failed login lockouts
         await tx.userAccount.update({

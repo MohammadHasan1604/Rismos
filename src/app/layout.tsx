@@ -1,17 +1,9 @@
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { AppProvider } from '@/context/AppContext';
 import { BrandThemeProvider } from '@/components/theme/BrandThemeProvider';
 import '../styles/tailwind.css';
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-plus-jakarta-sans',
-  display: 'swap',
-});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -49,8 +41,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={plusJakartaSans.variable}>
-      <body suppressHydrationWarning className={plusJakartaSans.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        suppressHydrationWarning
+        className="font-sans antialiased min-h-screen bg-background text-foreground"
+      >
         <AppProvider>
           <BrandThemeProvider>
             {children}
@@ -58,7 +53,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               position="bottom-right"
               toastOptions={{
                 style: {
-                  fontFamily: 'var(--font-plus-jakarta-sans)',
+                  fontFamily: 'var(--font-sans)',
                   fontSize: '14px',
                 },
                 duration: 3000,

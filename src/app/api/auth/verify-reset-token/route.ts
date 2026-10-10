@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/db';
-import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import { checkDurableRateLimit, getClientIp } from '@/lib/rateLimit';
 
 /**
  * GET /api/auth/verify-reset-token?token=...
@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
   try {
     const clientIp = getClientIp(req);
 
-    // Rate-limiting check to prevent token scanning (max 30 requests per 15m)
-    const ipCheck = checkRateLimit(`pwd-verify:ip:${clientIp}`, 30);
+    // Rate-limiting check to prevent token scanning (max 30 requests per 15m per IP)
+    const ipCheck = await checkDurableRateLimit(`pwd-verify:ip:${clientIp}`, 30, 900);
     if (!ipCheck.allowed) {
       return NextResponse.json(
         {
@@ -44,6 +44,19 @@ export async function GET(req: NextRequest) {
 
     const cleanToken = rawToken.trim();
     const hashedToken = crypto.createHash('sha256').update(cleanToken).digest('hex');
+
+    // Token-level rate limiting to prevent targeted online brute-force
+    const tokenCheck = await checkDurableRateLimit(`pwd-verify:token:${hashedToken}`, 10, 900);
+    if (!tokenCheck.allowed) {
+      return NextResponse.json(
+        {
+          valid: false,
+          reason: 'RATE_LIMITED',
+          error: `Too many attempts for this token. Please wait ${tokenCheck.retryAfterSeconds || 900} seconds before retrying.`,
+        },
+        { status: 429 }
+      );
+    }
 
     const resetRecord = await (prisma as any).passwordReset.findFirst({
       where: { token: hashedToken },

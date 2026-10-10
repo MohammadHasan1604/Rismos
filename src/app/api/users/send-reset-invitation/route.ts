@@ -3,7 +3,8 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { authenticateRequest, createAuditLog } from '@/lib/authPipeline';
-import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import { checkDurableRateLimit, getClientIp } from '@/lib/rateLimit';
+import { buildTrustedResetUrl } from '@/lib/trustedOrigin';
 
 /**
  * POST /api/users/send-reset-invitation
@@ -27,8 +28,8 @@ export async function POST(req: NextRequest) {
     }
     const authUser = auth.user;
 
-    // Rate limiting per admin user
-    const rateCheck = checkRateLimit(`admin-pwd-invite:${authUser.id}`, 20);
+    // Durable rate limiting per admin user (max 20 per hour)
+    const rateCheck = await checkDurableRateLimit(`admin-pwd-invite:${authUser.id}`, 20, 3600);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         {
@@ -155,19 +156,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Construct application reset URL
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.APP_URL ||
-      `${req.nextUrl.protocol}//${req.headers.get('host') || 'localhost:4028'}`;
-
-    const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`;
+    // Construct trusted application reset URL
+    const resetUrl = buildTrustedResetUrl(req, resetToken);
 
     // Dispatch email
     const branding = await (prisma as any).brandingSetting.findFirst().catch(() => null);
     const appName = branding?.appName || 'RISMOS';
 
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: targetUser.email,
       subject: `${appName} POS - Password Reset Invitation`,
       template: 'password-reset',
@@ -179,6 +175,17 @@ export async function POST(req: NextRequest) {
         invitedBy: authUser.name,
       },
     });
+
+    if (!emailResult.success) {
+      console.error(`[USERS] Reset invitation email dispatch failed: ${emailResult.error}`);
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Password reset invitation could not be emailed: ${emailResult.error || 'Provider rejected dispatch'}. Please verify email provider configuration.`,
+        },
+        { status: 502 }
+      );
+    }
 
     // Audit log entry
     await createAuditLog(

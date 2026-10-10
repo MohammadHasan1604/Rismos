@@ -36,6 +36,8 @@
   --input: #e2e8f0;
   --ring: #009adf;
   --radius: 0.5rem;
+  --font-plus-jakarta-sans:
+    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-sans:
     'General Sans', var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI',
     Roboto, sans-serif;

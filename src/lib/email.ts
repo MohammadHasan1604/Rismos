@@ -24,7 +24,7 @@ export interface SendEmailOptions {
 
 export async function sendEmail(
   options: SendEmailOptions
-): Promise<{ success: boolean; messageId?: string }> {
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
   const { to, subject, template, data } = options;
   const appName = data?.appName || 'RISMOS';
   const expiresIn = data?.expiresIn || '15 minutes';
@@ -33,9 +33,7 @@ export async function sendEmail(
 
   if (template === 'password-reset') {
     const isInvitation = Boolean(data.invitedBy);
-    const headingText = isInvitation
-      ? 'Password Reset Invitation'
-      : 'Password Reset Request';
+    const headingText = isInvitation ? 'Password Reset Invitation' : 'Password Reset Request';
     const bodyLead = isInvitation
       ? `An administrator (<strong>${data.invitedBy}</strong>) has dispatched a secure password reset link for your ${appName} staff account.`
       : `We received a request to reset the password for your ${appName} staff account.`;
@@ -122,11 +120,21 @@ export async function sendEmail(
     htmlContent = `<div style="font-family: sans-serif; padding: 20px;"><p>${JSON.stringify(data)}</p></div>`;
   }
 
-  // 1. Resend API Dispatch (if RESEND_API_KEY is configured)
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Safe masked address for logs
+  const emailParts = to.split('@');
+  const local = emailParts[0];
+  const domain = emailParts[1] || '';
+  const maskedTo =
+    local.length > 2
+      ? `${local[0]}${'*'.repeat(Math.min(local.length - 2, 4))}${local[local.length - 1]}@${domain}`
+      : `${local[0]}***@${domain}`;
+
+  // 1. Resend API Dispatch (when RESEND_API_KEY is configured)
   if (process.env.RESEND_API_KEY) {
     try {
-      const fromSender =
-        process.env.EMAIL_FROM || `${appName} Security <onboarding@resend.dev>`;
+      const fromSender = process.env.EMAIL_FROM || `${appName} Security <onboarding@resend.dev>`;
 
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -144,34 +152,47 @@ export async function sendEmail(
 
       const resData = await res.json().catch(() => null);
 
-      if (res.ok) {
-        console.log(`[EMAIL] Resend API: Email dispatched successfully to masked destination (ID: ${resData?.id || 'ok'})`);
-        return { success: true, messageId: resData?.id };
+      if (res.ok && resData?.id) {
+        console.info(
+          `[EMAIL] Resend API: Email dispatched successfully to masked destination (ID: ${resData.id})`
+        );
+        return { success: true, messageId: resData.id };
       } else {
-        console.warn('[EMAIL] Resend API returned error response:', resData?.message || res.statusText);
+        const errMsg = resData?.message || res.statusText || 'Resend dispatch failed';
+        console.error(`[EMAIL] Resend API returned error (status ${res.status}): ${errMsg}`);
+        if (isProduction) {
+          return { success: false, error: errMsg };
+        }
       }
     } catch (apiErr: any) {
-      console.warn('[EMAIL] Resend delivery network failure, falling back to local audit logger:', apiErr?.message);
+      const netErrMsg = apiErr?.message || 'Network connection to Resend failed';
+      console.error(`[EMAIL] Resend network error: ${netErrMsg}`);
+      if (isProduction) {
+        return { success: false, error: netErrMsg };
+      }
     }
   }
 
-  // 2. Resilient Fallback: Safe masked log without leaking sensitive tokens
-  const emailParts = to.split('@');
-  const local = emailParts[0];
-  const domain = emailParts[1] || '';
-  const maskedTo =
-    local.length > 2
-      ? `${local[0]}${'*'.repeat(Math.min(local.length - 2, 4))}${local[local.length - 1]}@${domain}`
-      : `${local[0]}***@${domain}`;
+  // 2. Strict Production Guard: NEVER fake delivery if no provider sent it
+  if (isProduction) {
+    console.error(
+      '[EMAIL] CRITICAL: No email provider configured (RESEND_API_KEY missing) in production environment.'
+    );
+    return {
+      success: false,
+      error: 'Email service is not configured on this server. Please contact administrator.',
+    };
+  }
 
-  console.log(`[EMAIL] 📧 Transactional email dispatched:`);
-  console.log(`  To: ${maskedTo}`);
-  console.log(`  Subject: ${subject}`);
-  console.log(`  Template: ${template}`);
-  console.log(`  Status: DISPATCHED (Resend / Development Fallback)`);
+  // 3. Development / Test Only Fallback: Explicitly marked, no raw tokens logged
+  console.info(`[EMAIL] [DEVELOPMENT ONLY] Simulated dispatch for test/dev environment:`);
+  console.info(`  To: ${maskedTo}`);
+  console.info(`  Subject: ${subject}`);
+  console.info(`  Template: ${template}`);
+  console.info(`  Status: SIMULATED_DEV_FALLBACK`);
 
   return {
     success: true,
-    messageId: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+    messageId: `dev_sim_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
   };
 }

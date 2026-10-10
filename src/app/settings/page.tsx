@@ -106,13 +106,11 @@ export default function SettingsPage() {
     branding.businessName || 'RISMOS Retail Enterprise'
   );
   const [supportEmail, setSupportEmail] = useState(branding.supportEmail || 'support@rismos.com');
-  const [supportPhone, setSupportPhone] = useState(branding.supportPhone || '+91 80 4000 8800');
-  const [businessAddress, setBusinessAddress] = useState(
-    branding.businessAddress || '100 Feet Ring Road, Indiranagar'
-  );
-  const [city, setCity] = useState(branding.city || 'Bengaluru');
-  const [state, setState] = useState(branding.state || 'Karnataka');
-  const [pincode, setPincode] = useState(branding.pincode || '560038');
+  const [supportPhone, setSupportPhone] = useState(branding.supportPhone || '');
+  const [businessAddress, setBusinessAddress] = useState(branding.businessAddress || '');
+  const [city, setCity] = useState(branding.city || '');
+  const [state, setState] = useState(branding.state || '');
+  const [pincode, setPincode] = useState(branding.pincode || '');
   const [country, setCountry] = useState(branding.country || 'India');
   const [countryCode, setCountryCode] = useState(branding.countryCode || 'IN');
   const [timezone, setTimezone] = useState(branding.timezone || 'Asia/Kolkata');
@@ -123,18 +121,20 @@ export default function SettingsPage() {
   const [taxCountryCode, setTaxCountryCode] = useState(systemSettings.countryCode || 'IN');
   const [taxRegime, setTaxRegime] = useState(systemSettings.taxRegime || 'GST');
   const [taxRegistrationNumber, setTaxRegistrationNumber] = useState(
-    systemSettings.taxRegistrationNumber || systemSettings.gstin || '29AABCU9603R1ZM'
+    systemSettings.countryCode === 'IN'
+      ? (systemSettings.taxRegistrationNumber || systemSettings.gstin || '')
+      : (systemSettings.taxRegistrationNumber || '')
   );
   const [taxInclusivePricing, setTaxInclusivePricing] = useState(
     systemSettings.taxInclusivePricing !== undefined ? systemSettings.taxInclusivePricing : true
   );
   const [taxJurisdictionState, setTaxJurisdictionState] = useState(
-    systemSettings.taxJurisdictionState || systemSettings.gstStateCode || '29'
+    systemSettings.taxJurisdictionState || (systemSettings.countryCode === 'IN' ? systemSettings.gstStateCode || '' : '')
   );
   const [legalBusinessName, setLegalBusinessName] = useState(
-    systemSettings.legalBusinessName || 'RISMOS Retail Enterprise Private Limited'
+    systemSettings.legalBusinessName || ''
   );
-  const [tradeName, setTradeName] = useState(systemSettings.tradeName || 'RISMOS Stores');
+  const [tradeName, setTradeName] = useState(systemSettings.tradeName || '');
   const [defaultTaxRate, setDefaultTaxRate] = useState(systemSettings.defaultTaxRate ?? 18);
   const [hsnMandatory, setHsnMandatory] = useState(systemSettings.hsnMandatory ?? true);
   const [enableReverseCharge, setEnableReverseCharge] = useState(
@@ -144,8 +144,7 @@ export default function SettingsPage() {
     systemSettings.gstRegistrationType || 'Regular'
   );
   const [gstBusinessAddress, setGstBusinessAddress] = useState(
-    systemSettings.gstBusinessAddress ||
-      '100 Feet Ring Road, Indiranagar, Bengaluru, Karnataka - 560038'
+    systemSettings.gstBusinessAddress || ''
   );
 
   // ─── Tab 4: Invoice Template State ───
@@ -175,10 +174,9 @@ export default function SettingsPage() {
   const [showPaymentQr, setShowPaymentQr] = useState(
     systemSettings.showPaymentQr !== undefined ? systemSettings.showPaymentQr : true
   );
-  const [paymentUpiId, setPaymentUpiId] = useState(systemSettings.paymentUpiId || 'rismos@icici');
+  const [paymentUpiId, setPaymentUpiId] = useState(systemSettings.paymentUpiId || '');
   const [paymentBankDetails, setPaymentBankDetails] = useState(
-    systemSettings.paymentBankDetails ||
-      'HDFC Bank · A/C 50200012345678 · IFSC HDFC0001234 · Indiranagar Branch'
+    systemSettings.paymentBankDetails || ''
   );
   const [invoiceFieldMapping, setInvoiceFieldMapping] = useState<string | null>(
     systemSettings.invoiceFieldMapping || null
@@ -230,11 +228,11 @@ export default function SettingsPage() {
       setSupportEmailBranding(branding.supportEmail || 'support@rismos.com');
       setBusinessName(branding.businessName || 'RISMOS Retail Enterprise');
       setSupportEmail(branding.supportEmail || 'support@rismos.com');
-      setSupportPhone(branding.supportPhone || '+91 80 4000 8800');
-      setBusinessAddress(branding.businessAddress || '100 Feet Ring Road, Indiranagar');
-      setCity(branding.city || 'Bengaluru');
-      setState(branding.state || 'Karnataka');
-      setPincode(branding.pincode || '560038');
+      setSupportPhone(branding.supportPhone || '');
+      setBusinessAddress(branding.businessAddress || '');
+      setCity(branding.city || '');
+      setState(branding.state || '');
+      setPincode(branding.pincode || '');
       setCountry(branding.country || 'India');
       setCountryCode(branding.countryCode || 'IN');
       setTimezone(branding.timezone || 'Asia/Kolkata');
@@ -248,25 +246,26 @@ export default function SettingsPage() {
       setTaxCountryCode(systemSettings.countryCode || 'IN');
       setTaxRegime(systemSettings.taxRegime || 'GST');
       setTaxRegistrationNumber(
-        systemSettings.taxRegistrationNumber || systemSettings.gstin || '29AABCU9603R1ZM'
+        systemSettings.countryCode === 'IN'
+          ? (systemSettings.taxRegistrationNumber || systemSettings.gstin || '')
+          : (systemSettings.taxRegistrationNumber || '')
       );
       setTaxInclusivePricing(
         systemSettings.taxInclusivePricing !== undefined ? systemSettings.taxInclusivePricing : true
       );
       setTaxJurisdictionState(
-        systemSettings.taxJurisdictionState || systemSettings.gstStateCode || '29'
+        systemSettings.taxJurisdictionState || (systemSettings.countryCode === 'IN' ? systemSettings.gstStateCode || '' : '')
       );
       setLegalBusinessName(
-        systemSettings.legalBusinessName || 'RISMOS Retail Enterprise Private Limited'
+        systemSettings.legalBusinessName || ''
       );
-      setTradeName(systemSettings.tradeName || 'RISMOS Stores');
+      setTradeName(systemSettings.tradeName || '');
       setDefaultTaxRate(systemSettings.defaultTaxRate ?? 18);
       setHsnMandatory(systemSettings.hsnMandatory ?? true);
       setEnableReverseCharge(systemSettings.enableReverseCharge ?? false);
       setGstRegistrationType(systemSettings.gstRegistrationType || 'Regular');
       setGstBusinessAddress(
-        systemSettings.gstBusinessAddress ||
-          '100 Feet Ring Road, Indiranagar, Bengaluru, Karnataka - 560038'
+        systemSettings.gstBusinessAddress || ''
       );
 
       setInvoiceHeader(systemSettings.invoiceHeader || 'RISMOS Retail Enterprise');
@@ -289,10 +288,9 @@ export default function SettingsPage() {
       setShowPaymentQr(
         systemSettings.showPaymentQr !== undefined ? systemSettings.showPaymentQr : true
       );
-      setPaymentUpiId(systemSettings.paymentUpiId || 'rismos@icici');
+      setPaymentUpiId(systemSettings.paymentUpiId || '');
       setPaymentBankDetails(
-        systemSettings.paymentBankDetails ||
-          'HDFC Bank · A/C 50200012345678 · IFSC HDFC0001234 · Indiranagar Branch'
+        systemSettings.paymentBankDetails || ''
       );
       setInvoiceFieldMapping(systemSettings.invoiceFieldMapping || null);
 
@@ -812,7 +810,7 @@ export default function SettingsPage() {
                       <span>
                         {activeTab === 'branding' && 'Save Branding Settings'}
                         {activeTab === 'profile' && 'Save Business Profile'}
-                        {activeTab === 'tax' && 'Save Tax & GST Profile'}
+                        {activeTab === 'tax' && (taxCountryCode === 'IN' ? 'Save GST & Compliance' : `Save ${taxRegime || 'Tax'} & Compliance`)}
                         {activeTab === 'invoice' && 'Save Invoice Template'}
                         {activeTab === 'security' && 'Save Security Policies'}
                         {activeTab === 'alerts' && 'Save Alert Settings'}

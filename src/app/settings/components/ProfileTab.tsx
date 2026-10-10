@@ -95,6 +95,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
 }) => {
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedCode = e.target.value;
+    const oldCode = countryCode;
     setCountryCode(selectedCode);
     const jurisdiction = LAUNCH_JURISDICTIONS[selectedCode];
     if (jurisdiction) {
@@ -104,6 +105,13 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
       setBaseCurrency(
         `${jurisdiction.defaultCurrencyCode} (${jurisdiction.defaultCurrencySymbol})`
       );
+      if (oldCode === 'IN' && selectedCode !== 'IN') {
+        if (state === 'Karnataka') setState('');
+        if (city === 'Bengaluru') setCity('');
+        if (pincode === '560038') setPincode('');
+        if (supportPhone?.startsWith('+91')) setSupportPhone('');
+        if (businessAddress?.includes('Indiranagar')) setBusinessAddress('');
+      }
     }
   };
 

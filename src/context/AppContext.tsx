@@ -47,7 +47,7 @@ export interface AppBranding {
   timezone?: string;
   locale?: string;
   baseCurrency?: string;
-  taxNumber?: string;
+  taxNumber?: string | null;
 }
 
 export interface SystemSettings {
@@ -505,18 +505,18 @@ const defaultBranding: AppBranding = {
   secondaryColor: '#009ADF',
   accentColor: '#2563EB',
   supportEmail: 'support@rismos.com',
-  supportPhone: '+91 80 4000 8800',
+  supportPhone: '',
   businessName: 'RISMOS Retail Enterprise',
-  businessAddress: '100 Feet Ring Road, Indiranagar',
-  city: 'Bengaluru',
-  state: 'Karnataka',
-  pincode: '560038',
+  businessAddress: '',
+  city: '',
+  state: '',
+  pincode: '',
   country: 'India',
   countryCode: 'IN',
   timezone: 'Asia/Kolkata',
   locale: 'en-IN',
   baseCurrency: 'INR (₹)',
-  taxNumber: '29AABCU9603R1ZM',
+  taxNumber: null,
 };
 
 export const defaultSystemSettings: SystemSettings = {
@@ -525,20 +525,20 @@ export const defaultSystemSettings: SystemSettings = {
   currencySymbol: '₹',
   taxRegime: 'GST',
   taxInclusivePricing: true,
-  taxRegistrationNumber: '29AABCU9603R1ZM',
-  taxJurisdictionState: 'Karnataka',
+  taxRegistrationNumber: '',
+  taxJurisdictionState: '',
   jurisdictionConfig: null,
   taxConfigVersion: 1,
-  gstin: '29AABCU9603R1ZM',
+  gstin: null,
   legalBusinessName: 'RISMOS Retail Enterprise Private Limited',
   tradeName: 'RISMOS Stores',
-  gstState: 'Karnataka',
-  gstStateCode: '29',
+  gstState: '',
+  gstStateCode: '',
   gstRegistrationType: 'Regular',
   defaultTaxRate: 18,
   hsnMandatory: true,
   enableReverseCharge: false,
-  gstBusinessAddress: '100 Feet Ring Road, Indiranagar, Bengaluru, Karnataka - 560038',
+  gstBusinessAddress: '',
   invoiceHeader: 'RISMOS Retail Enterprise',
   invoiceFooter:
     'Thank you for shopping with RISMOS! Goods once sold cannot be returned without original receipt.',
@@ -551,8 +551,8 @@ export const defaultSystemSettings: SystemSettings = {
   invoiceTemplateVersion: 1,
   invoiceFieldMapping: null,
   showPaymentQr: false,
-  paymentUpiId: 'rismos@icici',
-  paymentBankDetails: 'HDFC Bank · A/C 50200012345678 · IFSC HDFC0001234',
+  paymentUpiId: null,
+  paymentBankDetails: null,
   sessionTimeoutMins: 43200,
   maxLoginAttempts: 5,
   enforcePasswordPolicy: true,
@@ -2233,7 +2233,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: errMsg };
       }
 
-      if (section === 'branding' && result.branding) {
+      if (result.branding) {
         setBranding((prev) => {
           const updated = { ...prev, ...result.branding };
           try {
@@ -2247,26 +2247,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           } catch {}
           return updated;
         });
-      } else if (section === 'profile' && result.branding) {
-        setBranding((prev) => {
-          const updated = { ...prev, ...result.branding };
-          try {
-            localStorage.setItem('cosko_branding', JSON.stringify(updated));
-            window.dispatchEvent(
-              new StorageEvent('storage', {
-                key: 'cosko_branding',
-                newValue: JSON.stringify(updated),
-              })
-            );
-          } catch {}
-          return updated;
-        });
-      } else if (result.systemSettings) {
+      }
+
+      if (result.systemSettings) {
         setSystemSettings((prev) => {
           const updated = {
             ...prev,
             ...result.systemSettings,
-            defaultTaxRate: Number(result.systemSettings.defaultTaxRate) || prev.defaultTaxRate,
+            defaultTaxRate:
+              result.systemSettings.defaultTaxRate !== undefined &&
+              !isNaN(Number(result.systemSettings.defaultTaxRate))
+                ? Number(result.systemSettings.defaultTaxRate)
+                : prev.defaultTaxRate,
           };
           try {
             localStorage.setItem('cosko_system_settings', JSON.stringify(updated));
@@ -2279,9 +2271,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           } catch {}
           return updated;
         });
-        if (result.systemSettings.gstin) {
-          setBranding((prev) => ({ ...prev, taxNumber: result.systemSettings.gstin }));
-        }
+        const currentTaxNum =
+          result.systemSettings.taxRegistrationNumber || result.systemSettings.gstin || null;
+        setBranding((prev) => ({ ...prev, taxNumber: currentTaxNum }));
       }
 
       addAuditLog(
