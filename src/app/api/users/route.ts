@@ -10,7 +10,8 @@ import {
   generateSecureTemporaryPassword,
 } from '@/lib/authPipeline';
 import { ensureStoredImage } from '@/lib/objectStorage';
-import { validatePasswordAgainstPolicy, validatePassword } from '@/lib/passwordPolicy';
+import { validatePassword } from '@/lib/passwordPolicy';
+import { validatePasswordAgainstPolicy } from '@/lib/passwordPolicyServer';
 import { verifySensitiveAction } from '@/lib/sensitiveAction';
 import {
   ROLE_SECURITY_LEVELS,

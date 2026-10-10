@@ -1,5 +1,3 @@
-import { prisma } from './db';
-
 /**
  * Enterprise Password Policy Validator & Entropy Scorer
  * Enforces NIST SP 800-63B standards:
@@ -127,25 +125,4 @@ export function getPasswordStrengthDisplay(score: number): string {
   const strength = clamped < 40 ? 'Weak' : clamped < 70 ? 'Fair' : clamped < 90 ? 'Good' : 'Strong';
 
   return `${'█'.repeat(filled)}${'░'.repeat(empty)} ${clamped}% (${strength})`;
-}
-
-/**
- * Authoritative Server-Side Password Policy Resolver
- * Checks database systemSettings.enforcePasswordPolicy
- */
-export async function validatePasswordAgainstPolicy(
-  password: string
-): Promise<PasswordValidationResult> {
-  let enforceEnterprise = true;
-  try {
-    const sys = await (prisma as any).systemSettings.findFirst({
-      select: { enforcePasswordPolicy: true },
-    });
-    if (sys && sys.enforcePasswordPolicy !== undefined) {
-      enforceEnterprise = Boolean(sys.enforcePasswordPolicy);
-    }
-  } catch {
-    // Fail safe to enterprise
-  }
-  return validatePassword(password, { enforceEnterprise });
 }

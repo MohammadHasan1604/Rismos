@@ -18,7 +18,7 @@
 
 import { TaxService, LineTaxItem } from '../src/lib/services/taxService';
 import { calculateApplicableTax } from '../src/lib/localization/formatters';
-import { validatePasswordAgainstPolicy } from '../src/lib/passwordPolicy';
+import { validatePasswordAgainstPolicy } from '../src/lib/passwordPolicyServer';
 import { validatePaymentMethodAgainstDb } from '../src/lib/paymentValidator';
 import { verifySensitiveAction } from '../src/lib/sensitiveAction';
 import { prisma } from '../src/lib/db';

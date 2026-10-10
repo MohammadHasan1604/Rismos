@@ -8,7 +8,7 @@ import {
   isValidAuthOrigin,
 } from '@/lib/auth';
 import { authenticateRequest, invalidateUserSessions, createAuditLog } from '@/lib/authPipeline';
-import { validatePasswordAgainstPolicy } from '@/lib/passwordPolicy';
+import { validatePasswordAgainstPolicy } from '@/lib/passwordPolicyServer';
 
 /**
  * POST /api/auth/change-password
