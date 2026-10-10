@@ -257,12 +257,7 @@ export interface RepairEnquiry {
     | 'Other';
   deviceName?: string;
   repairStatus:
-    | 'Received'
-    | 'Diagnosing'
-    | 'In Progress'
-    | 'Ready for Delivery'
-    | 'Delivered'
-    | 'Cancelled';
+    'Received' | 'Diagnosing' | 'In Progress' | 'Ready for Delivery' | 'Delivered' | 'Cancelled';
   repairRequested: string;
   technicianNotes?: string;
   internalCost?: number;
@@ -357,14 +352,7 @@ export interface PurchaseOrder {
   creditAmount?: number;
   remainingAmount?: number;
   status:
-    | 'Draft'
-    | 'Sent'
-    | 'Ordered'
-    | 'Pending'
-    | 'Received'
-    | 'Completed'
-    | 'Cancelled'
-    | 'Archived';
+    'Draft' | 'Sent' | 'Ordered' | 'Pending' | 'Received' | 'Completed' | 'Cancelled' | 'Archived';
   paymentStatus: 'Paid' | 'Partial' | 'Unpaid';
   expectedDate: string;
   dueDate?: string;

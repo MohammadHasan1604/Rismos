@@ -14,12 +14,7 @@ export type SecurityLevel = 100 | 80 | 40;
 export type UserRole = 'Super Admin' | 'Store Manager' | 'Sales Manager';
 
 export type ResourceClassification =
-  | 'PUBLIC'
-  | 'AUTHENTICATED'
-  | 'SELF_ONLY'
-  | 'STORE_SCOPED'
-  | 'ENTERPRISE'
-  | 'SUPER_ADMIN_ONLY';
+  'PUBLIC' | 'AUTHENTICATED' | 'SELF_ONLY' | 'STORE_SCOPED' | 'ENTERPRISE' | 'SUPER_ADMIN_ONLY';
 
 export interface PermissionDefinition {
   code: string;
