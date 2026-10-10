@@ -55,7 +55,8 @@ export default function CustomersPage() {
   const openSettleCredit = (cust: Customer) => {
     setSettleCreditCustomer(cust);
     setSettleAmount(cust.creditBalance || '');
-    const activeMethods = (paymentMethods || []).filter(m => m.status === 'Active'); setSettleMethod(activeMethods[0]?.name || 'Cash');
+    const activeMethods = (paymentMethods || []).filter((m) => m.status === 'Active');
+    setSettleMethod(activeMethods[0]?.name || 'Cash');
     setSettleRef('');
     setSettleProof(null);
     setSettleNotes(`Settlement of credit receivable for ${cust.name}`);
@@ -368,7 +369,10 @@ export default function CustomersPage() {
                             <div className="flex items-center gap-1 mt-1 flex-wrap">
                               <span className="text-3xs text-muted-foreground">Stores:</span>
                               {cust.serviceStores.map((st: string) => (
-                                <span key={st} className="badge-neutral text-3xs px-1.5 py-0 font-mono font-bold">
+                                <span
+                                  key={st}
+                                  className="badge-neutral text-3xs px-1.5 py-0 font-mono font-bold"
+                                >
                                   {st}
                                 </span>
                               ))}
@@ -547,18 +551,25 @@ export default function CustomersPage() {
                     LEGACY_MYSQL_DB (R/O)
                   </span>
                 </div>
-                {isSuperAdmin && crmViewCustomer.serviceStores && crmViewCustomer.serviceStores.length > 0 && (
-                  <div>
-                    <span className="text-muted-foreground block text-[11px]">Service Stores</span>
-                    <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                      {crmViewCustomer.serviceStores.map((st: string) => (
-                        <span key={st} className="badge-neutral text-3xs px-1.5 py-0 font-mono font-bold">
-                          {st}
-                        </span>
-                      ))}
+                {isSuperAdmin &&
+                  crmViewCustomer.serviceStores &&
+                  crmViewCustomer.serviceStores.length > 0 && (
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">
+                        Service Stores
+                      </span>
+                      <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                        {crmViewCustomer.serviceStores.map((st: string) => (
+                          <span
+                            key={st}
+                            className="badge-neutral text-3xs px-1.5 py-0 font-mono font-bold"
+                          >
+                            {st}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
 
               {/* Customer Analytics KPI Cards */}

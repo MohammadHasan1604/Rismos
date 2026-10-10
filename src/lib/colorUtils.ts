@@ -74,8 +74,8 @@ export function getContrastForeground(hex: string): '#ffffff' | '#0f172a' {
   });
 
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  // If bright background, use dark text; else use white text
-  return luminance > 0.45 ? '#0f172a' : '#ffffff';
+  // W3C WCAG 2.1 threshold: (L + 0.05) / 0.05 >= 1.05 / (L + 0.05) -> L = 0.179
+  return luminance > 0.179 ? '#0f172a' : '#ffffff';
 }
 
 /**

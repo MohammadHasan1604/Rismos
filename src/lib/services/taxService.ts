@@ -84,11 +84,9 @@ export class TaxService {
       branding = await (prisma as any).brandingSetting.findFirst().catch(() => null);
     }
 
-    const countryCode = (
-      sysSettings?.countryCode ||
-      branding?.countryCode ||
-      'IN'
-    ).toUpperCase().trim();
+    const countryCode = (sysSettings?.countryCode || branding?.countryCode || 'IN')
+      .toUpperCase()
+      .trim();
 
     const jurProfile = getJurisdictionProfile(countryCode);
 
@@ -102,15 +100,9 @@ export class TaxService {
         ? Boolean(sysSettings.taxInclusivePricing)
         : jurProfile.taxInclusivePricingMode;
 
-    const taxRegistrationNumber =
-      sysSettings?.taxRegistrationNumber ||
-      sysSettings?.gstin ||
-      null;
+    const taxRegistrationNumber = sysSettings?.taxRegistrationNumber || sysSettings?.gstin || null;
 
-    const taxJurisdictionState =
-      sysSettings?.taxJurisdictionState ||
-      sysSettings?.gstState ||
-      null;
+    const taxJurisdictionState = sysSettings?.taxJurisdictionState || sysSettings?.gstState || null;
 
     const defaultTaxRate =
       sysSettings?.defaultTaxRate !== undefined && !isNaN(Number(sysSettings.defaultTaxRate))
@@ -158,7 +150,10 @@ export class TaxService {
 
     const allocatedCartDiscount = Math.max(
       0,
-      Math.min(lineNetBeforeCart, Math.round(Number(options?.allocatedCartDiscount || 0) * 100) / 100)
+      Math.min(
+        lineNetBeforeCart,
+        Math.round(Number(options?.allocatedCartDiscount || 0) * 100) / 100
+      )
     );
 
     // Resolve line tax rate: use product-specific rate if available, else fall back to context default
@@ -186,7 +181,10 @@ export class TaxService {
       }
     } else {
       // Shelf price is exclusive of tax
-      lineSubtotal = Math.max(0, Math.round((lineNetBeforeCart - allocatedCartDiscount) * 100) / 100);
+      lineSubtotal = Math.max(
+        0,
+        Math.round((lineNetBeforeCart - allocatedCartDiscount) * 100) / 100
+      );
       if (taxRate > 0) {
         taxAmount = Math.round(((lineSubtotal * taxRate) / 100) * 100) / 100;
       } else {
@@ -295,7 +293,7 @@ export class TaxService {
           maxBase = base;
           maxBaseIndex = i;
         }
-        const lineShare = Math.round((safeDiscount * (base / totalCartEligible)) * 100) / 100;
+        const lineShare = Math.round(safeDiscount * (base / totalCartEligible) * 100) / 100;
         allocatedDiscounts[i] = lineShare;
         allocatedTotal += lineShare;
       }
@@ -304,7 +302,8 @@ export class TaxService {
       allocatedTotal = Math.round(allocatedTotal * 100) / 100;
       const diff = Math.round((safeDiscount - allocatedTotal) * 100) / 100;
       if (diff !== 0 && maxBase > 0) {
-        allocatedDiscounts[maxBaseIndex] = Math.round((allocatedDiscounts[maxBaseIndex] + diff) * 100) / 100;
+        allocatedDiscounts[maxBaseIndex] =
+          Math.round((allocatedDiscounts[maxBaseIndex] + diff) * 100) / 100;
       }
     }
 
@@ -391,4 +390,3 @@ export class TaxService {
     return `${profile.taxLabel} (${numRate}%)`;
   }
 }
-

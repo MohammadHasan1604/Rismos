@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/authPipeline';
-import {
-  getSignedDownloadUrl,
-  deleteFromStorage,
-  fileExistsInStorage,
-} from '@/lib/objectStorage';
+import { getSignedDownloadUrl, deleteFromStorage, fileExistsInStorage } from '@/lib/objectStorage';
 import { prisma } from '@/lib/db';
 import path from 'path';
 import fs from 'fs/promises';

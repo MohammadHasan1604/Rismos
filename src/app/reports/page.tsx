@@ -195,9 +195,9 @@ export default function ReportsPage() {
   };
 
   const fmt = (v: number | undefined | null) =>
-    (v ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    (v ?? 0).toLocaleString(dateLocale || 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const fmtDec = (v: number | undefined | null) =>
-    (v ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    (v ?? 0).toLocaleString(dateLocale || 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const openDrilldown = (
     type: 'product-sales' | 'supplier-purchases' | 'employee-sales' | 'overview-sales',
@@ -418,7 +418,8 @@ export default function ReportsPage() {
                   {fmt(overviewData.inventoryRetailValue)}
                 </p>
                 <span className="badge-info text-3xs">
-                  Unrealized: {fmt(
+                  Unrealized:{' '}
+                  {fmt(
                     (overviewData.inventoryRetailValue || 0) -
                       (overviewData.inventoryCostValue || 0)
                   )}
@@ -459,7 +460,8 @@ export default function ReportsPage() {
                   </div>
                   <h3 className="text-base font-bold text-foreground">Inventory Valuation</h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Cost: {fmt(overviewData.inventoryCostValue)} vs Retail: {fmt(overviewData.inventoryRetailValue)}.
+                    Cost: {fmt(overviewData.inventoryCostValue)} vs Retail:{' '}
+                    {fmt(overviewData.inventoryRetailValue)}.
                   </p>
                 </div>
                 <div className="pt-3 border-t border-border flex items-center justify-between">
@@ -482,7 +484,8 @@ export default function ReportsPage() {
                   </div>
                   <h3 className="text-base font-bold text-foreground">Procurement Summary</h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {overviewData.purchaseOrderCount} purchase orders totaling {fmt(overviewData.totalPurchaseSpend)}.
+                    {overviewData.purchaseOrderCount} purchase orders totaling{' '}
+                    {fmt(overviewData.totalPurchaseSpend)}.
                   </p>
                 </div>
                 <div className="pt-3 border-t border-border flex items-center justify-between">
@@ -510,8 +513,8 @@ export default function ReportsPage() {
                   Supplier Procurement & Payables Summary
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {supplierData.recordCount} suppliers · Total spend: ₹
-                  {fmtDec(supplierData.totals?.totalSpend || 0)} · {reportPeriod}
+                  {supplierData.recordCount} suppliers · Total spend:{' '}
+                  {formatCurrency(supplierData.totals?.totalSpend || 0)} · {reportPeriod}
                 </p>
               </div>
               <button
@@ -630,7 +633,9 @@ export default function ReportsPage() {
                   Top-Selling & Most Profitable Products
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {productData.recordCount} products · Revenue: {fmt(productData.totals?.totalRevenue || 0)} · Profit: {fmt(productData.totals?.totalProfit || 0)}
+                  {productData.recordCount} products · Revenue:{' '}
+                  {fmt(productData.totals?.totalRevenue || 0)} · Profit:{' '}
+                  {fmt(productData.totals?.totalProfit || 0)}
                 </p>
               </div>
               <div className="flex items-center gap-2">

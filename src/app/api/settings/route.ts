@@ -56,7 +56,9 @@ const INDIAN_STATES: Record<string, string> = {
  * Ensures branding row exists, returns it
  */
 async function getOrCreateBranding(): Promise<any> {
-  let setting: any = await (prisma as any).brandingSetting.findUnique({ where: { id: BRANDING_ID } });
+  let setting: any = await (prisma as any).brandingSetting.findUnique({
+    where: { id: BRANDING_ID },
+  });
   if (!setting) {
     setting = await (prisma as any).brandingSetting.create({
       data: {
@@ -199,8 +201,10 @@ export async function GET(req: NextRequest) {
         currencySymbol: (systemSettings as any).currencySymbol || '₹',
         taxRegime: (systemSettings as any).taxRegime || 'GST',
         taxInclusivePricing: Boolean((systemSettings as any).taxInclusivePricing),
-        taxRegistrationNumber: (systemSettings as any).taxRegistrationNumber || systemSettings.gstin,
-        taxJurisdictionState: (systemSettings as any).taxJurisdictionState || systemSettings.gstState,
+        taxRegistrationNumber:
+          (systemSettings as any).taxRegistrationNumber || systemSettings.gstin,
+        taxJurisdictionState:
+          (systemSettings as any).taxJurisdictionState || systemSettings.gstState,
         jurisdictionConfig: (systemSettings as any).jurisdictionConfig || null,
         taxConfigVersion: Number((systemSettings as any).taxConfigVersion) || 1,
         // Legacy GST Explicit Fields
@@ -315,10 +319,14 @@ export async function POST(req: NextRequest) {
         updateData.supportEmail = email || DEFAULT_BRANDING.supportEmail;
       }
       if (data.supportPhone !== undefined) {
-        updateData.supportPhone = data.supportPhone ? String(data.supportPhone).trim().slice(0, 32) : null;
+        updateData.supportPhone = data.supportPhone
+          ? String(data.supportPhone).trim().slice(0, 32)
+          : null;
       }
       if (data.businessName !== undefined) {
-        updateData.businessName = data.businessName ? String(data.businessName).trim().slice(0, 255) : null;
+        updateData.businessName = data.businessName
+          ? String(data.businessName).trim().slice(0, 255)
+          : null;
       }
       if (data.primaryColor !== undefined) {
         updateData.primaryColor = String(data.primaryColor).trim().slice(0, 32);
@@ -330,16 +338,24 @@ export async function POST(req: NextRequest) {
         updateData.accentColor = String(data.accentColor).trim().slice(0, 32);
       }
       if (data.logoUrl !== undefined) {
-        updateData.logoUrl = data.logoUrl ? await ensureStoredImage(data.logoUrl, 'branding', user.name) : null;
+        updateData.logoUrl = data.logoUrl
+          ? await ensureStoredImage(data.logoUrl, 'branding', user.name)
+          : null;
       }
       if (data.logoDarkUrl !== undefined) {
-        updateData.logoDarkUrl = data.logoDarkUrl ? await ensureStoredImage(data.logoDarkUrl, 'branding', user.name) : null;
+        updateData.logoDarkUrl = data.logoDarkUrl
+          ? await ensureStoredImage(data.logoDarkUrl, 'branding', user.name)
+          : null;
       }
       if (data.appIconUrl !== undefined) {
-        updateData.appIconUrl = data.appIconUrl ? await ensureStoredImage(data.appIconUrl, 'branding', user.name) : null;
+        updateData.appIconUrl = data.appIconUrl
+          ? await ensureStoredImage(data.appIconUrl, 'branding', user.name)
+          : null;
       }
       if (data.faviconUrl !== undefined) {
-        updateData.faviconUrl = data.faviconUrl ? await ensureStoredImage(data.faviconUrl, 'branding', user.name) : null;
+        updateData.faviconUrl = data.faviconUrl
+          ? await ensureStoredImage(data.faviconUrl, 'branding', user.name)
+          : null;
       }
 
       const updated = await prisma.brandingSetting.upsert({
@@ -397,17 +413,28 @@ export async function POST(req: NextRequest) {
       // Authoritative Single Jurisdiction Sync
       let jurProfile = null;
       if (data.countryCode || data.country) {
-        const targetCode = String(data.countryCode || 'IN').trim().toUpperCase().slice(0, 8);
+        const targetCode = String(data.countryCode || 'IN')
+          .trim()
+          .toUpperCase()
+          .slice(0, 8);
         jurProfile = getJurisdictionProfile(targetCode);
         updateData.countryCode = jurProfile.countryCode;
-        updateData.country = data.country ? String(data.country).trim().slice(0, 64) : jurProfile.countryName;
-        updateData.timezone = data.timezone ? String(data.timezone).trim().slice(0, 64) : jurProfile.defaultTimezone;
-        updateData.locale = data.locale ? String(data.locale).trim().slice(0, 16) : jurProfile.defaultLocale;
+        updateData.country = data.country
+          ? String(data.country).trim().slice(0, 64)
+          : jurProfile.countryName;
+        updateData.timezone = data.timezone
+          ? String(data.timezone).trim().slice(0, 64)
+          : jurProfile.defaultTimezone;
+        updateData.locale = data.locale
+          ? String(data.locale).trim().slice(0, 16)
+          : jurProfile.defaultLocale;
         updateData.baseCurrency = `${jurProfile.defaultCurrencyCode} (${jurProfile.defaultCurrencySymbol})`;
       } else {
-        if (data.timezone !== undefined) updateData.timezone = String(data.timezone).trim().slice(0, 64);
+        if (data.timezone !== undefined)
+          updateData.timezone = String(data.timezone).trim().slice(0, 64);
         if (data.locale !== undefined) updateData.locale = String(data.locale).trim().slice(0, 16);
-        if (data.baseCurrency !== undefined) updateData.baseCurrency = String(data.baseCurrency).trim().slice(0, 32);
+        if (data.baseCurrency !== undefined)
+          updateData.baseCurrency = String(data.baseCurrency).trim().slice(0, 32);
       }
 
       const updated = await prisma.brandingSetting.upsert({
@@ -456,7 +483,6 @@ export async function POST(req: NextRequest) {
         message: 'Business profile saved successfully',
       });
     }
-
 
     // ────────────────────────────────────────────
     // SECTION: tax
@@ -541,7 +567,10 @@ export async function POST(req: NextRequest) {
       if (data.defaultTaxRate !== undefined) {
         const rate = Number(data.defaultTaxRate);
         if (isNaN(rate) || rate < 0 || rate > 100) {
-          return NextResponse.json({ error: 'Tax rate must be between 0 and 100%' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'Tax rate must be between 0 and 100%' },
+            { status: 400 }
+          );
         }
         updateData.defaultTaxRate = rate;
       }

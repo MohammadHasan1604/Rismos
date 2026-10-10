@@ -382,9 +382,8 @@ export async function POST(req: NextRequest) {
         const preparedItems = taxResult.lines.map((taxLine) => {
           const origPre = preprocessedLineItems.find((p) => p.productId === taxLine.productId);
           const origDiscountAmt = origPre
-            ? Math.round(
-                taxLine.qty * taxLine.unitPrice * (taxLine.discountPercent / 100) * 100
-              ) / 100
+            ? Math.round(taxLine.qty * taxLine.unitPrice * (taxLine.discountPercent / 100) * 100) /
+              100
             : 0;
           const totalLineDiscount =
             Math.round((origDiscountAmt + taxLine.allocatedCartDiscount) * 100) / 100;
@@ -899,9 +898,8 @@ export async function PUT(req: NextRequest) {
       preparedUpdateItems = taxResult.lines.map((taxLine) => {
         const origPre = preprocessedUpdateItems.find((p) => p.productId === taxLine.productId);
         const origDiscountAmt = origPre
-          ? Math.round(
-              taxLine.qty * taxLine.unitPrice * (taxLine.discountPercent / 100) * 100
-            ) / 100
+          ? Math.round(taxLine.qty * taxLine.unitPrice * (taxLine.discountPercent / 100) * 100) /
+            100
           : 0;
         const totalLineDiscount =
           Math.round((origDiscountAmt + taxLine.allocatedCartDiscount) * 100) / 100;

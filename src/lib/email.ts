@@ -16,7 +16,9 @@ export interface SendEmailOptions {
   };
 }
 
-export async function sendEmail(options: SendEmailOptions): Promise<{ success: boolean; messageId?: string }> {
+export async function sendEmail(
+  options: SendEmailOptions
+): Promise<{ success: boolean; messageId?: string }> {
   const { to, subject, template, data } = options;
   const appName = data?.appName || 'RISMOS';
 

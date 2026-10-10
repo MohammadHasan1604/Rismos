@@ -155,7 +155,8 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
             Print & Digital Invoice Template Engine
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Configure visual template overlay, upload Canva design exports, map custom field placements, and preview high-density tax invoices.
+            Configure visual template overlay, upload Canva design exports, map custom field
+            placements, and preview high-density tax invoices.
           </p>
         </div>
         <button
@@ -195,7 +196,8 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
             <div>
               <span className="font-bold text-foreground text-xs block">Invoice Template Mode</span>
               <span className="text-2xs text-muted-foreground block">
-                Choose between standard responsive enterprise invoice or custom field-mapped overlay on uploaded artwork.
+                Choose between standard responsive enterprise invoice or custom field-mapped overlay
+                on uploaded artwork.
               </span>
             </div>
             <div className="flex items-center gap-1.5 p-1 bg-card rounded-lg border border-border">
@@ -257,7 +259,9 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
                     <input
                       type="checkbox"
                       checked={selectedField.visible}
-                      onChange={(e) => updateField(selectedField.key, { visible: e.target.checked })}
+                      onChange={(e) =>
+                        updateField(selectedField.key, { visible: e.target.checked })
+                      }
                       className="rounded border-input text-primary"
                     />
                     <span>Visible on Invoice</span>
@@ -398,7 +402,8 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
             Custom Canva Background Template Upload
           </label>
           <p className="text-2xs text-muted-foreground leading-relaxed">
-            Upload custom PDF/PNG/WebP designs exported from Canva or Adobe. All dynamic fiscal data and product tables will overlay accurately over your custom artwork.
+            Upload custom PDF/PNG/WebP designs exported from Canva or Adobe. All dynamic fiscal data
+            and product tables will overlay accurately over your custom artwork.
           </p>
           <div className="flex items-center gap-3 pt-1">
             {isSuperAdmin && (
@@ -426,7 +431,9 @@ export const InvoiceTab: React.FC<InvoiceTabProps> = ({
         </div>
 
         <div>
-          <label className="font-bold text-foreground block mb-1">Invoice Header Business Title *</label>
+          <label className="font-bold text-foreground block mb-1">
+            Invoice Header Business Title *
+          </label>
           <input
             type="text"
             required

@@ -20,8 +20,18 @@ export const VendorPaymentVoucherModal: React.FC<VendorPaymentVoucherModalProps>
   currentUser,
   setProofViewerData,
 }) => {
-  const { branding, formatCurrency, dateLocale } = useApp();
+  const { branding, formatCurrency, dateLocale, systemSettings } = useApp();
   if (!voucher) return null;
+
+  const countryCode = systemSettings?.countryCode || branding?.countryCode || 'IN';
+  const taxIdLabel =
+    countryCode === 'IN'
+      ? 'GSTIN'
+      : countryCode === 'AE'
+        ? 'TRN'
+        : countryCode === 'GB' || countryCode === 'SA'
+          ? 'VAT'
+          : 'Tax ID';
 
   return (
     <Modal
@@ -65,7 +75,7 @@ export const VendorPaymentVoucherModal: React.FC<VendorPaymentVoucherModalProps>
               <strong className="text-foreground text-xs block">{voucher.vendorName}</strong>
               {voucher.vendorGstin && (
                 <span className="text-muted-foreground font-mono block">
-                  GSTIN: {voucher.vendorGstin}
+                  {taxIdLabel}: {voucher.vendorGstin}
                 </span>
               )}
               {voucher.vendorPhone && (

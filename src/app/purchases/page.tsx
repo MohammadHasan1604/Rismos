@@ -515,8 +515,7 @@ export default function PurchasesPage() {
                                   </span>
                                   <div className="flex items-center gap-3 text-3xs font-tabular">
                                     <span>
-                                      Total Cost:{' '}
-                                      <strong>{formatCurrency(po.totalAmount)}</strong>
+                                      Total Cost: <strong>{formatCurrency(po.totalAmount)}</strong>
                                     </span>
                                     <span>
                                       Already Paid:{' '}
@@ -534,7 +533,10 @@ export default function PurchasesPage() {
                                             : 'text-emerald-600'
                                         }
                                       >
-                                        {formatCurrency(po.remainingAmount ?? (po.totalAmount - (po.paidAmount || 0)))}
+                                        {formatCurrency(
+                                          po.remainingAmount ??
+                                            po.totalAmount - (po.paidAmount || 0)
+                                        )}
                                       </strong>
                                     </span>
                                   </div>

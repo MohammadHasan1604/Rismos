@@ -118,7 +118,7 @@ export default function LoginForm() {
           `Signed in as ${result.user.role} (${result.user.email})`
         );
         toast.success(`Welcome back, ${result.user.name}!`);
-        
+
         // Phase 1 Requirement: Successful login continues directly to /sales
         router.push('/sales');
         return;
@@ -187,11 +187,16 @@ export default function LoginForm() {
         {/* Security Lockout Banner */}
         {isLocked && (
           <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-start gap-3 shadow-sm">
-            <Icon name="LockClosedIcon" size={18} className="mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <Icon
+              name="LockClosedIcon"
+              size={18}
+              className="mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400"
+            />
             <div className="space-y-1 flex-1">
               <p className="font-bold text-xs">Security Lockout Active</p>
               <p className="text-2xs opacity-90 leading-relaxed">
-                Multiple consecutive failed login attempts detected. For security, sign in is temporarily suspended.
+                Multiple consecutive failed login attempts detected. For security, sign in is
+                temporarily suspended.
               </p>
               <p className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 pt-1">
                 Unlock in: {Math.floor(lockoutSeconds / 60)}m {lockoutSeconds % 60}s
@@ -229,7 +234,9 @@ export default function LoginForm() {
                 className="absolute left-3.5 top-3 text-muted-foreground pointer-events-none"
               />
             </div>
-            {errors.email && <p className="text-2xs text-danger font-medium mt-1.5">{errors.email.message}</p>}
+            {errors.email && (
+              <p className="text-2xs text-danger font-medium mt-1.5">{errors.email.message}</p>
+            )}
           </div>
 
           <div>

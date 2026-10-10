@@ -734,7 +734,7 @@
     overflow: hidden !important;
     overscroll-behavior: contain;
   }
-  body.modal-open nav[aria-label="Mobile navigation"] {
+  body.modal-open nav[aria-label='Mobile navigation'] {
     pointer-events: none !important;
   }
 

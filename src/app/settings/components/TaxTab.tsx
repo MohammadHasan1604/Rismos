@@ -99,7 +99,8 @@ export const TaxTab: React.FC<TaxTabProps> = ({
           International Tax & Fiscal Compliance Engine
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Configure jurisdiction-specific tax rules, tax ID registration, inclusive/exclusive pricing modes, and billing compliance for your business location.
+          Configure jurisdiction-specific tax rules, tax ID registration, inclusive/exclusive
+          pricing modes, and billing compliance for your business location.
         </p>
       </div>
 
@@ -128,9 +129,7 @@ export const TaxTab: React.FC<TaxTabProps> = ({
                 </option>
               ))}
             </select>
-            <p className="text-2xs text-muted-foreground mt-1">
-              {currentJurisdiction.description}
-            </p>
+            <p className="text-2xs text-muted-foreground mt-1">{currentJurisdiction.description}</p>
           </div>
 
           <div>
@@ -166,7 +165,7 @@ export const TaxTab: React.FC<TaxTabProps> = ({
             <p className="text-2xs text-muted-foreground mt-1">
               {taxInclusivePricing
                 ? 'Item shelf prices include tax (Standard in UK, EU, UAE, India, Australia).'
-                : 'Item shelf prices exclude tax; taxes added at checkout (Standard in US).' }
+                : 'Item shelf prices exclude tax; taxes added at checkout (Standard in US).'}
             </p>
           </div>
         </div>
@@ -292,7 +291,9 @@ export const TaxTab: React.FC<TaxTabProps> = ({
 
             {currentJurisdiction.registrationTypes.length > 0 && (
               <div>
-                <label className="font-bold text-foreground block mb-1">Registration Category</label>
+                <label className="font-bold text-foreground block mb-1">
+                  Registration Category
+                </label>
                 <select
                   disabled={!isSuperAdmin}
                   value={gstRegistrationType}
@@ -312,7 +313,9 @@ export const TaxTab: React.FC<TaxTabProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="font-bold text-foreground block mb-1">Legal Registered Entity Name</label>
+            <label className="font-bold text-foreground block mb-1">
+              Legal Registered Entity Name
+            </label>
             <input
               type="text"
               disabled={!isSuperAdmin}
@@ -323,7 +326,9 @@ export const TaxTab: React.FC<TaxTabProps> = ({
             />
           </div>
           <div>
-            <label className="font-bold text-foreground block mb-1">Trade / Doing-Business-As (DBA)</label>
+            <label className="font-bold text-foreground block mb-1">
+              Trade / Doing-Business-As (DBA)
+            </label>
             <input
               type="text"
               disabled={!isSuperAdmin}

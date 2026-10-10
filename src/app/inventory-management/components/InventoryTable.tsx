@@ -674,10 +674,7 @@ export default function InventoryTable({
 
                         if (col.key === 'name')
                           return (
-                            <td
-                              key={`cell-${item.id}-name`}
-                              className="table-cell max-w-[240px]"
-                            >
+                            <td key={`cell-${item.id}-name`} className="table-cell max-w-[240px]">
                               <div className="flex items-center gap-2.5">
                                 {item.primaryImage ||
                                 (item.images && item.images[0]) ||

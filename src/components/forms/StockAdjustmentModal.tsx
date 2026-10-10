@@ -202,7 +202,12 @@ export default function StockAdjustmentModal({
         </div>
       }
     >
-      <form id="stock-adjustment-form" onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 py-2 text-xs">
+      <form
+        id="stock-adjustment-form"
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        className="space-y-4 py-2 text-xs"
+      >
         {/* Stock Delta Banner */}
         <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/40 border border-border">
           <div className="text-center">

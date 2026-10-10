@@ -164,16 +164,24 @@ export async function authenticateRequest(req: NextRequest | Request): Promise<A
     if (dbSession.lastSeenAt) {
       const elapsedSinceLastSeen = now - new Date(dbSession.lastSeenAt).getTime();
       if (elapsedSinceLastSeen > maxInactivityMs) {
-        return { user: null, error: 'Session expired due to inactivity. Please log in again.', status: 401 };
+        return {
+          user: null,
+          error: 'Session expired due to inactivity. Please log in again.',
+          status: 401,
+        };
       }
     }
 
     // Throttled update of lastSeenAt (once every 60 seconds)
     if (!dbSession.lastSeenAt || now - new Date(dbSession.lastSeenAt).getTime() > 60_000) {
-      (prisma as any).userSession.update({
-        where: { id: dbSession.id },
-        data: { lastSeenAt: new Date() },
-      }).catch((err: any) => console.warn('[AuthPipeline] Throttled lastSeenAt update warning:', err));
+      (prisma as any).userSession
+        .update({
+          where: { id: dbSession.id },
+          data: { lastSeenAt: new Date() },
+        })
+        .catch((err: any) =>
+          console.warn('[AuthPipeline] Throttled lastSeenAt update warning:', err)
+        );
     }
 
     dbSessionId = dbSession.id;

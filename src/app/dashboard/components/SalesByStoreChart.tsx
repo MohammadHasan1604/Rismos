@@ -55,7 +55,15 @@ const barColors = [
 ];
 
 export default function SalesByStoreChart() {
-  const { sales, storesList, selectedStore, datePeriod, customDateRange, formatCurrency, systemSettings } = useApp();
+  const {
+    sales,
+    storesList,
+    selectedStore,
+    datePeriod,
+    customDateRange,
+    formatCurrency,
+    systemSettings,
+  } = useApp();
   const sym = systemSettings?.currencySymbol || '₹';
   const isIndia = (systemSettings?.countryCode || 'IN').toUpperCase() === 'IN';
 
@@ -102,7 +110,10 @@ export default function SalesByStoreChart() {
           axisLine={false}
           width={48}
         />
-        <Tooltip content={<CustomTooltip formatCurrency={formatCurrency} />} cursor={{ fill: 'var(--muted)', opacity: 0.5 }} />
+        <Tooltip
+          content={<CustomTooltip formatCurrency={formatCurrency} />}
+          cursor={{ fill: 'var(--muted)', opacity: 0.5 }}
+        />
         <Bar dataKey="sales" radius={[4, 4, 0, 0]}>
           {data.map((entry, idx) => {
             const isHighlight = selectedStore === 'All Stores' || entry.isSelected;

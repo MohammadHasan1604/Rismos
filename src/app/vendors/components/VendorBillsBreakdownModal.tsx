@@ -42,7 +42,10 @@ export const VendorBillsBreakdownModal: React.FC<VendorBillsBreakdownModalProps>
       size="large-form"
       footer={
         <div className="flex justify-end w-full">
-          <button onClick={onClose} className="btn-secondary text-xs cursor-pointer flex-1 sm:flex-initial">
+          <button
+            onClick={onClose}
+            className="btn-secondary text-xs cursor-pointer flex-1 sm:flex-initial"
+          >
             Close Payables
           </button>
         </div>
@@ -233,7 +236,9 @@ export const VendorBillsBreakdownModal: React.FC<VendorBillsBreakdownModalProps>
                         className={`font-semibold ${isOverdue ? 'text-danger' : 'text-foreground'}`}
                       >
                         {bill.effectiveDueDate
-                          ? new Date(bill.effectiveDueDate).toLocaleDateString(dateLocale || 'en-IN')
+                          ? new Date(bill.effectiveDueDate).toLocaleDateString(
+                              dateLocale || 'en-IN'
+                            )
                           : 'Net 30'}
                       </span>
                     </div>

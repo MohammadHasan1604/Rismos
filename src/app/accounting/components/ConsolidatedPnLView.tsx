@@ -108,7 +108,8 @@ export const ConsolidatedPnLView: React.FC<ConsolidatedPnLViewProps> = ({
             {formatCurrency(consolidatedData.totalExpenses)}
           </p>
           <p className="text-2xs text-muted-foreground mt-1">
-            Store ({formatCurrency(consolidatedData.storeOperatingExpenses)}) + Central ({formatCurrency(consolidatedData.centralExpenses)})
+            Store ({formatCurrency(consolidatedData.storeOperatingExpenses)}) + Central (
+            {formatCurrency(consolidatedData.centralExpenses)})
           </p>
         </div>
 

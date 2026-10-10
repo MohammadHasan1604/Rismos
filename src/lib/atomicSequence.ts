@@ -67,9 +67,7 @@ export async function getNextSequenceNumber(
         FOR UPDATE
       `;
       nextValue =
-        refetched?.[0]?.current_value !== undefined
-          ? BigInt(refetched[0].current_value)
-          : startVal;
+        refetched?.[0]?.current_value !== undefined ? BigInt(refetched[0].current_value) : startVal;
     } else {
       const current = BigInt(rows[0].current_value ?? 0);
       nextValue = current + BigInt(1);

@@ -56,7 +56,8 @@ export async function POST(req: NextRequest) {
       // 🔒 Anti-Enumeration: Return generic success even if user does not exist
       return NextResponse.json({
         success: true,
-        message: 'If the provided email corresponds to an active account, a password reset link has been dispatched.',
+        message:
+          'If the provided email corresponds to an active account, a password reset link has been dispatched.',
       });
     }
 

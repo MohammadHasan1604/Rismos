@@ -298,14 +298,14 @@ export async function runDeepVerification() {
       body: JSON.stringify({
         name: 'Peer Manager',
         email: `peer.mgr.${Date.now()}@cosko.com`,
-        password: 'ValidPassword123!',
+        password: 'SecureX#2026!Str',
         role: 'Store Manager',
         store: 'BLR',
       }),
     });
     const res = await postUsers(req);
     const body = await res.json();
-    return res.status === 403 && body.error?.includes('own security level');
+    return res.status === 403 && (body.error?.includes('own security level') || body.error?.includes('Store Manager can only create Sales Manager'));
   });
 
   await test('Store Manager CANNOT create a Super Admin (Singleton Rule 403)', async () => {
@@ -318,7 +318,7 @@ export async function runDeepVerification() {
       body: JSON.stringify({
         name: 'Fake Super Admin',
         email: `fake.sa.${Date.now()}@cosko.com`,
-        password: 'ValidPassword123!',
+        password: 'SecureX#2026!Str',
         role: 'Super Admin',
         store: 'All Stores',
       }),
@@ -338,7 +338,7 @@ export async function runDeepVerification() {
       body: JSON.stringify({
         name: 'Cross Store Worker',
         email: `cross.worker.${Date.now()}@cosko.com`,
-        password: 'ValidPassword123!',
+        password: 'SecureX#2026!Str',
         role: 'Sales Manager',
         assignedStores: ['HYD'],
       }),

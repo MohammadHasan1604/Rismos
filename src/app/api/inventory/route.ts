@@ -507,8 +507,7 @@ export async function PUT(req: NextRequest) {
 
     // Verify inventory ID ownership if body.inventoryId or an inventory ID was supplied
     const possibleInvId =
-      body.inventoryId ||
-      (body.id && product && body.id !== product.id ? body.id : null);
+      body.inventoryId || (body.id && product && body.id !== product.id ? body.id : null);
     if (possibleInvId) {
       const invCheck = await prisma.inventory
         .findUnique({ where: { id: possibleInvId } })

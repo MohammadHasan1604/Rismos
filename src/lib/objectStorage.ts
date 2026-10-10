@@ -220,10 +220,7 @@ export async function uploadToStorage(
         process.env.NEXT_PUBLIC_R2_URL ||
         process.env.STORAGE_PUBLIC_URL;
 
-      const safeKeyPath = key
-        .split('/')
-        .map(encodeURIComponent)
-        .join('/');
+      const safeKeyPath = key.split('/').map(encodeURIComponent).join('/');
 
       const url = isPrivate
         ? `/api/files/${safeKeyPath}`
@@ -271,14 +268,9 @@ export async function uploadToStorage(
     const localPath = path.join(localDir, localFilename);
     await fs.writeFile(localPath, buffer);
 
-    const safeKeyPath = key
-      .split('/')
-      .map(encodeURIComponent)
-      .join('/');
+    const safeKeyPath = key.split('/').map(encodeURIComponent).join('/');
 
-    const url = isPrivate
-      ? `/api/files/${safeKeyPath}`
-      : `/uploads/${bucket}/${localFilename}`;
+    const url = isPrivate ? `/api/files/${safeKeyPath}` : `/uploads/${bucket}/${localFilename}`;
     return { success: true, url, key, size: buffer.length, mimeType, isPrivate };
   } catch (localErr: any) {
     return { success: false, url: '', key, size: 0, mimeType, isPrivate, error: localErr.message };

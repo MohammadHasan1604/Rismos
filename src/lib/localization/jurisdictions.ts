@@ -97,7 +97,8 @@ export const LAUNCH_JURISDICTIONS: Record<string, JurisdictionProfile> = {
       { code: '37', name: 'Andhra Pradesh' },
       { code: '38', name: 'Ladakh' },
     ],
-    description: 'Central and State GST framework with CGST/SGST intrastate and IGST interstate splits.',
+    description:
+      'Central and State GST framework with CGST/SGST intrastate and IGST interstate splits.',
   },
 
   AE: {
@@ -127,7 +128,8 @@ export const LAUNCH_JURISDICTIONS: Record<string, JurisdictionProfile> = {
       { code: 'FUJ', name: 'Fujairah' },
       { code: 'UAQ', name: 'Umm Al Quwain' },
     ],
-    description: 'Federal Tax Authority (FTA) unified VAT rules across all 7 Emirates at standard 5%.',
+    description:
+      'Federal Tax Authority (FTA) unified VAT rules across all 7 Emirates at standard 5%.',
   },
 
   SA: {
@@ -157,7 +159,8 @@ export const LAUNCH_JURISDICTIONS: Record<string, JurisdictionProfile> = {
       { code: 'TB', name: 'Tabuk' },
       { code: 'QA', name: 'Al-Qassim' },
     ],
-    description: 'ZATCA value-added tax at 15% standard rate with cryptographic e-invoicing readiness.',
+    description:
+      'ZATCA value-added tax at 15% standard rate with cryptographic e-invoicing readiness.',
   },
 
   GB: {
@@ -184,7 +187,8 @@ export const LAUNCH_JURISDICTIONS: Record<string, JurisdictionProfile> = {
       { code: 'WLS', name: 'Wales' },
       { code: 'NIR', name: 'Northern Ireland' },
     ],
-    description: 'HM Revenue & Customs VAT with standard (20%), reduced domestic (5%), and zero-rated tiers.',
+    description:
+      'HM Revenue & Customs VAT with standard (20%), reduced domestic (5%), and zero-rated tiers.',
   },
 
   US: {
@@ -204,7 +208,11 @@ export const LAUNCH_JURISDICTIONS: Record<string, JurisdictionProfile> = {
     hasStateTaxBreakdown: true, // State tax + County/City local tax
     hasHsnSac: false,
     taxInclusivePricingMode: false, // US shelf pricing is strictly tax-exclusive
-    registrationTypes: ['State Registered Retailer', 'Reseller Certificate (Exempt)', 'Nexus Out-of-State'],
+    registrationTypes: [
+      'State Registered Retailer',
+      'Reseller Certificate (Exempt)',
+      'Nexus Out-of-State',
+    ],
     subdivisions: [
       { code: 'CA', name: 'California' },
       { code: 'TX', name: 'Texas' },
@@ -223,7 +231,8 @@ export const LAUNCH_JURISDICTIONS: Record<string, JurisdictionProfile> = {
       { code: 'NH', name: 'New Hampshire (0% Sales Tax)' },
       { code: 'MT', name: 'Montana (0% Sales Tax)' },
     ],
-    description: 'State and local jurisdiction sales tax engine. Shelf prices are exclusive; tax calculated at checkout.',
+    description:
+      'State and local jurisdiction sales tax engine. Shelf prices are exclusive; tax calculated at checkout.',
   },
 
   AU: {
@@ -254,7 +263,8 @@ export const LAUNCH_JURISDICTIONS: Record<string, JurisdictionProfile> = {
       { code: 'ACT', name: 'Australian Capital Territory' },
       { code: 'NT', name: 'Northern Territory' },
     ],
-    description: 'Australian Taxation Office unified GST at 10% standard rate across all states and territories.',
+    description:
+      'Australian Taxation Office unified GST at 10% standard rate across all states and territories.',
   },
 
   ZA: {
@@ -286,7 +296,8 @@ export const LAUNCH_JURISDICTIONS: Record<string, JurisdictionProfile> = {
       { code: 'NC', name: 'Northern Cape' },
       { code: 'NW', name: 'North West' },
     ],
-    description: 'South African Revenue Service (SARS) VAT at standard 15% rate with mandatory Tax Invoice title.',
+    description:
+      'South African Revenue Service (SARS) VAT at standard 15% rate with mandatory Tax Invoice title.',
   },
 };
 

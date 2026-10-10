@@ -451,7 +451,9 @@ export default function SalesPage() {
       prev.map((c) => {
         if (c.itemId === itemId) {
           if (newPrice !== '' && Number(newPrice) < c.unitCost) {
-            toast.warning(`Warning: Price ${formatCurrency(newPrice)} is below purchase cost ${formatCurrency(c.unitCost)}!`);
+            toast.warning(
+              `Warning: Price ${formatCurrency(newPrice)} is below purchase cost ${formatCurrency(c.unitCost)}!`
+            );
           }
           addAuditLog(
             'Sales',
@@ -487,7 +489,14 @@ export default function SalesPage() {
       ];
     }
     return [{ label: `${taxLabel} (${activeTaxRate}%)`, amount: cartTax }];
-  }, [gstInvoiceEnabled, cartTax, jurProfile.hasStateTaxBreakdown, countryCode, activeTaxRate, taxLabel]);
+  }, [
+    gstInvoiceEnabled,
+    cartTax,
+    jurProfile.hasStateTaxBreakdown,
+    countryCode,
+    activeTaxRate,
+    taxLabel,
+  ]);
 
   const cartTotal = useMemo(() => {
     return Math.max(0, cartSubtotal + cartTax - cartDiscount);
@@ -807,9 +816,7 @@ export default function SalesPage() {
                       <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center justify-between text-xs fade-in">
                         <div>
                           <p className="font-bold text-foreground">No Customer Found</p>
-                          <p className="text-2xs text-muted-foreground">
-                            {customerSearchQuery}
-                          </p>
+                          <p className="text-2xs text-muted-foreground">{customerSearchQuery}</p>
                         </div>
                         <button
                           type="button"
@@ -1060,7 +1067,9 @@ export default function SalesPage() {
 
                   {/* Tax Invoice Toggle */}
                   <div className="flex items-center gap-2">
-                    <span className="text-2xs font-bold text-muted-foreground">{taxLabel} Invoice:</span>
+                    <span className="text-2xs font-bold text-muted-foreground">
+                      {taxLabel} Invoice:
+                    </span>
                     <ToggleSwitch
                       checked={gstInvoiceEnabled}
                       onChange={setGstInvoiceEnabled}
@@ -1183,7 +1192,9 @@ export default function SalesPage() {
                               {canViewCost && (
                                 <span className="text-3xs text-muted-foreground block">
                                   Ref Cost:{' '}
-                                  <span className="font-mono font-medium">{formatCurrency(c.unitCost)}</span>
+                                  <span className="font-mono font-medium">
+                                    {formatCurrency(c.unitCost)}
+                                  </span>
                                 </span>
                               )}
                             </div>
@@ -1216,8 +1227,8 @@ export default function SalesPage() {
                           {isBelowCost && (
                             <div className="p-1.5 rounded-lg bg-danger/10 border border-danger/30 text-danger text-3xs font-bold flex items-center gap-1">
                               <Icon name="ExclamationTriangleIcon" size={12} />
-                              Below Authoritative Cost Warning (Cost: {formatCurrency(c.unitCost)}). Authorized
-                              override active.
+                              Below Authoritative Cost Warning (Cost: {formatCurrency(c.unitCost)}).
+                              Authorized override active.
                             </div>
                           )}
                         </div>
@@ -1234,7 +1245,10 @@ export default function SalesPage() {
                   </div>
                   {gstInvoiceEnabled ? (
                     taxBreakdown.map((tb, idx) => (
-                      <div key={`tb-${idx}`} className="flex justify-between text-muted-foreground text-2xs">
+                      <div
+                        key={`tb-${idx}`}
+                        className="flex justify-between text-muted-foreground text-2xs"
+                      >
                         <span>{tb.label}:</span>
                         <span>{formatCurrency(tb.amount)}</span>
                       </div>
@@ -1242,7 +1256,9 @@ export default function SalesPage() {
                   ) : (
                     <div className="flex justify-between text-muted-foreground">
                       <span>{taxLabel} Amount:</span>
-                      <span className="text-2xs font-semibold">{formatCurrency(0)} (Non-{taxLabel} Invoice)</span>
+                      <span className="text-2xs font-semibold">
+                        {formatCurrency(0)} (Non-{taxLabel} Invoice)
+                      </span>
                     </div>
                   )}
                   {cartDiscount > 0 && (
@@ -1607,7 +1623,13 @@ export default function SalesPage() {
           setSelectedCustomerToEdit(null);
         }}
         customer={selectedCustomerToEdit || undefined}
-        initialPhone={customerPhoneDigits ? (customerPhoneDigits.startsWith('+') ? customerPhoneDigits : `${dialCode} ${customerPhoneDigits}`) : undefined}
+        initialPhone={
+          customerPhoneDigits
+            ? customerPhoneDigits.startsWith('+')
+              ? customerPhoneDigits
+              : `${dialCode} ${customerPhoneDigits}`
+            : undefined
+        }
         onSuccess={(created) => {
           attachCustomer(created);
           setQuickRegModal(false);

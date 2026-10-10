@@ -1,0 +1,97 @@
+name: RISMOS Production CI & Release Quality Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rismos-release-gate:
+    name: Production Release Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: rismos_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    env:
+      NODE_ENV: test
+      NEXT_TELEMETRY_DISABLED: 1
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/rismos_test
+      AUTH_SECRET: ci-test-auth-secret-at-least-32-chars-long-2026
+      JWT_SECRET: ci-test-jwt-secret-at-least-32-chars-long-2026
+      CRON_SECRET: test_ci_cron_secret_token_2026
+      NEXT_PUBLIC_APP_URL: http://localhost:4028
+      APP_URL: http://localhost:4028
+
+    steps:
+      - name: 1. Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 2. Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 3. Install Dependencies (Clean State)
+        run: npm ci
+
+      - name: 4. Generate Prisma Client
+        run: npx prisma generate
+
+      - name: 5. Apply Authoritative Database Migrations
+        run: |
+          npx prisma db push --skip-generate
+          npm run db:migrate
+          npm run seed
+
+      - name: 6. Type-Check App, Tests & Scripts
+        run: npm run type-check:all
+
+      - name: 7. Run ESLint Code Analysis
+        run: npm run lint
+
+      - name: 8. Execute Unit Regression Suite
+        run: npm run test:unit
+
+      - name: 9. Execute Integration Suite
+        run: npm run test:integration
+
+      - name: 10. Execute Security Suite
+        run: npm run test:security
+
+      - name: 11. Execute RISMOS White-Label Suite
+        run: npm run test:rismos
+
+      - name: 12. Execute Localization Matrix Suite
+        run: npm run test:localization
+
+      - name: 13. Execute Invoice & Financial Hotfix Suite
+        run: npm run test:invoice
+
+      - name: 14. Execute Database & Ledger Security Suite
+        run: npm run test:database
+
+      - name: 15. Execute Responsive & Viewport Overflow Suite
+        run: npm run test:responsive
+
+      - name: 16. Execute End-to-End Production Journey Suite
+        run: npm run test:e2e
+
+      - name: 17. Execute Production Next.js Build Gate
+        run: npm run build
+        env:
+          NODE_ENV: production

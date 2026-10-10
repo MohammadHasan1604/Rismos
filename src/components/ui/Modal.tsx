@@ -284,9 +284,11 @@ export default function Modal({
   // - Standard: Adaptive height bottom sheet (up to 92dvh / vv-height)
   // - Large: Near full viewport sheet (up to 95dvh / vv-height)
   // - Workflow: Near-full / full-screen workflow
-  let mobileClasses = 'rounded-t-2xl md:rounded-2xl max-h-[min(85dvh,calc(var(--vv-height,100dvh)-24px))]';
+  let mobileClasses =
+    'rounded-t-2xl md:rounded-2xl max-h-[min(85dvh,calc(var(--vv-height,100dvh)-24px))]';
   if (isStandard) {
-    mobileClasses = 'rounded-t-2xl md:rounded-2xl max-h-[min(92dvh,calc(var(--vv-height,100dvh)-16px))]';
+    mobileClasses =
+      'rounded-t-2xl md:rounded-2xl max-h-[min(92dvh,calc(var(--vv-height,100dvh)-16px))]';
   } else if (isLarge) {
     mobileClasses =
       'rounded-t-2xl md:rounded-2xl max-h-[min(calc(100dvh-12px),calc(var(--vv-height,100dvh)-12px))]';

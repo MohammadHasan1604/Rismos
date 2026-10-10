@@ -237,15 +237,32 @@ export function formatTransferAmount(
 ): string {
   const num = typeof amount === 'number' && isFinite(amount) ? round2(amount) : 0;
   const decimals = options.decimals !== undefined ? options.decimals : 2;
-  const currencySymbol = options.currencySymbol !== undefined
-    ? options.currencySymbol
-    : (options.currencyCode === 'AED' ? 'AED' : options.currencyCode === 'USD' ? '$' : options.currencyCode === 'GBP' ? '£' : options.currencyCode === 'SAR' ? 'SAR' : options.currencyCode === 'AUD' ? 'A$' : options.currencyCode === 'ZAR' ? 'R' : options.currencyCode === 'INR' ? '₹' : (options.currencyCode || ''));
+  const currencySymbol =
+    options.currencySymbol !== undefined
+      ? options.currencySymbol
+      : options.currencyCode === 'AED'
+        ? 'AED'
+        : options.currencyCode === 'USD'
+          ? '$'
+          : options.currencyCode === 'GBP'
+            ? '£'
+            : options.currencyCode === 'SAR'
+              ? 'SAR'
+              : options.currencyCode === 'AUD'
+                ? 'A$'
+                : options.currencyCode === 'ZAR'
+                  ? 'R'
+                  : options.currencyCode === 'INR'
+                    ? '₹'
+                    : options.currencyCode || '';
   const locale = options.locale || 'en-US';
 
   // Handle zero cleanly (avoid -0.00 or +0.00)
   if (Math.abs(num) < 0.00001) {
     const zeroValue = decimals === 0 ? '0' : '0.00';
-    return currencySymbol.length > 1 ? `${currencySymbol} ${zeroValue}` : `${currencySymbol}${zeroValue}`;
+    return currencySymbol.length > 1
+      ? `${currencySymbol} ${zeroValue}`
+      : `${currencySymbol}${zeroValue}`;
   }
 
   const absFormatted = Math.abs(num).toLocaleString(locale, {
@@ -253,9 +270,10 @@ export function formatTransferAmount(
     maximumFractionDigits: decimals,
   });
 
-  const formattedWithSymbol = currencySymbol.length > 1
-    ? `${currencySymbol} ${absFormatted}`
-    : `${currencySymbol}${absFormatted}`;
+  const formattedWithSymbol =
+    currencySymbol.length > 1
+      ? `${currencySymbol} ${absFormatted}`
+      : `${currencySymbol}${absFormatted}`;
 
   if (num < 0) {
     return `-${formattedWithSymbol}`;

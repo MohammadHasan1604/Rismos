@@ -45,7 +45,10 @@ export async function verifySensitiveAction(
   actionType: SensitiveActionType
 ): Promise<SensitiveActionVerificationResult> {
   // 1. RBAC Pre-checks: Role escalation or store deletion strictly requires Super Admin
-  if (actionType === 'ROLE_ESCALATION' && (user.role !== 'Super Admin' || user.securityLevel < 100)) {
+  if (
+    actionType === 'ROLE_ESCALATION' &&
+    (user.role !== 'Super Admin' || user.securityLevel < 100)
+  ) {
     return {
       allowed: false,
       error: 'Forbidden: Role changes and privilege modifications require Super Admin credentials.',

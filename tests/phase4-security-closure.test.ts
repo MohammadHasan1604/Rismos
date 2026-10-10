@@ -745,7 +745,7 @@ async function runPhase4Matrix() {
       const req = makeRequest('/api/users', 'POST', blrMgrSess.token, {
         name: 'Attempted Store Manager',
         email: `sm.attempt_${Date.now()}@cosko.com`,
-        password: 'Password123!',
+        password: 'SecureX#2026!Str',
         role: 'Store Manager',
         store: 'BLR',
       });
@@ -758,7 +758,7 @@ async function runPhase4Matrix() {
       const req = makeRequest('/api/users', 'POST', blrMgrSess.token, {
         name: 'Attempted Cross-Store Sales Manager',
         email: `sm.che.attempt_${Date.now()}@cosko.com`,
-        password: 'Password123!',
+        password: 'SecureX#2026!Str',
         role: 'Sales Manager',
         store: 'CHE',
         assignedStores: ['CHE'],

@@ -6,8 +6,16 @@ import Icon from '@/components/ui/AppIcon';
 import Link from 'next/link';
 
 export default function GlobalSearchModal() {
-  const { searchOpen, setSearchOpen, inventory, customers, sales, branding, currentUser, formatCurrency } =
-    useApp();
+  const {
+    searchOpen,
+    setSearchOpen,
+    inventory,
+    customers,
+    sales,
+    branding,
+    currentUser,
+    formatCurrency,
+  } = useApp();
   const [query, setQuery] = useState('');
   const [mounted, setMounted] = useState(false);
 

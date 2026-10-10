@@ -101,7 +101,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
       setCountry(jurisdiction.countryName);
       setTimezone(jurisdiction.defaultTimezone);
       setLocale(jurisdiction.defaultLocale);
-      setBaseCurrency(`${jurisdiction.defaultCurrencyCode} (${jurisdiction.defaultCurrencySymbol})`);
+      setBaseCurrency(
+        `${jurisdiction.defaultCurrencyCode} (${jurisdiction.defaultCurrencySymbol})`
+      );
     }
   };
 
@@ -112,7 +114,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           Global Business & Enterprise Profile
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Authoritative legal headquarters, international jurisdiction, contact information, and default currency applied to invoices and receipts.
+          Authoritative legal headquarters, international jurisdiction, contact information, and
+          default currency applied to invoices and receipts.
         </p>
       </div>
 
@@ -245,7 +248,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             />
           </div>
           <div>
-            <label className="font-bold text-foreground block mb-1">State / Province / Region</label>
+            <label className="font-bold text-foreground block mb-1">
+              State / Province / Region
+            </label>
             <input
               type="text"
               disabled={!isSuperAdmin}
@@ -256,9 +261,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             />
           </div>
           <div>
-            <label className="font-bold text-foreground block mb-1">
-              Postal / ZIP Code
-            </label>
+            <label className="font-bold text-foreground block mb-1">Postal / ZIP Code</label>
             <input
               type="text"
               maxLength={32}
@@ -286,7 +289,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             ))}
           </select>
           <p className="text-2xs text-muted-foreground mt-1">
-            All prices, inventory valuations, register totals, and transactions will format using this base currency and symbol.
+            All prices, inventory valuations, register totals, and transactions will format using
+            this base currency and symbol.
           </p>
         </div>
       </div>

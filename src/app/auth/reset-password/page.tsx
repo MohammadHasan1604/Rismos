@@ -5,7 +5,11 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
-import { validatePassword, getPasswordStrengthDisplay, PasswordValidationResult } from '@/lib/passwordPolicy';
+import {
+  validatePassword,
+  getPasswordStrengthDisplay,
+  PasswordValidationResult,
+} from '@/lib/passwordPolicy';
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams();
@@ -113,7 +117,8 @@ function ResetPasswordContent() {
 
       <div>
         <label className="text-xs font-semibold text-foreground block mb-1">
-          New Password (12+ characters, uppercase, lowercase, numbers, symbols) <span className="text-red-500">*</span>
+          New Password (12+ characters, uppercase, lowercase, numbers, symbols){' '}
+          <span className="text-red-500">*</span>
         </label>
         <div className="relative">
           <input
@@ -210,15 +215,19 @@ export default function ResetPasswordPage() {
           <div className="inline-flex items-center justify-center p-3 bg-primary/5 rounded-2xl border border-primary/10 mb-2">
             <AppLogo size={36} showText={true} />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Create New Password
-          </h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Create New Password</h1>
           <p className="text-xs text-muted-foreground">
             Please choose an enterprise-compliant password (minimum 12 characters).
           </p>
         </div>
 
-        <Suspense fallback={<div className="text-center py-6 text-xs text-muted-foreground">Loading reset verification...</div>}>
+        <Suspense
+          fallback={
+            <div className="text-center py-6 text-xs text-muted-foreground">
+              Loading reset verification...
+            </div>
+          }
+        >
           <ResetPasswordContent />
         </Suspense>
       </div>

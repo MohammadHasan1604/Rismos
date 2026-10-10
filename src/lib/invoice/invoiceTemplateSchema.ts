@@ -231,7 +231,9 @@ export const DEFAULT_INVOICE_CONFIG: InvoiceTemplateConfig = {
 /**
  * Validates and parses serialized invoice field mapping JSON
  */
-export function parseInvoiceTemplateConfig(rawJson: string | null | undefined): InvoiceTemplateConfig {
+export function parseInvoiceTemplateConfig(
+  rawJson: string | null | undefined
+): InvoiceTemplateConfig {
   if (!rawJson) return DEFAULT_INVOICE_CONFIG;
   try {
     const parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
@@ -247,7 +249,10 @@ export function parseInvoiceTemplateConfig(rawJson: string | null | undefined): 
           visible: f.visible !== false,
           xPercent: Math.max(0, Math.min(100, Number(f.xPercent) || 0)),
           yPercent: Math.max(0, Math.min(100, Number(f.yPercent) || 0)),
-          widthPercent: f.widthPercent !== undefined ? Math.max(0, Math.min(100, Number(f.widthPercent))) : undefined,
+          widthPercent:
+            f.widthPercent !== undefined
+              ? Math.max(0, Math.min(100, Number(f.widthPercent)))
+              : undefined,
           fontSize: Math.max(8, Math.min(32, Number(f.fontSize) || 11)),
           fontWeight: f.fontWeight || 'normal',
           textAlign: f.textAlign || 'left',
@@ -277,9 +282,10 @@ export function validateTemplateMapping(config: any): { valid: boolean; errors: 
     const x = f.xPercent !== undefined ? f.xPercent : f.x;
     const y = f.yPercent !== undefined ? f.yPercent : f.y;
     if (typeof x !== 'number' || typeof y !== 'number' || x < 0 || x > 100 || y < 0 || y > 100) {
-      errors.push(`Coordinates out of bounds for field ${f.key || f.fieldKey || f.id || 'unknown'}`);
+      errors.push(
+        `Coordinates out of bounds for field ${f.key || f.fieldKey || f.id || 'unknown'}`
+      );
     }
   }
   return { valid: errors.length === 0, errors };
 }
-

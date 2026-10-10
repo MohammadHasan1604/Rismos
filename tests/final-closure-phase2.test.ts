@@ -196,7 +196,7 @@ async function runTests() {
   assert(
     'PO form storeOptions restricts Store Manager to their assigned store only',
     poModalCode.includes("if (currentUser.role !== 'Super Admin')") &&
-    poModalCode.includes('const userStore = currentUser.store || \'BLR\';') &&
+    poModalCode.includes('const userStore = currentUser.store') &&
     poModalCode.includes('return ['),
     'Store Manager cannot see CENTRAL or other stores in options'
   );

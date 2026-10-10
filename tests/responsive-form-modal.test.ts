@@ -118,8 +118,9 @@ test('CSS locks scroll and touch when modal is open', () => {
 
 test('CSS isolates Mobile BottomNav when modal is open', () => {
   return (
-    cssContent.includes('body.modal-open nav[aria-label="Mobile navigation"]') &&
-    cssContent.includes("pointer-events: none !important")
+    (cssContent.includes('body.modal-open nav[aria-label="Mobile navigation"]') ||
+      cssContent.includes("body.modal-open nav[aria-label='Mobile navigation']")) &&
+    cssContent.includes('pointer-events: none !important')
   );
 });
 

@@ -83,7 +83,11 @@ export default function CategoryTypeManagerModal({
         zIndex={zIndex}
         footer={
           <div className="flex justify-end w-full">
-            <button type="button" onClick={onClose} className="btn-secondary text-xs flex-1 sm:flex-initial">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary text-xs flex-1 sm:flex-initial"
+            >
               Close
             </button>
           </div>

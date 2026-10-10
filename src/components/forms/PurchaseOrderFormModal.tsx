@@ -69,7 +69,7 @@ export default function PurchaseOrderFormModal({
   const defaultStore =
     currentUser.role === 'Super Admin'
       ? 'CENTRAL'
-      : (currentUser.store || storesList[0]?.code || 'CENTRAL');
+      : currentUser.store || storesList[0]?.code || 'CENTRAL';
 
   // PO Header Details
   const [vendorName, setVendorName] = useState('');
@@ -109,7 +109,7 @@ export default function PurchaseOrderFormModal({
         value: v.name,
         label: v.name,
         sublabel: `${v.code} · ${v.category || 'General'} · ${v.phone || ''}`,
-        badge: v.gstin ? (taxLabel || 'Tax') : undefined,
+        badge: v.gstin ? taxLabel || 'Tax' : undefined,
       }));
   }, [vendors, taxLabel]);
 
@@ -793,8 +793,7 @@ export default function PurchaseOrderFormModal({
                     financials.paidAmount <= 0 ||
                     (paymentStatus === 'Partial' &&
                       financials.paidAmount >= financials.grandTotal) ||
-                    (paymentStatus === 'Paid' &&
-                      financials.paidAmount !== financials.grandTotal)))
+                    (paymentStatus === 'Paid' && financials.paidAmount !== financials.grandTotal)))
               }
             >
               {isSubmitting ? (
@@ -1077,9 +1076,7 @@ export default function PurchaseOrderFormModal({
                           {item.taxRate !== undefined &&
                             !(jurProfile?.standardTaxRates || [0, 5, 12, 18, 28]).includes(
                               item.taxRate
-                            ) && (
-                              <option value={item.taxRate}>{item.taxRate}% (Custom)</option>
-                            )}
+                            ) && <option value={item.taxRate}>{item.taxRate}% (Custom)</option>}
                         </select>
                       </td>
 
@@ -1244,9 +1241,7 @@ export default function PurchaseOrderFormModal({
                         {item.taxRate !== undefined &&
                           !(jurProfile?.standardTaxRates || [0, 5, 12, 18, 28]).includes(
                             item.taxRate
-                          ) && (
-                            <option value={item.taxRate}>{item.taxRate}% (Custom)</option>
-                          )}
+                          ) && <option value={item.taxRate}>{item.taxRate}% (Custom)</option>}
                       </select>
                     </div>
 
@@ -1425,7 +1420,9 @@ export default function PurchaseOrderFormModal({
                   </div>
                   <div>
                     <label className="text-3xs font-semibold text-muted-foreground block mb-0.5">
-                      {countryCode === 'IN' ? 'UTR / Transaction Reference' : 'Transaction Reference'}
+                      {countryCode === 'IN'
+                        ? 'UTR / Transaction Reference'
+                        : 'Transaction Reference'}
                     </label>
                     <input
                       type="text"
@@ -1507,11 +1504,11 @@ export default function PurchaseOrderFormModal({
                   className="shrink-0 text-amber-600"
                 />
                 <span>
-                  Advance Payment requires Payment Proof upload (Receipt / Voucher / Screenshot) before saving.
+                  Advance Payment requires Payment Proof upload (Receipt / Voucher / Screenshot)
+                  before saving.
                 </span>
               </div>
             )}
-
         </form>
       </Modal>
 

@@ -227,10 +227,17 @@ export default function StockTransferModal({
         { label: 'Product Name', value: activeItem.name, highlighted: true },
         { label: 'SKU', value: activeItem.sku },
         { label: 'Transfer Quantity', value: `${qtyNum} unit(s)` },
-        { label: 'Transfer Price/Unit', value: formatTransferAmount(effectivePrice, { currencyCode, currencySymbol, locale }) },
+        {
+          label: 'Transfer Price/Unit',
+          value: formatTransferAmount(effectivePrice, { currencyCode, currencySymbol, locale }),
+        },
         {
           label: 'Total Transfer Value',
-          value: formatTransferAmount(effectivePrice * qtyNum, { currencyCode, currencySymbol, locale }),
+          value: formatTransferAmount(effectivePrice * qtyNum, {
+            currencyCode,
+            currencySymbol,
+            locale,
+          }),
         },
       ],
       warningMessage: `This will immediately deduct ${qtyNum} units from ${sourceStore} and credit them into ${destStore}.`,
@@ -423,18 +430,28 @@ export default function StockTransferModal({
             <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-2 font-tabular text-xs">
               <div className="flex justify-between text-muted-foreground">
                 <span>
-                  Inventory Cost ({transferQty || 0} × {formatTransferAmount(unitCost, { currencyCode, currencySymbol, locale })}):
+                  Inventory Cost ({transferQty || 0} ×{' '}
+                  {formatTransferAmount(unitCost, { currencyCode, currencySymbol, locale })}):
                 </span>
                 <span className="font-semibold text-foreground">
-                  {formatTransferAmount(lineCalc.lineTotalCost, { currencyCode, currencySymbol, locale })}
+                  {formatTransferAmount(lineCalc.lineTotalCost, {
+                    currencyCode,
+                    currencySymbol,
+                    locale,
+                  })}
                 </span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>
-                  Transfer Value ({transferQty || 0} × {formatTransferAmount(effectivePrice, { currencyCode, currencySymbol, locale })}):
+                  Transfer Value ({transferQty || 0} ×{' '}
+                  {formatTransferAmount(effectivePrice, { currencyCode, currencySymbol, locale })}):
                 </span>
                 <span className="font-bold text-foreground">
-                  {formatTransferAmount(lineCalc.lineTotalValue, { currencyCode, currencySymbol, locale })}
+                  {formatTransferAmount(lineCalc.lineTotalValue, {
+                    currencyCode,
+                    currencySymbol,
+                    locale,
+                  })}
                 </span>
               </div>
               <div
@@ -442,7 +459,12 @@ export default function StockTransferModal({
               >
                 <span>Gross Transfer Profit:</span>
                 <span>
-                  {formatTransferAmount(lineCalc.lineProfit, { showPositiveSign: true, currencyCode, currencySymbol, locale })}{' '}
+                  {formatTransferAmount(lineCalc.lineProfit, {
+                    showPositiveSign: true,
+                    currencyCode,
+                    currencySymbol,
+                    locale,
+                  })}{' '}
                   <span className="text-3xs font-semibold">
                     ({formatTransferMargin(lineCalc.profitMarginPercent)})
                   </span>

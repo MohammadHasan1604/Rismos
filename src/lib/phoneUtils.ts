@@ -73,4 +73,3 @@ export function formatDisplayPhone(phone: string, countryCode: string = 'IN'): s
   }
   return trimmed;
 }
-

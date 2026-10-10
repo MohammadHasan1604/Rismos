@@ -78,7 +78,9 @@ export default function TaxRegistrationField({
   return (
     <div className={`space-y-1 ${className}`}>
       <div className="flex items-center justify-between">
-        <label className={`${size === 'sm' ? 'text-3xs' : 'text-xs'} font-bold text-foreground block`}>
+        <label
+          className={`${size === 'sm' ? 'text-3xs' : 'text-xs'} font-bold text-foreground block`}
+        >
           {label || shortLabel} {required && <span className="text-danger">*</span>}
           {!label && !required && (
             <span className="text-muted-foreground font-normal ml-1">(Optional)</span>
@@ -112,7 +114,9 @@ export default function TaxRegistrationField({
           )}
           {!isInvalid && hasValue && (
             <p className="text-3xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1 mt-0.5">
-              <span>✓ Validated {profile.countryCode} {profile.taxRegime} format</span>
+              <span>
+                ✓ Validated {profile.countryCode} {profile.taxRegime} format
+              </span>
             </p>
           )}
           {!hasValue && !required && (
