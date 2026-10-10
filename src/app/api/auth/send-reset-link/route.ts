@@ -52,21 +52,23 @@ export async function POST(req: NextRequest) {
       select: { id: true, name: true, email: true, status: true, storeScope: true },
     });
 
+    const GENERIC_SUCCESS_MESSAGE =
+      'If the provided email corresponds to an active account, a password reset link has been dispatched.';
+
     if (!user || user.status === 'Inactive' || user.status === 'Suspended') {
-      // 🔒 Anti-Enumeration: Return generic success even if user does not exist
+      // 🔒 Anti-Enumeration: Return generic success even if user does not exist or is inactive
       return NextResponse.json({
         success: true,
-        message:
-          'If the provided email corresponds to an active account, a password reset link has been dispatched.',
+        message: GENERIC_SUCCESS_MESSAGE,
       });
     }
 
-    // Generate secure 256-bit (32 bytes) hex token
+    // Generate secure 256-bit (32 bytes) CSPRNG hex token
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
-    // Token expires in 24 hours
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // Token expires strictly in 15 minutes
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     // Invalidate any previously unconsumed tokens for this user
     await (prisma as any).passwordReset.deleteMany({
@@ -102,18 +104,18 @@ export async function POST(req: NextRequest) {
       data: {
         userName: user.name,
         resetUrl,
-        expiresIn: '24 hours',
+        expiresIn: '15 minutes',
         appName,
       },
     });
 
-    // Record in Audit Log
+    // Record in Audit Log without exposing token
     try {
       await prisma.auditLog.create({
         data: {
           module: 'Auth',
           action: 'PASSWORD_RESET_REQUESTED',
-          details: `Self-serve password reset token generated for user "${user.name}" (${user.email}). Expires in 24h.`,
+          details: `Self-serve password reset token generated for user "${user.name}" (${user.email}). Expires in 15m.`,
           userId: user.id,
           userEmail: user.email,
           userRole: 'Staff',
@@ -125,11 +127,21 @@ export async function POST(req: NextRequest) {
       console.warn('[AUTH] Could not write reset audit log:', auditErr);
     }
 
-    return NextResponse.json({
+    // Anti-Enumeration: Return exact same message as non-existent user
+    const responsePayload: any = {
       success: true,
-      message: 'Password reset link sent to email',
-      resetToken: process.env.NODE_ENV !== 'production' ? resetToken : undefined, // Useful for automated tests
-    });
+      message: GENERIC_SUCCESS_MESSAGE,
+    };
+
+    // Only allow test runner inspection in non-production with explicit private test header
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      req.headers.get('x-test-inspect-token') === 'true'
+    ) {
+      responsePayload._testOnlyToken = resetToken;
+    }
+
+    return NextResponse.json(responsePayload);
   } catch (error: any) {
     console.error('[AUTH] Send reset link error:', error);
     return NextResponse.json(

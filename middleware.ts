@@ -9,6 +9,7 @@ const publicPaths = [
   '/api/auth/login',
   '/api/auth/send-reset-link',
   '/api/auth/reset-password',
+  '/api/auth/verify-reset-token',
   '/api/settings/branding', // Only public branding (app name, logo)
 ];
 

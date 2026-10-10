@@ -34,6 +34,37 @@ export default function UsersPage() {
   const [permissionsModalUser, setPermissionsModalUser] = useState<UserAccount | null>(null);
   const [performanceModalUser, setPerformanceModalUser] = useState<UserAccount | null>(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<UserAccount | null>(null);
+  const [sendingResetUserId, setSendingResetUserId] = useState<string | null>(null);
+
+  const handleSendResetLink = async (targetUser: UserAccount) => {
+    if (targetUser.role === 'Super Admin') {
+      toast.error('Super Admin account recovery is self-service only and cannot be triggered via external invitations.');
+      return;
+    }
+    if (targetUser.status !== 'Active') {
+      toast.error(`Cannot send reset invitation: account is currently ${targetUser.status.toLowerCase()}.`);
+      return;
+    }
+
+    setSendingResetUserId(targetUser.id);
+    try {
+      const res = await fetch('/api/users/send-reset-invitation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: targetUser.id }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(data.message || `Password reset link dispatched to ${targetUser.email}`);
+      } else {
+        toast.error(data.error || 'Failed to dispatch reset invitation');
+      }
+    } catch {
+      toast.error('Network error while dispatching reset invitation');
+    } finally {
+      setSendingResetUserId(null);
+    }
+  };
 
   const handleOpenPermissions = (u: UserAccount) => {
     if (currentUser.role !== 'Super Admin') {
@@ -576,6 +607,29 @@ export default function UsersPage() {
                           {(!isProtectedSuperAdmin || currentUser.role === 'Super Admin') &&
                             fullUserRecord && (
                               <>
+                                {((currentUser.role === 'Super Admin' && u.role !== 'Super Admin') ||
+                                  (currentUser.role === 'Store Manager' &&
+                                    u.role === 'Sales Manager' &&
+                                    (u.storeScope === currentUser.store ||
+                                      (currentUser.allowedStores &&
+                                        currentUser.allowedStores.includes(u.storeScope))))) && (
+                                  <button
+                                    onClick={() => handleSendResetLink(fullUserRecord)}
+                                    disabled={sendingResetUserId === u.id}
+                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 transition-colors disabled:opacity-50"
+                                    title="Send Password Reset Link via Email (15m expiry)"
+                                  >
+                                    {sendingResetUserId === u.id ? (
+                                      <Icon
+                                        name="ArrowPathIcon"
+                                        size={14}
+                                        className="animate-spin text-amber-500"
+                                      />
+                                    ) : (
+                                      <Icon name="EnvelopeIcon" size={14} />
+                                    )}
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => openEdit(fullUserRecord)}
                                   className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"

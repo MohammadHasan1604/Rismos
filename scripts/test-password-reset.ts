@@ -6,7 +6,7 @@ import { POST as postResetPassword } from '../src/app/api/auth/reset-password/ro
 
 async function testPasswordResetFlow() {
   console.log('========================================================================');
-  console.log('🔑 TESTING SELF-SERVE TOKENIZED PASSWORD RESET FLOW (24-HR EXPIRY)');
+  console.log('🔑 TESTING SELF-SERVE TOKENIZED PASSWORD RESET FLOW (15-MIN EXPIRY)');
   console.log('========================================================================\n');
 
   let passed = 0;
@@ -23,7 +23,7 @@ async function testPasswordResetFlow() {
   }
 
   // 1. Setup a dedicated temporary test user
-  const testEmail = `reset.tester.${Date.now()}@cosko.com`;
+  const testEmail = `reset.tester.${Date.now()}@rismos.com`;
   const initialPassword = 'InitialOldPassword123!';
   const hashedPassword = await hashPassword(initialPassword);
 
@@ -43,30 +43,37 @@ async function testPasswordResetFlow() {
   try {
     // 2. Request password reset link via API
     console.log('\n--- Step 1: Requesting reset link ---');
-    const req1 = new NextRequest('http://localhost:3000/api/auth/send-reset-link', {
+    const req1 = new NextRequest('http://localhost:4028/api/auth/send-reset-link', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-test-inspect-token': 'true',
+      },
       body: JSON.stringify({ email: testEmail }),
     });
     const res1 = await postSendResetLink(req1);
     const body1 = await res1.json();
 
     assert('POST /api/auth/send-reset-link returns HTTP 200', res1.status === 200);
-    assert('Response indicates reset link sent', body1.success === true);
-    assert('Development mode returns reset token', typeof body1.resetToken === 'string');
+    assert('Response indicates reset link dispatched with anti-enumeration message', body1.success === true);
+    assert('Test runner inspects reset token via test header', typeof body1._testOnlyToken === 'string');
 
-    const resetToken = body1.resetToken;
+    const resetToken = body1._testOnlyToken;
 
     // Verify token record in database
     const dbRecord = await (prisma as any).passwordReset.findFirst({
       where: { userId: testUser.id, usedAt: null },
     });
     assert('Token record exists in database password_resets table', Boolean(dbRecord));
-    assert('Token expiration is set to ~24 hours in the future', dbRecord.expiresAt > new Date(Date.now() + 23 * 3600 * 1000));
+    assert(
+      'Token expiration is set to 15 minutes in the future',
+      dbRecord.expiresAt > new Date(Date.now() + 14 * 60 * 1000) &&
+        dbRecord.expiresAt <= new Date(Date.now() + 16 * 60 * 1000)
+    );
 
     // 3. Attempt reset with weak password (rejection test)
     console.log('\n--- Step 2: Testing weak password rejection ---');
-    const reqWeak = new NextRequest('http://localhost:3000/api/auth/reset-password', {
+    const reqWeak = new NextRequest('http://localhost:4028/api/auth/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resetToken, newPassword: 'weak' }),
@@ -79,7 +86,7 @@ async function testPasswordResetFlow() {
     // 4. Reset password with strong enterprise password
     console.log('\n--- Step 3: Completing password reset with strong password ---');
     const newStrongPassword = 'NewSecureCredential2026!Success';
-    const reqStrong = new NextRequest('http://localhost:3000/api/auth/reset-password', {
+    const reqStrong = new NextRequest('http://localhost:4028/api/auth/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resetToken, newPassword: newStrongPassword }),
@@ -107,7 +114,7 @@ async function testPasswordResetFlow() {
 
     // 6. Attempt token reuse (replay attack prevention)
     console.log('\n--- Step 4: Testing replay attack prevention ---');
-    const reqReplay = new NextRequest('http://localhost:3000/api/auth/reset-password', {
+    const reqReplay = new NextRequest('http://localhost:4028/api/auth/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resetToken, newPassword: 'AnotherStrongSecret2026!' }),
@@ -137,9 +144,7 @@ async function testPasswordResetFlow() {
     } catch {}
   }
 
-  if (failed > 0) {
-    process.exit(1);
-  }
+  process.exit(failed > 0 ? 1 : 0);
 }
 
 testPasswordResetFlow()

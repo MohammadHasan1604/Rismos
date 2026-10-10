@@ -89,6 +89,7 @@
     "test:password-policy": "npx tsx scripts/test-password-policy.ts",
     "test:latency-benchmark": "npx tsx scripts/test-latency-benchmark.ts",
     "test:password-reset": "npx tsx scripts/test-password-reset.ts",
+    "test:password-matrix": "npx tsx tests/password-recovery-security-matrix.test.ts",
     "test:remediation": "npx tsx tests/remediation.test.ts",
     "test:phase1-production": "npx tsx tests/phase1-production-verification.test.ts",
     "test:all": "npx tsx tests/phase1-security.test.ts && npx tsx tests/phase1-production-verification.test.ts && npx tsx tests/rismos-whitelabel.test.ts && npx tsx tests/localization-matrix.test.ts && npx tsx tests/responsive-automated.test.ts && npx tsx tests/four-issue-hotfix.test.ts && npx tsx tests/phase1-security-matrix.ts && npx tsx tests/final-closure-proof-whatsapp.test.ts && npx tsx tests/remediation.test.ts && npx tsx tests/migration-rehearsal.test.ts && npx tsx tests/country-matrix-e2e.test.ts && npx tsx tests/theme-matrix.test.ts && npx tsx tests/role-store-security-matrix.test.ts && npx tsx tests/step-up-security.test.ts && npx tsx tests/financial-integrity.test.ts && npx tsx tests/concurrency-race.test.ts && npx tsx tests/alert-scheduler.test.ts && npx tsx tests/realtime-multi-device.test.ts && npx tsx tests/e2e/production-journey.test.ts"
