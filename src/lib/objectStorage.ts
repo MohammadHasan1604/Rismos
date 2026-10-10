@@ -84,11 +84,7 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB for images
 const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024; // 10MB for documents/proofs
 
 export type StorageBucket =
-  | 'product-images'
-  | 'payment-proofs'
-  | 'expense-receipts'
-  | 'sale-attachments'
-  | 'branding';
+  'product-images' | 'payment-proofs' | 'expense-receipts' | 'sale-attachments' | 'branding';
 
 // Private buckets use signed URLs; public buckets get direct URLs
 const PRIVATE_BUCKETS = new Set<StorageBucket>(['payment-proofs', 'expense-receipts']);
