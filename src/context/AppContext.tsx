@@ -722,7 +722,10 @@ const initialNotifications: NotificationItem[] = [];
 
 interface AppContextType {
   branding: AppBranding;
-  updateBranding: (updated: Partial<AppBranding>) => void;
+  updateBranding: (
+    updated: Partial<AppBranding>,
+    options?: { silent?: boolean; toastMessage?: string }
+  ) => void;
   resetBranding: () => void;
   systemSettings: SystemSettings;
   updateSystemSettings: (
@@ -1060,6 +1063,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   });
 
   const confirmResolverRef = useRef<((value: boolean) => void) | null>(null);
+  const addAuditLogRef = useRef<(module: string, action: string, details: string) => void>(
+    () => {}
+  );
 
   const confirmAction = useCallback((config: ActionConfirmationConfig): Promise<boolean> => {
     return new Promise<boolean>((resolve) => {
@@ -2194,26 +2200,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSelectedStoreState('All Stores');
   };
 
-  const updateBranding = (updatedPartial: Partial<AppBranding>) => {
-    setBranding((prev) => {
-      const updated = { ...prev, ...updatedPartial };
-      try {
-        const jsonStr = JSON.stringify(updated);
-        localStorage.setItem('cosko_branding', jsonStr);
-        window.dispatchEvent(
-          new StorageEvent('storage', { key: 'cosko_branding', newValue: jsonStr })
-        );
-      } catch {}
-      return updated;
-    });
+  const updateBranding = useCallback(
+    (
+      updatedPartial: Partial<AppBranding>,
+      options?: { silent?: boolean; toastMessage?: string }
+    ) => {
+      const isSilent = options?.silent === true;
 
-    MySQLDataService.updateBrandingSettings(updatedPartial).catch((err) => {
-      console.warn('Failed to sync branding to MySQL:', err);
-    });
+      setBranding((prev) => {
+        const hasDiff = Object.keys(updatedPartial).some((key) => {
+          const k = key as keyof AppBranding;
+          return prev[k] !== updatedPartial[k];
+        });
 
-    addAuditLog('Settings', 'Update White-Label Branding', `Updated app branding logo & details`);
-    toast.success('Application branding updated successfully across the entire system!');
-  };
+        if (!hasDiff) {
+          return prev;
+        }
+
+        const updated = { ...prev, ...updatedPartial };
+        try {
+          const jsonStr = JSON.stringify(updated);
+          localStorage.setItem('cosko_branding', jsonStr);
+        } catch {}
+        return updated;
+      });
+
+      if (isSilent) {
+        return;
+      }
+
+      MySQLDataService.updateBrandingSettings(updatedPartial).catch((err) => {
+        console.warn('Failed to sync branding to MySQL:', err);
+      });
+
+      addAuditLogRef.current(
+        'Settings',
+        'Update White-Label Branding',
+        `Updated app branding logo & details`
+      );
+      toast.success(
+        options?.toastMessage ||
+          'Application branding updated successfully across the entire system!',
+        { id: 'branding-update-toast' }
+      );
+    },
+    []
+  );
 
   const updateSystemSettings = async (
     section: 'branding' | 'profile' | 'tax' | 'invoice' | 'security' | 'alerts',
@@ -2238,12 +2270,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const updated = { ...prev, ...result.branding };
           try {
             localStorage.setItem('cosko_branding', JSON.stringify(updated));
-            window.dispatchEvent(
-              new StorageEvent('storage', {
-                key: 'cosko_branding',
-                newValue: JSON.stringify(updated),
-              })
-            );
           } catch {}
           return updated;
         });
@@ -2262,12 +2288,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           };
           try {
             localStorage.setItem('cosko_system_settings', JSON.stringify(updated));
-            window.dispatchEvent(
-              new StorageEvent('storage', {
-                key: 'cosko_system_settings',
-                newValue: JSON.stringify(updated),
-              })
-            );
           } catch {}
           return updated;
         });
@@ -2276,12 +2296,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setBranding((prev) => ({ ...prev, taxNumber: currentTaxNum }));
       }
 
-      addAuditLog(
+      addAuditLogRef.current(
         'Settings',
         `Update ${section.toUpperCase()} Settings`,
         `Updated ${section} settings in system`
       );
-      toast.success(result.message || `${section.toUpperCase()} settings saved successfully`);
+      toast.success(result.message || `${section.toUpperCase()} settings saved successfully`, {
+        id: `settings-save-${section}`,
+      });
       return { success: true, message: result.message };
     } catch (err: any) {
       toast.error(err.message || 'Network error updating settings');
@@ -2302,7 +2324,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const resetBranding = () => {
+  const resetBranding = useCallback(() => {
     setBranding(defaultBranding);
     try {
       localStorage.removeItem('cosko_branding');
@@ -2313,9 +2335,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         supportEmail: defaultBranding.supportEmail,
       }).catch((err) => console.warn('Failed to reset branding in MySQL:', err));
     } catch {}
-    addAuditLog('Settings', 'Reset Branding', 'Reset white-label branding to system default');
-    toast.info('Application branding reset to defaults');
-  };
+    addAuditLogRef.current(
+      'Settings',
+      'Reset Branding',
+      'Reset white-label branding to system default'
+    );
+    toast.info('Application branding reset to defaults', { id: 'branding-reset-toast' });
+  }, []);
 
   const toggleCurrentUserShift = async () => {
     // Shift status now handled by AttendanceDay model
@@ -4334,27 +4360,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { success: false, message: 'Repairs module has been decommissioned' };
   };
 
-  const addAuditLog = (module: string, action: string, details: string) => {
-    const newLog: AuditLog = {
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      }),
-      userName: currentUser.name || 'System',
-      userRole: currentUser.role || 'Super Admin',
-      module,
-      action,
-      details,
-      ipAddress: '127.0.0.1',
-    };
-    setAuditLogs((prev) => [newLog, ...prev]);
-    MySQLDataService.syncAuditLog(newLog);
-  };
+  const addAuditLog = useCallback(
+    (module: string, action: string, details: string) => {
+      const newLog: AuditLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toLocaleString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
+        userName: currentUser.name || 'System',
+        userRole: currentUser.role || 'Super Admin',
+        module,
+        action,
+        details,
+        ipAddress: '127.0.0.1',
+      };
+      setAuditLogs((prev) => [newLog, ...prev]);
+      MySQLDataService.syncAuditLog(newLog);
+    },
+    [currentUser.name, currentUser.role]
+  );
+
+  addAuditLogRef.current = addAuditLog;
 
   const markNotificationRead = (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));

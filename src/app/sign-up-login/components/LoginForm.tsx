@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -36,14 +36,19 @@ export default function LoginForm() {
     defaultValues: { email: '', password: '', rememberMe: true },
   });
 
+  const hasFetchedBrandingRef = useRef(false);
+
   // Fetch safe public branding on mount to ensure fresh white-label identity on public screen
   useEffect(() => {
+    if (hasFetchedBrandingRef.current) return;
+    hasFetchedBrandingRef.current = true;
+
     let isMounted = true;
     fetch('/api/settings/branding')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (isMounted && data?.success && data?.branding) {
-          updateBranding(data.branding);
+          updateBranding(data.branding, { silent: true });
         }
       })
       .catch(() => {});
