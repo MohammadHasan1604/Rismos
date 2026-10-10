@@ -30,8 +30,8 @@ export const AppLogo = memo(function AppLogo({
   const activeSrc =
     src || (isDarkVariant && branding.logoDarkUrl ? branding.logoDarkUrl : branding.logoUrl);
   const appName = branding?.appName || 'RISMOS';
-  const primaryColor = branding?.primaryColor || '#002E86';
-  const secondaryColor = branding?.secondaryColor || '#009ADF';
+  const primaryColor = '#0B1F3A';
+  const secondaryColor = '#123A63';
 
   const containerClassName = useMemo(() => {
     const classes = ['inline-flex items-center select-none flex-shrink-0'];
@@ -40,10 +40,7 @@ export const AppLogo = memo(function AppLogo({
     return classes.join(' ');
   }, [onClick, className]);
 
-  let textColor = isDarkVariant ? '#FFFFFF' : '#0F172A';
-  if (variant === 'default') {
-    textColor = primaryColor || '#0F172A';
-  }
+  const textColor = isDarkVariant ? '#FFFFFF' : '#0B1F3A';
 
   const fontSize = Math.round(size * 0.72);
   const iconSize = Math.round(size * 0.92);

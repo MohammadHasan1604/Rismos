@@ -17,8 +17,27 @@ import { SecurityTab } from './components/SecurityTab';
 import { AlertsTab } from './components/AlertsTab';
 import { PaymentMethodsTab } from './components/PaymentMethodsTab';
 
+import { LAUNCH_JURISDICTIONS } from '@/lib/localization/jurisdictions';
+
 // GSTIN Regex: 2 digit state code + 10-char PAN + 1 entity code + Z + 1 checksum
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
+function getInitialTaxRegistrationNumber(settings: any): string {
+  if (!settings) return '';
+  const code = settings.countryCode || 'IN';
+  if (code === 'IN') {
+    return settings.taxRegistrationNumber || settings.gstin || '';
+  }
+  // For UAE and other non-India jurisdictions: never populate with old Indian GSTIN
+  const raw = settings.taxRegistrationNumber || '';
+  if (!raw) return '';
+  if (GSTIN_REGEX.test(raw)) return '';
+  const j = LAUNCH_JURISDICTIONS[code];
+  if (j?.taxIdRegex && !j.taxIdRegex.test(raw.trim())) {
+    return '';
+  }
+  return raw;
+}
 
 const INDIAN_STATES: Record<string, string> = {
   '01': 'Jammu & Kashmir',
@@ -121,9 +140,7 @@ export default function SettingsPage() {
   const [taxCountryCode, setTaxCountryCode] = useState(systemSettings.countryCode || 'IN');
   const [taxRegime, setTaxRegime] = useState(systemSettings.taxRegime || 'GST');
   const [taxRegistrationNumber, setTaxRegistrationNumber] = useState(
-    systemSettings.countryCode === 'IN'
-      ? (systemSettings.taxRegistrationNumber || systemSettings.gstin || '')
-      : (systemSettings.taxRegistrationNumber || '')
+    getInitialTaxRegistrationNumber(systemSettings)
   );
   const [taxInclusivePricing, setTaxInclusivePricing] = useState(
     systemSettings.taxInclusivePricing !== undefined ? systemSettings.taxInclusivePricing : true
@@ -245,11 +262,7 @@ export default function SettingsPage() {
     if (systemSettings) {
       setTaxCountryCode(systemSettings.countryCode || 'IN');
       setTaxRegime(systemSettings.taxRegime || 'GST');
-      setTaxRegistrationNumber(
-        systemSettings.countryCode === 'IN'
-          ? (systemSettings.taxRegistrationNumber || systemSettings.gstin || '')
-          : (systemSettings.taxRegistrationNumber || '')
-      );
+      setTaxRegistrationNumber(getInitialTaxRegistrationNumber(systemSettings));
       setTaxInclusivePricing(
         systemSettings.taxInclusivePricing !== undefined ? systemSettings.taxInclusivePricing : true
       );
@@ -448,10 +461,7 @@ export default function SettingsPage() {
           appIconUrl,
           faviconUrl,
         };
-        const res = await updateSystemSettings('branding', payload);
-        if (res.success) {
-          updateBranding(payload);
-        }
+        await updateSystemSettings('branding', payload);
       } else if (activeTab === 'profile') {
         await updateSystemSettings('profile', {
           businessName,
@@ -481,7 +491,7 @@ export default function SettingsPage() {
           enableReverseCharge,
           gstRegistrationType,
           gstBusinessAddress,
-          gstin: taxRegistrationNumber,
+          gstin: taxCountryCode === 'IN' ? taxRegistrationNumber : '',
         });
       } else if (activeTab === 'invoice') {
         await updateSystemSettings('invoice', {
@@ -529,9 +539,9 @@ export default function SettingsPage() {
     setAppIconUrl(null);
     setFaviconUrl(null);
     setTagline('Run Retail. Smarter.');
-    setPrimaryColor('#002E86');
-    setSecondaryColor('#009ADF');
-    setAccentColor('#2563EB');
+    setPrimaryColor('#0B1F3A');
+    setSecondaryColor('#123A63');
+    setAccentColor('#123A63');
     setSupportEmailBranding('support@rismos.com');
   };
 

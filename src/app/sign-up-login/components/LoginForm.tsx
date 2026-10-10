@@ -25,7 +25,6 @@ export default function LoginForm() {
   const appName = branding?.appName || 'RISMOS';
   const tagline = branding?.tagline || 'Run Retail. Smarter.';
   const supportEmail = branding?.supportEmail || 'support@rismos.com';
-  const primaryColor = branding?.primaryColor || '#002E86';
 
   const {
     register,
@@ -160,45 +159,45 @@ export default function LoginForm() {
   return (
     <div className="w-full flex flex-col justify-between max-w-md mx-auto my-auto">
       {/* Mobile Branding Header - Exclusively optimized for mobile / tablet screens */}
-      <div className="lg:hidden text-center mb-6 pt-2">
-        <div className="inline-flex items-center justify-center p-3 bg-card border border-border/70 rounded-2xl shadow-sm mb-3">
-          <AppLogo size={36} showText={true} />
+      <div className="lg:hidden text-center mb-3 pt-1">
+        <div className="inline-flex items-center justify-center p-2.5 bg-card border border-border/70 rounded-2xl shadow-xs mb-2">
+          <AppLogo size={34} showText={true} />
         </div>
-        <h1 className="text-xl font-bold tracking-tight text-foreground">{appName}</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">{tagline}</p>
+        <h1 className="text-lg font-bold tracking-tight text-foreground">{appName}</h1>
+        <p className="text-2xs text-muted-foreground mt-0.5">{tagline}</p>
       </div>
 
       {/* Main Authentication Card */}
-      <div className="bg-card border border-border/80 rounded-2xl shadow-xl shadow-black/5 p-6 sm:p-8 space-y-6">
+      <div className="bg-card border border-border/80 rounded-2xl shadow-lg shadow-black/5 p-4 sm:p-6 space-y-3.5 sm:space-y-4">
         {/* Desktop Card Header */}
-        <div className="hidden lg:block text-left space-y-1.5 border-b border-border/50 pb-5">
-          <div className="flex items-center justify-between mb-2">
-            <AppLogo size={32} showText={false} />
-            <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/15">
+        <div className="hidden lg:block text-left space-y-1 border-b border-border/50 pb-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <AppLogo size={30} showText={false} />
+            <span className="text-3xs font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/15">
               Secure Sign In
             </span>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h2>
-          <p className="text-xs text-muted-foreground">
+          <h2 className="text-xl font-bold tracking-tight text-foreground">Welcome back</h2>
+          <p className="text-2xs text-muted-foreground">
             Sign in with your enterprise credentials to access your store terminal.
           </p>
         </div>
 
         {/* Security Lockout Banner */}
         {isLocked && (
-          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-start gap-3 shadow-sm">
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-start gap-2.5 shadow-xs">
             <Icon
               name="LockClosedIcon"
-              size={18}
+              size={17}
               className="mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400"
             />
-            <div className="space-y-1 flex-1">
+            <div className="space-y-0.5 flex-1">
               <p className="font-bold text-xs">Security Lockout Active</p>
               <p className="text-2xs opacity-90 leading-relaxed">
                 Multiple consecutive failed login attempts detected. For security, sign in is
                 temporarily suspended.
               </p>
-              <p className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 pt-1">
+              <p className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 pt-0.5">
                 Unlock in: {Math.floor(lockoutSeconds / 60)}m {lockoutSeconds % 60}s
               </p>
             </div>
@@ -207,16 +206,16 @@ export default function LoginForm() {
 
         {/* Root Error Message */}
         {errors.root && !isLocked && (
-          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-start gap-2.5">
-            <Icon name="ExclamationTriangleIcon" size={17} className="mt-0.5 flex-shrink-0" />
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-start gap-2">
+            <Icon name="ExclamationTriangleIcon" size={16} className="mt-0.5 flex-shrink-0" />
             <span className="leading-relaxed">{errors.root.message}</span>
           </div>
         )}
 
         {/* Form Fields */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
           <div>
-            <label className="text-xs font-semibold text-foreground block mb-1.5">
+            <label className="text-2xs font-semibold text-foreground block mb-1">
               Email Address
             </label>
             <div className="relative">
@@ -226,25 +225,25 @@ export default function LoginForm() {
                 {...register('email', { required: 'Email address is required' })}
                 placeholder="name@company.com"
                 autoComplete="email"
-                className="w-full h-11 px-3.5 bg-background border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all pl-10 disabled:opacity-60"
+                className="w-full h-10 px-3 bg-background border border-input rounded-xl text-xs sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all pl-9 disabled:opacity-60"
               />
               <Icon
                 name="EnvelopeIcon"
-                size={17}
-                className="absolute left-3.5 top-3 text-muted-foreground pointer-events-none"
+                size={16}
+                className="absolute left-3 top-2.5 text-muted-foreground pointer-events-none"
               />
             </div>
             {errors.email && (
-              <p className="text-2xs text-danger font-medium mt-1.5">{errors.email.message}</p>
+              <p className="text-2xs text-danger font-medium mt-1">{errors.email.message}</p>
             )}
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-foreground block">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-2xs font-semibold text-foreground block">Password</label>
               <Link
                 href="/auth/forgot-password"
-                className="text-2xs text-primary hover:text-primary-hover font-medium hover:underline min-h-[32px] flex items-center"
+                className="text-2xs text-primary hover:text-primary-hover font-medium hover:underline min-h-[28px] flex items-center"
               >
                 Forgot password?
               </Link>
@@ -256,38 +255,38 @@ export default function LoginForm() {
                 {...register('password', { required: 'Password is required' })}
                 placeholder="••••••••••••"
                 autoComplete="current-password"
-                className="w-full h-11 px-3.5 bg-background border border-input rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all pl-10 pr-11 disabled:opacity-60"
+                className="w-full h-10 px-3 bg-background border border-input rounded-xl text-xs sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all pl-9 pr-10 disabled:opacity-60"
               />
               <Icon
                 name="LockClosedIcon"
-                size={17}
-                className="absolute left-3.5 top-3 text-muted-foreground pointer-events-none"
+                size={16}
+                className="absolute left-3 top-2.5 text-muted-foreground pointer-events-none"
               />
               <button
                 type="button"
                 tabIndex={-1}
                 disabled={isLocked || isLoading}
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2 top-1.5 h-8 w-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-lg disabled:opacity-50"
+                className="absolute right-2 top-1.5 h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-lg disabled:opacity-50"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                <Icon name={showPassword ? 'EyeSlashIcon' : 'EyeIcon'} size={17} />
+                <Icon name={showPassword ? 'EyeSlashIcon' : 'EyeIcon'} size={16} />
               </button>
             </div>
             {errors.password && (
-              <p className="text-2xs text-danger font-medium mt-1.5">{errors.password.message}</p>
+              <p className="text-2xs text-danger font-medium mt-1">{errors.password.message}</p>
             )}
           </div>
 
-          <div className="flex items-center justify-between text-xs pt-1">
-            <label className="flex items-center gap-2.5 cursor-pointer text-muted-foreground hover:text-foreground select-none py-1">
+          <div className="flex items-center justify-between text-2xs pt-0.5">
+            <label className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground select-none py-0.5">
               <input
                 type="checkbox"
                 disabled={isLocked || isLoading}
                 {...register('rememberMe')}
-                className="w-4 h-4 rounded border-input text-primary focus:ring-primary/20 cursor-pointer"
+                className="w-3.5 h-3.5 rounded border-input text-primary focus:ring-primary/20 cursor-pointer"
               />
-              <span className="text-xs">Keep me signed in</span>
+              <span className="text-2xs">Keep me signed in</span>
             </label>
           </div>
 
@@ -295,19 +294,16 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={isLoading || isLocked}
-            style={{
-              backgroundColor: primaryColor,
-            }}
-            className="w-full min-h-[44px] h-11 px-4 text-white font-semibold rounded-xl text-sm shadow-sm hover:opacity-95 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full min-h-[44px] h-10 sm:h-11 px-4 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-xs bg-primary hover:bg-primary-hover active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>
-                <Icon name="ArrowPathIcon" size={17} className="animate-spin" />
+                <Icon name="ArrowPathIcon" size={16} className="animate-spin" />
                 <span>Verifying Credentials...</span>
               </>
             ) : isLocked ? (
               <>
-                <Icon name="LockClosedIcon" size={17} />
+                <Icon name="LockClosedIcon" size={16} />
                 <span>
                   Account Locked ({Math.floor(lockoutSeconds / 60)}m {lockoutSeconds % 60}s)
                 </span>
@@ -315,19 +311,19 @@ export default function LoginForm() {
             ) : (
               <>
                 <span>Sign In to Terminal</span>
-                <Icon name="ArrowRightIcon" size={17} />
+                <Icon name="ArrowRightIcon" size={16} />
               </>
             )}
           </button>
         </form>
 
         {/* Security & Support Info Footer */}
-        <div className="pt-4 border-t border-border/60 text-center space-y-2">
-          <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
-            <Icon name="ShieldCheckIcon" size={14} className="text-emerald-500" />
+        <div className="pt-3 border-t border-border/60 text-center space-y-1.5">
+          <div className="flex items-center justify-center gap-1.5 text-3xs text-muted-foreground">
+            <Icon name="ShieldCheckIcon" size={13} className="text-emerald-500" />
             <span>256-bit TLS · Role-Based Access Control</span>
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-3xs text-muted-foreground">
             Having trouble signing in?{' '}
             <a
               href={`mailto:${supportEmail}`}
@@ -340,8 +336,8 @@ export default function LoginForm() {
       </div>
 
       {/* Public bottom legal / copyright notice */}
-      <div className="text-center pt-4 pb-2 lg:pb-0">
-        <p className="text-[11px] text-muted-foreground/80">
+      <div className="text-center pt-2.5 pb-1 lg:pb-0">
+        <p className="text-3xs text-muted-foreground/80">
           © {new Date().getFullYear()} {appName}. {tagline}
         </p>
       </div>

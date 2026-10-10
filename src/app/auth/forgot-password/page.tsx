@@ -57,8 +57,8 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 sm:p-6">
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-xl p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200">
+    <div className="min-h-dvh flex items-center justify-center bg-background p-3 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+      <div className="w-full max-w-md bg-card border border-border/80 rounded-2xl shadow-xl p-5 sm:p-7 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-200">
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center p-3 bg-primary/5 rounded-2xl border border-primary/10 mb-2">
             <AppLogo size={36} showText={true} />

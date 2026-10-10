@@ -145,13 +145,17 @@ async function runRemediationSuite() {
     // 1. Request reset link
     const resetReq = new NextRequest('http://localhost:3000/api/auth/send-reset-link', {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-test-inspect-token': 'true',
+      },
       body: JSON.stringify({ email: testEmail })
     });
     const resetRes = await sendResetLinkHandler(resetReq);
     const resetJson = await resetRes.json();
     assert(resetRes.status === 200 && resetJson.success === true, 'Reset link generation succeeds with HTTP 200');
 
-    const rawToken = resetJson.resetToken || resetJson.debugToken;
+    const rawToken = resetJson.resetToken || resetJson.debugToken || resetJson._testOnlyToken;
     assert(typeof rawToken === 'string' && rawToken.length === 64, `256-bit secure reset token generated (${rawToken?.slice(0, 8)}...)`);
 
     // 2. Reject weak password on reset

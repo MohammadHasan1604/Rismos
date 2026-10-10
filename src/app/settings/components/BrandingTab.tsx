@@ -3,7 +3,7 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 import AppLogo from '@/components/ui/AppLogo';
-import { applyBrandThemeCssVariables, BRAND_THEME_PRESETS } from '@/lib/colorUtils';
+import { FIXED_RISMOS_PALETTE } from '@/lib/colorUtils';
 
 interface BrandingTabProps {
   appName: string;
@@ -14,12 +14,12 @@ interface BrandingTabProps {
   setSupportEmailBranding: (email: string) => void;
   supportPhone: string;
   setSupportPhone: (phone: string) => void;
-  primaryColor: string;
-  setPrimaryColor: (color: string) => void;
-  secondaryColor: string;
-  setSecondaryColor: (color: string) => void;
-  accentColor: string;
-  setAccentColor: (color: string) => void;
+  primaryColor?: string;
+  setPrimaryColor?: (color: string) => void;
+  secondaryColor?: string;
+  setSecondaryColor?: (color: string) => void;
+  accentColor?: string;
+  setAccentColor?: (color: string) => void;
   logoUrl: string | null;
   setLogoUrl: (url: string | null) => void;
   logoDarkUrl: string | null;
@@ -36,14 +36,6 @@ interface BrandingTabProps {
   isSuperAdmin: boolean;
 }
 
-const COLOR_PRESETS = [
-  { name: 'RISMOS Blue', primary: '#002E86', secondary: '#009ADF', accent: '#2563EB' },
-  { name: 'Enterprise Red', primary: '#9F1239', secondary: '#BE123C', accent: '#E11D48' },
-  { name: 'Obsidian Black', primary: '#18181B', secondary: '#27272A', accent: '#3F3F46' },
-  { name: 'Emerald Retail', primary: '#064E3B', secondary: '#10B981', accent: '#059669' },
-  { name: 'Midnight Indigo', primary: '#1E1B4B', secondary: '#6366F1', accent: '#4F46E5' },
-];
-
 export const BrandingTab: React.FC<BrandingTabProps> = ({
   appName,
   setAppName,
@@ -53,12 +45,6 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
   setSupportEmailBranding,
   supportPhone,
   setSupportPhone,
-  primaryColor,
-  setPrimaryColor,
-  secondaryColor,
-  setSecondaryColor,
-  accentColor,
-  setAccentColor,
   logoUrl,
   setLogoUrl,
   logoDarkUrl,
@@ -81,8 +67,8 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
           White-Label Branding & Global Visual Identity
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Fully white-label your retail terminal. Changes to brand name, logos, and custom color
-          palette propagate instantaneously across all stores and terminals.
+          Fully white-label your retail terminal. Changes to brand name, logos, app icons, and contact details
+          propagate instantaneously across all stores, receipts, and terminals with our fixed enterprise design system.
         </p>
       </div>
 
@@ -117,19 +103,13 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
                 </p>
               </div>
             </div>
-            <span
-              className="text-2xs font-bold px-2 py-1 rounded text-white shadow-xs"
-              style={{ backgroundColor: primaryColor || '#002E86' }}
-            >
+            <span className="text-2xs font-bold px-2.5 py-1 rounded-lg bg-primary text-white shadow-xs">
               Light Surface
             </span>
           </div>
 
           {/* Dark Surface Preview */}
-          <div
-            className="p-4 rounded-xl shadow-xs flex items-center justify-between text-white"
-            style={{ backgroundColor: primaryColor || '#002E86' }}
-          >
+          <div className="p-4 rounded-xl shadow-xs flex items-center justify-between text-white bg-primary">
             <div className="flex items-center gap-3">
               {logoDarkUrl ? (
                 <img
@@ -142,11 +122,11 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
               )}
               <div>
                 <h4 className="text-sm font-bold text-white">{appName || 'RISMOS'}</h4>
-                <p className="text-2xs text-blue-200">{tagline || 'Run Retail. Smarter.'}</p>
+                <p className="text-2xs text-slate-300">{tagline || 'Run Retail. Smarter.'}</p>
               </div>
             </div>
-            <span className="text-2xs font-bold px-2 py-1 rounded bg-white/20 text-white">
-              Dark / Header
+            <span className="text-2xs font-bold px-2.5 py-1 rounded-lg bg-white/15 text-white border border-white/20">
+              Fixed Navy Header
             </span>
           </div>
         </div>
@@ -206,105 +186,6 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
               placeholder="+1 800 555 0199"
               className="input-field text-xs"
             />
-          </div>
-        </div>
-
-        {/* Brand Color Tokens Palette */}
-        <div className="p-4 rounded-xl bg-card border border-border shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="font-bold text-foreground block">
-              Brand Color Tokens (Primary, Secondary & Accent)
-            </label>
-            <div className="flex items-center gap-1.5">
-              <span className="text-2xs text-muted-foreground mr-1">Presets:</span>
-              {COLOR_PRESETS.map((p) => (
-                <button
-                  key={p.name}
-                  type="button"
-                  disabled={!isSuperAdmin}
-                  onClick={() => {
-                    setPrimaryColor(p.primary);
-                    setSecondaryColor(p.secondary);
-                    setAccentColor(p.accent);
-                    applyBrandThemeCssVariables(p.primary, p.secondary, p.accent);
-                  }}
-                  className="w-5 h-5 rounded-full border border-border shadow-xs cursor-pointer hover:scale-110 transition-transform"
-                  style={{ backgroundColor: p.primary }}
-                  title={p.name}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="text-2xs font-semibold text-muted-foreground block mb-1">
-                Primary Brand Color
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  disabled={!isSuperAdmin}
-                  value={primaryColor || '#002E86'}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="w-9 h-9 p-0.5 rounded-lg border border-border cursor-pointer bg-card"
-                />
-                <input
-                  type="text"
-                  maxLength={7}
-                  disabled={!isSuperAdmin}
-                  value={primaryColor || '#002E86'}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="input-field text-xs font-mono font-bold flex-1"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-2xs font-semibold text-muted-foreground block mb-1">
-                Secondary Brand Color
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  disabled={!isSuperAdmin}
-                  value={secondaryColor || '#009ADF'}
-                  onChange={(e) => setSecondaryColor(e.target.value)}
-                  className="w-9 h-9 p-0.5 rounded-lg border border-border cursor-pointer bg-card"
-                />
-                <input
-                  type="text"
-                  maxLength={7}
-                  disabled={!isSuperAdmin}
-                  value={secondaryColor || '#009ADF'}
-                  onChange={(e) => setSecondaryColor(e.target.value)}
-                  className="input-field text-xs font-mono font-bold flex-1"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-2xs font-semibold text-muted-foreground block mb-1">
-                Accent / Action Color
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  disabled={!isSuperAdmin}
-                  value={accentColor || '#2563EB'}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="w-9 h-9 p-0.5 rounded-lg border border-border cursor-pointer bg-card"
-                />
-                <input
-                  type="text"
-                  maxLength={7}
-                  disabled={!isSuperAdmin}
-                  value={accentColor || '#2563EB'}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="input-field text-xs font-mono font-bold flex-1"
-                />
-              </div>
-            </div>
           </div>
         </div>
 

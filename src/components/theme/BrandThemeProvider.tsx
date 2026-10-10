@@ -1,12 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import {
-  computeBrandPalette,
   applyBrandThemeCssVariables,
   BrandThemePalette,
   BRAND_THEME_PRESETS,
+  FIXED_RISMOS_PALETTE,
 } from '@/lib/colorUtils';
 
 interface BrandThemeContextType {
@@ -18,52 +18,32 @@ interface BrandThemeContextType {
 const BrandThemeContext = createContext<BrandThemeContextType | null>(null);
 
 export function BrandThemeProvider({ children }: { children: React.ReactNode }) {
-  const { branding, updateBranding } = useApp();
+  const { branding } = useApp();
 
-  const palette = useMemo(() => {
-    return computeBrandPalette(
-      branding?.primaryColor || '#002E86',
-      branding?.secondaryColor || '#009ADF',
-      branding?.accentColor || '#2563EB'
-    );
-  }, [branding?.primaryColor, branding?.secondaryColor, branding?.accentColor]);
+  const palette = FIXED_RISMOS_PALETTE;
 
   useEffect(() => {
-    // 1. Synchronize CSS variables on :root
-    applyBrandThemeCssVariables(
-      branding?.primaryColor || '#002E86',
-      branding?.secondaryColor || '#009ADF',
-      branding?.accentColor || '#2563EB'
-    );
+    // 1. Authoritative Fixed Enterprise Theme on :root
+    applyBrandThemeCssVariables();
 
     // 2. Synchronize Favicon dynamically
     if (typeof document !== 'undefined') {
-      if (branding?.faviconUrl) {
-        const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
-        if (link) {
-          link.href = branding.faviconUrl;
+      const activeFavicon = branding?.faviconUrl || branding?.logoUrl;
+      if (activeFavicon) {
+        let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'shortcut icon';
+          document.head.appendChild(link);
         }
+        link.href = activeFavicon;
       }
     }
-  }, [
-    branding?.primaryColor,
-    branding?.secondaryColor,
-    branding?.accentColor,
-    branding?.faviconUrl,
-  ]);
+  }, [branding?.faviconUrl, branding?.logoUrl]);
 
-  const applyPreset = (presetId: string) => {
-    const preset = BRAND_THEME_PRESETS.find((p) => p.id === presetId);
-    if (!preset) return;
-
-    applyBrandThemeCssVariables(preset.primary, preset.secondary, preset.accent);
-    if (updateBranding) {
-      updateBranding({
-        primaryColor: preset.primary,
-        secondaryColor: preset.secondary,
-        accentColor: preset.accent,
-      });
-    }
+  const applyPreset = () => {
+    // Colors are fixed to enterprise RISMOS theme
+    applyBrandThemeCssVariables();
   };
 
   return (
@@ -83,7 +63,7 @@ export function useBrandTheme() {
   const ctx = useContext(BrandThemeContext);
   if (!ctx) {
     return {
-      palette: computeBrandPalette('#002E86', '#009ADF', '#2563EB'),
+      palette: FIXED_RISMOS_PALETTE,
       presets: BRAND_THEME_PRESETS,
       applyPreset: () => {},
     };

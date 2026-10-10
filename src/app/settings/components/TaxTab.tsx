@@ -181,48 +181,6 @@ export const TaxTab: React.FC<TaxTabProps> = ({
         </div>
       </div>
 
-      {/* Tax Identification Banner & Input */}
-      <div
-        className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
-          isValidTaxId
-            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
-            : taxRegistrationNumber
-              ? 'bg-danger/10 border-danger/30 text-danger'
-              : 'bg-muted/40 border-border text-muted-foreground'
-        }`}
-      >
-        <div className="flex items-start gap-3">
-          <Icon
-            name={isValidTaxId ? 'CheckCircleIcon' : 'ExclamationCircleIcon'}
-            size={22}
-            className="mt-0.5 flex-shrink-0"
-          />
-          <div>
-            <h4 className="text-xs font-bold">
-              {isValidTaxId
-                ? `Valid ${currentJurisdiction.taxIdLabel}`
-                : taxRegistrationNumber
-                  ? `Invalid ${currentJurisdiction.taxLabel} Registration Format`
-                  : `No ${currentJurisdiction.taxIdLabel} Configured`}
-            </h4>
-            <p className="text-2xs opacity-80 mt-0.5">
-              {isValidTaxId
-                ? `Registered for ${currentJurisdiction.countryName} ${currentJurisdiction.taxRegime} Compliance.`
-                : `Format Example: ${currentJurisdiction.taxIdPlaceholder}`}
-            </p>
-          </div>
-        </div>
-        {taxRegistrationNumber && (
-          <span
-            className={`px-2.5 py-1 rounded-full text-2xs font-mono font-bold uppercase ${
-              isValidTaxId ? 'bg-emerald-500/20 text-emerald-600' : 'bg-danger/20 text-danger'
-            }`}
-          >
-            {isValidTaxId ? 'Verified Pattern' : 'Syntax Error'}
-          </span>
-        )}
-      </div>
-
       <div className="space-y-4 text-xs">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -235,11 +193,33 @@ export const TaxTab: React.FC<TaxTabProps> = ({
               value={taxRegistrationNumber}
               onChange={(e) => setTaxRegistrationNumber(e.target.value.toUpperCase())}
               placeholder={currentJurisdiction.taxIdPlaceholder}
-              className="input-field text-xs font-mono font-bold uppercase tracking-wider"
+              className={`input-field text-xs font-mono font-bold uppercase tracking-wider ${
+                taxRegistrationNumber && !isValidTaxId
+                  ? 'border-danger focus:ring-danger/20'
+                  : taxRegistrationNumber && isValidTaxId
+                    ? 'border-emerald-500/50 focus:ring-emerald-500/20'
+                    : ''
+              }`}
             />
-            <p className="text-2xs text-muted-foreground mt-1">
-              Will appear on all customer sales invoices, credit notes, and tax reports.
-            </p>
+            {taxRegistrationNumber ? (
+              <div className="mt-1 flex items-center gap-1.5 text-2xs">
+                {isValidTaxId ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                    <Icon name="CheckCircleIcon" size={13} />
+                    <span>Verified {currentJurisdiction.taxIdLabel} pattern</span>
+                  </span>
+                ) : (
+                  <span className="text-danger font-semibold flex items-center gap-1">
+                    <Icon name="ExclamationCircleIcon" size={13} />
+                    <span>Invalid format for {currentJurisdiction.countryName} (Format: {currentJurisdiction.taxIdPlaceholder})</span>
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-2xs text-muted-foreground mt-1">
+                Will appear on all customer sales invoices, credit notes, and tax reports.
+              </p>
+            )}
           </div>
 
           <div>

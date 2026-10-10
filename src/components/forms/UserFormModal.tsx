@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
+import CustomSelect, { SelectOption } from '@/components/ui/CustomSelect';
 import StoreFormModal from '@/components/forms/StoreFormModal';
 import { useApp, UserAccount } from '@/context/AppContext';
 import { toast } from 'sonner';
@@ -40,15 +41,10 @@ export default function UserFormModal({
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<'Store Manager' | 'Sales Manager'>('Store Manager');
   // Single source of truth for store access: assignedStores
-  const [assignedStores, setAssignedStores] = useState<string[]>(['BLR']);
+  const [assignedStores, setAssignedStores] = useState<string[]>([]);
   const [status, setStatus] = useState<'Active' | 'Inactive' | 'Suspended'>('Active');
 
-  // Searchable store combobox states
-  const [storeSearch, setStoreSearch] = useState('');
-  const [isStoreMenuOpen, setIsStoreMenuOpen] = useState(false);
   const [isAddStoreOpen, setIsAddStoreOpen] = useState(false);
-  const storeMenuRef = useRef<HTMLDivElement>(null);
-
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -67,14 +63,18 @@ export default function UserFormModal({
     return [];
   }, [isCallerSuperAdmin, currentUser.role]);
 
-  // Caller's allowed stores to assign
+  // Caller's allowed stores to assign (avoid stale 'BLR' fallback if not exists)
   const callerAccessibleStores = useMemo(() => {
     if (isCallerSuperAdmin) {
       return storesList.map((s) => s.code);
     }
-    return currentUser.allowedStores && currentUser.allowedStores.length > 0
-      ? currentUser.allowedStores
-      : [currentUser.store || 'BLR'];
+    if (currentUser.allowedStores && currentUser.allowedStores.length > 0) {
+      return currentUser.allowedStores;
+    }
+    if (currentUser.store && storesList.some((s) => s.code === currentUser.store)) {
+      return [currentUser.store];
+    }
+    return storesList.length > 0 ? [storesList[0].code] : [];
   }, [isCallerSuperAdmin, storesList, currentUser]);
 
   // Stores available in the selector
@@ -88,37 +88,15 @@ export default function UserFormModal({
       });
   }, [storesList, callerAccessibleStores]);
 
-  // Filter stores by search query
-  const filteredStores = useMemo(() => {
-    if (!storeSearch.trim()) return availableStoreHubs;
-    const q = storeSearch.toLowerCase().trim();
-    return availableStoreHubs.filter(
-      (st) =>
-        st.code.toLowerCase().includes(q) ||
-        st.name.toLowerCase().includes(q) ||
-        (st.city && st.city.toLowerCase().includes(q))
-    );
-  }, [availableStoreHubs, storeSearch]);
-
-  const selectedStoreObj = useMemo(() => {
-    const code = assignedStores[0];
-    return availableStoreHubs.find((st) => st.code === code) || availableStoreHubs[0];
-  }, [availableStoreHubs, assignedStores]);
-
-  // Click outside to close store dropdown
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (storeMenuRef.current && !storeMenuRef.current.contains(e.target as Node)) {
-        setIsStoreMenuOpen(false);
-      }
-    };
-    if (isStoreMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isStoreMenuOpen]);
+  // Canonical SelectOption mapping
+  const storeOptions: SelectOption[] = useMemo(() => {
+    return availableStoreHubs.map((st) => ({
+      value: st.code,
+      label: `${st.code} — ${st.name}`,
+      sublabel: st.city ? st.city : undefined,
+      badge: st.code,
+    }));
+  }, [availableStoreHubs]);
 
   // 🔒 STABLE FORM INITIALIZATION & DRAFT PROTECTION
   // Initialize ONLY on closed -> open transition or when target user?.id intentionally changes.
@@ -154,9 +132,11 @@ export default function UserFormModal({
             ? user.allowedStores
             : user.store
               ? [user.store]
-              : [callerAccessibleStores[0] || 'BLR']
-          : [currentUser.store || 'BLR'];
-        setAssignedStores(initialStores);
+              : callerAccessibleStores.length > 0
+                ? [callerAccessibleStores[0]]
+                : []
+          : [currentUser.store || callerAccessibleStores[0] || ''];
+        setAssignedStores(initialStores.filter(Boolean));
         setStatus((user.status as any) || 'Active');
       } else {
         setName('');
@@ -168,9 +148,9 @@ export default function UserFormModal({
         setRole(isCallerSuperAdmin ? 'Store Manager' : 'Sales Manager');
         // Store Manager always automatically uses manager's own store
         const defaultStore = isCallerSuperAdmin
-          ? callerAccessibleStores[0] || 'BLR'
-          : currentUser.store || 'BLR';
-        setAssignedStores([defaultStore]);
+          ? callerAccessibleStores[0] || ''
+          : currentUser.store || callerAccessibleStores[0] || '';
+        setAssignedStores(defaultStore ? [defaultStore] : []);
         setStatus('Active');
       }
     }
@@ -552,116 +532,17 @@ export default function UserFormModal({
                 </button>
               </div>
 
-              {/* Custom Searchable Combobox */}
-              <div className="relative" ref={storeMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsStoreMenuOpen(!isStoreMenuOpen)}
-                  className="w-full input-field text-xs flex items-center justify-between gap-2 cursor-pointer bg-background hover:bg-muted/30 transition-colors py-2 px-3 text-left font-normal"
-                  aria-haspopup="listbox"
-                  aria-expanded={isStoreMenuOpen}
-                >
-                  {selectedStoreObj ? (
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="font-mono font-bold bg-primary/15 text-primary text-3xs px-1.5 py-0.5 rounded">
-                        {selectedStoreObj.code}
-                      </span>
-                      <span className="font-semibold text-foreground truncate">
-                        {selectedStoreObj.name}
-                      </span>
-                      {selectedStoreObj.city && (
-                        <span className="text-muted-foreground text-3xs truncate">
-                          ({selectedStoreObj.city})
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">Select a store...</span>
-                  )}
-                  <Icon
-                    name={isStoreMenuOpen ? 'ChevronUpIcon' : 'ChevronDownIcon'}
-                    size={14}
-                    className="text-muted-foreground shrink-0"
-                  />
-                </button>
-
-                {isStoreMenuOpen && (
-                  <div className="absolute z-50 left-0 right-0 mt-1 bg-popover text-popover-foreground border border-border rounded-xl shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95">
-                    <div className="p-2 border-b border-border/60 bg-muted/20">
-                      <div className="relative">
-                        <Icon
-                          name="MagnifyingGlassIcon"
-                          size={14}
-                          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Search by name, code, city..."
-                          value={storeSearch}
-                          onChange={(e) => setStoreSearch(e.target.value)}
-                          className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-
-                    <div className="max-h-48 overflow-y-auto p-1 space-y-0.5" role="listbox">
-                      {filteredStores.length === 0 ? (
-                        <div className="py-4 text-center text-xs text-muted-foreground">
-                          No stores found matching &quot;{storeSearch}&quot;
-                        </div>
-                      ) : (
-                        filteredStores.map((st) => {
-                          const isSelected = assignedStores[0] === st.code;
-                          return (
-                            <button
-                              key={st.code}
-                              type="button"
-                              onClick={() => {
-                                setAssignedStores([st.code]);
-                                setIsStoreMenuOpen(false);
-                                setStoreSearch('');
-                              }}
-                              className={`w-full flex items-center justify-between p-2 rounded-lg text-xs cursor-pointer transition-colors ${
-                                isSelected
-                                  ? 'bg-primary/10 text-primary font-semibold'
-                                  : 'hover:bg-muted text-foreground'
-                              }`}
-                              role="option"
-                              aria-selected={isSelected}
-                            >
-                              <div className="flex items-center gap-2 truncate">
-                                <span
-                                  className={`font-mono font-bold text-3xs px-1.5 py-0.5 rounded ${
-                                    isSelected
-                                      ? 'bg-primary text-primary-foreground'
-                                      : 'bg-muted text-muted-foreground'
-                                  }`}
-                                >
-                                  {st.code}
-                                </span>
-                                <span className="truncate">{st.name}</span>
-                                {st.city && (
-                                  <span className="text-3xs text-muted-foreground truncate">
-                                    ({st.city})
-                                  </span>
-                                )}
-                              </div>
-                              {isSelected && (
-                                <Icon
-                                  name="CheckIcon"
-                                  size={14}
-                                  className="text-primary shrink-0"
-                                />
-                              )}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Canonical CustomSelect Architecture */}
+              <CustomSelect
+                value={assignedStores[0] || ''}
+                onChange={(val) => setAssignedStores([val])}
+                options={storeOptions}
+                placeholder="Select an operational store..."
+                searchPlaceholder="Search store by name, code, city..."
+                searchable={true}
+                addNewLabel="+ Add New Store"
+                onAddNew={() => setIsAddStoreOpen(true)}
+              />
             </div>
           ) : (
             /* Store Manager creating staff: Control MUST NOT render; store is displayed as read-only contextual info */
@@ -670,11 +551,11 @@ export default function UserFormModal({
                 <span className="font-bold text-foreground block">Assigned Store Location</span>
                 <p className="text-3xs text-muted-foreground">
                   Staff member will automatically be assigned to your branch (
-                  {currentUser.store || 'BLR'}).
+                  {currentUser.store || callerAccessibleStores[0] || 'Branch'}).
                 </p>
               </div>
               <span className="badge-primary text-xs font-mono font-bold px-2.5 py-1 rounded-lg">
-                {currentUser.store || 'BLR'}
+                {currentUser.store || callerAccessibleStores[0] || 'Branch'}
               </span>
             </div>
           )}

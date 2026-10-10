@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import Icon from '@/components/ui/AppIcon';
 import { LAUNCH_JURISDICTIONS } from '@/lib/localization/jurisdictions';
 
 interface ProfileTabProps {
@@ -93,6 +94,14 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   setBaseCurrency,
   isSuperAdmin,
 }) => {
+  const [derivedSummary, setDerivedSummary] = useState<{
+    countryName: string;
+    currency: string;
+    locale: string;
+    timezone: string;
+    taxRegime: string;
+  } | null>(null);
+
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedCode = e.target.value;
     const oldCode = countryCode;
@@ -102,9 +111,15 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
       setCountry(jurisdiction.countryName);
       setTimezone(jurisdiction.defaultTimezone);
       setLocale(jurisdiction.defaultLocale);
-      setBaseCurrency(
-        `${jurisdiction.defaultCurrencyCode} (${jurisdiction.defaultCurrencySymbol})`
-      );
+      const newCurr = `${jurisdiction.defaultCurrencyCode} (${jurisdiction.defaultCurrencySymbol})`;
+      setBaseCurrency(newCurr);
+      setDerivedSummary({
+        countryName: jurisdiction.countryName,
+        currency: newCurr,
+        locale: jurisdiction.defaultLocale,
+        timezone: jurisdiction.defaultTimezone,
+        taxRegime: `${jurisdiction.taxRegime} (${jurisdiction.taxLabel})`,
+      });
       if (oldCode === 'IN' && selectedCode !== 'IN') {
         if (state === 'Karnataka') setState('');
         if (city === 'Bengaluru') setCity('');
@@ -228,6 +243,37 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Derived Regional Settings Summary Banner */}
+        {derivedSummary && (
+          <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 text-xs space-y-2 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2 font-bold text-primary text-xs">
+              <Icon name="InformationCircleIcon" size={16} />
+              <span>Regional Settings Updated for {derivedSummary.countryName}</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-2xs pt-1">
+              <div>
+                <span className="text-muted-foreground block">Base Currency</span>
+                <span className="font-semibold text-foreground">{derivedSummary.currency}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block">System Locale</span>
+                <span className="font-semibold text-foreground">{derivedSummary.locale}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block">Timezone</span>
+                <span className="font-semibold text-foreground">{derivedSummary.timezone}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block">Tax Regime</span>
+                <span className="font-semibold text-foreground">{derivedSummary.taxRegime}</span>
+              </div>
+            </div>
+            <p className="text-3xs text-muted-foreground pt-0.5">
+              * Note: Corporate headquarters address, phone, and registration numbers are preserved for manual client entry.
+            </p>
+          </div>
+        )}
 
         <div>
           <label className="font-bold text-foreground block mb-1">

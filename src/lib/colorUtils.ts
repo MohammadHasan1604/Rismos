@@ -98,17 +98,40 @@ export function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 }
 
+export const FIXED_RISMOS_PALETTE: BrandThemePalette = {
+  primary: '#0B1F3A',
+  primaryHover: '#123A63',
+  primarySoft: 'rgba(11, 31, 58, 0.08)',
+  primaryForeground: '#FFFFFF',
+  secondary: '#123A63',
+  secondaryForeground: '#FFFFFF',
+  accent: '#123A63',
+  accentHover: '#0B1F3A',
+  accentSoft: 'rgba(18, 58, 99, 0.1)',
+  accentForeground: '#FFFFFF',
+  ring: '#123A63',
+};
+
 /**
- * Computes full semantic palette from brand color tokens
+ * Computes full semantic palette from brand color tokens.
+ * Defaults to authoritative fixed enterprise RISMOS palette.
  */
 export function computeBrandPalette(
-  primaryHex: string = '#002E86',
-  secondaryHex: string = '#009ADF',
-  accentHex: string = '#2563EB'
+  primaryHex: string = '#0B1F3A',
+  secondaryHex: string = '#123A63',
+  accentHex: string = '#123A63'
 ): BrandThemePalette {
-  const safePrimary = hexToRgb(primaryHex) ? primaryHex : '#002E86';
-  const safeSecondary = hexToRgb(secondaryHex) ? secondaryHex : '#009ADF';
-  const safeAccent = hexToRgb(accentHex) ? accentHex : '#2563EB';
+  if (
+    (!primaryHex || primaryHex === '#0B1F3A') &&
+    (!secondaryHex || secondaryHex === '#123A63') &&
+    (!accentHex || accentHex === '#123A63')
+  ) {
+    return FIXED_RISMOS_PALETTE;
+  }
+
+  const safePrimary = hexToRgb(primaryHex) ? primaryHex : '#0B1F3A';
+  const safeSecondary = hexToRgb(secondaryHex) ? secondaryHex : '#123A63';
+  const safeAccent = hexToRgb(accentHex) ? accentHex : '#123A63';
 
   return {
     primary: safePrimary,
@@ -126,16 +149,17 @@ export function computeBrandPalette(
 }
 
 /**
- * Injects CSS variables onto document root element
+ * Injects authoritative fixed enterprise CSS variables onto document root element.
+ * Clients cannot override fixed application colors.
  */
 export function applyBrandThemeCssVariables(
-  primaryHex?: string,
-  secondaryHex?: string,
-  accentHex?: string
+  _primaryHex?: string,
+  _secondaryHex?: string,
+  _accentHex?: string
 ): void {
   if (typeof document === 'undefined') return;
 
-  const palette = computeBrandPalette(primaryHex, secondaryHex, accentHex);
+  const palette = FIXED_RISMOS_PALETTE;
   const root = document.documentElement;
 
   root.style.setProperty('--primary', palette.primary);
@@ -152,4 +176,8 @@ export function applyBrandThemeCssVariables(
   root.style.setProperty('--accent-foreground', palette.accentForeground);
 
   root.style.setProperty('--ring', palette.ring);
+  root.style.setProperty('--background', '#F8FAFC');
+  root.style.setProperty('--card', '#FFFFFF');
+  root.style.setProperty('--foreground', '#0F172A');
+  root.style.setProperty('--border', '#E2E8F0');
 }

@@ -11,7 +11,7 @@ export default function SignUpLoginPage() {
       {/* Right form panel (Desktop & Mobile Unified Viewport Container) */}
       <section
         aria-label="Authentication Panel"
-        className="flex-1 h-full w-full flex flex-col justify-center items-center p-4 sm:p-6 lg:p-12 overflow-y-auto overscroll-contain pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
+        className="flex-1 h-full w-full flex flex-col justify-center items-center p-3 sm:p-6 lg:p-6 xl:p-8 overflow-y-auto overscroll-contain pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
       >
         <LoginForm />
       </section>

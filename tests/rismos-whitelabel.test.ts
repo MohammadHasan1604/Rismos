@@ -349,11 +349,11 @@ console.log('\n--- 8. Phase 12: User Form Assigned Store UX & Add Store Flow ---
 
 const userForm = readFile('src/components/forms/UserFormModal.tsx');
 
-test('UserFormModal uses searchable combobox for assigned store', () => {
+test('UserFormModal uses canonical searchable select for assigned store', () => {
   return (
-    userForm.includes('storeSearch') &&
-    userForm.includes('filteredStores') &&
-    userForm.includes('isStoreMenuOpen')
+    userForm.includes('CustomSelect') &&
+    userForm.includes('storeOptions') &&
+    userForm.includes('searchable')
   );
 });
 
