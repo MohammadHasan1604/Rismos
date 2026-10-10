@@ -220,10 +220,7 @@ export async function uploadToStorage(
         process.env.NEXT_PUBLIC_R2_URL ||
         process.env.STORAGE_PUBLIC_URL;
 
-      const safeKeyPath = key
-        .split('/')
-        .map(encodeURIComponent)
-        .join('/');
+      const safeKeyPath = key.split('/').map(encodeURIComponent).join('/');
 
       const url = isPrivate
         ? `/api/files/${safeKeyPath}`
@@ -265,20 +262,14 @@ export async function uploadToStorage(
 
   // ─── Local Filesystem Fallback (development only) ──────────────────────────
   try {
-    const localDir = path.join(process.cwd(), 'public', 'uploads', bucket);
+    const localPath = path.join(process.cwd(), 'public', 'uploads', key);
+    const localDir = path.dirname(localPath);
     await fs.mkdir(localDir, { recursive: true });
-    const localFilename = key.split('/').pop()!;
-    const localPath = path.join(localDir, localFilename);
     await fs.writeFile(localPath, buffer);
 
-    const safeKeyPath = key
-      .split('/')
-      .map(encodeURIComponent)
-      .join('/');
+    const safeKeyPath = key.split('/').map(encodeURIComponent).join('/');
 
-    const url = isPrivate
-      ? `/api/files/${safeKeyPath}`
-      : `/uploads/${bucket}/${localFilename}`;
+    const url = isPrivate ? `/api/files/${safeKeyPath}` : `/uploads/${safeKeyPath}`;
     return { success: true, url, key, size: buffer.length, mimeType, isPrivate };
   } catch (localErr: any) {
     return { success: false, url: '', key, size: 0, mimeType, isPrivate, error: localErr.message };
@@ -351,9 +342,8 @@ export async function getSignedDownloadUrl(
 ): Promise<string | null> {
   if (!s3Client) {
     // In dev mode without S3, return local path
-    const localFilename = key.split('/').pop();
-    const bucket = key.split('/')[0];
-    return `/uploads/${bucket}/${localFilename}`;
+    const safeKeyPath = key.split('/').map(encodeURIComponent).join('/');
+    return `/uploads/${safeKeyPath}`;
   }
 
   try {

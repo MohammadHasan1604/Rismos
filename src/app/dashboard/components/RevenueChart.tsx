@@ -59,7 +59,15 @@ const CustomTooltip = ({ active, payload, label, formatCurrency }: CustomTooltip
 };
 
 export default function RevenueChart() {
-  const { sales, selectedStore, datePeriod, customDateRange, currentUser, formatCurrency, systemSettings } = useApp();
+  const {
+    sales,
+    selectedStore,
+    datePeriod,
+    customDateRange,
+    currentUser,
+    formatCurrency,
+    systemSettings,
+  } = useApp();
   const sym = systemSettings?.currencySymbol || '₹';
   const isIndia = (systemSettings?.countryCode || 'IN').toUpperCase() === 'IN';
   const isSalesManager = currentUser.role === 'Sales Manager';

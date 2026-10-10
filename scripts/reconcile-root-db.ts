@@ -78,10 +78,25 @@ async function reconcileRootDb() {
     update: { status: 'Active', name: 'Other', type: 'Other' },
   });
 
+  // Ensure CARD exists and is Active
+  await (prisma as any).paymentMethod.upsert({
+    where: { code: 'CARD' },
+    create: {
+      code: 'CARD',
+      name: 'Card',
+      type: 'Card',
+      description: 'Credit and debit card payments',
+      status: 'Active',
+      isSystem: true,
+      sortOrder: 4,
+    },
+    update: { status: 'Active', name: 'Card', type: 'Card' },
+  });
+
   // Deactivate all others
   const deactivated = await (prisma as any).paymentMethod.updateMany({
     where: {
-      code: { notIn: ['CASH', 'UPI', 'OTHER'] },
+      code: { notIn: ['CASH', 'CARD', 'UPI', 'OTHER'] },
     },
     data: { status: 'Inactive' },
   });

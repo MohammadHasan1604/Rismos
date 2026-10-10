@@ -55,7 +55,7 @@ export default function ProductFormModal({
   const userStoreCode =
     currentUser?.store && currentUser.store !== 'All Stores' && currentUser.store !== 'ALL'
       ? currentUser.store
-      : (storesList[0]?.code || 'CENTRAL');
+      : storesList[0]?.code || 'CENTRAL';
   const assignedStoreObj = storesList.find(
     (s) => s.code.toUpperCase() === userStoreCode.toUpperCase()
   );
@@ -120,7 +120,7 @@ export default function ProductFormModal({
         value: v.name,
         label: v.name,
         sublabel: `${v.code} · ${v.category || 'General'}`,
-        badge: v.gstin ? (taxLabel || 'Tax') : undefined,
+        badge: v.gstin ? taxLabel || 'Tax' : undefined,
       }));
   }, [vendors, taxLabel]);
 
@@ -181,7 +181,7 @@ export default function ProductFormModal({
           subcategory: editItem.subcategory || '',
           vendor: (editItem as any)?.vendor || '',
           description: editItem.description || '',
-          store: !isSuperAdmin ? userStoreCode : (editItem.store || 'CENTRAL'),
+          store: !isSuperAdmin ? userStoreCode : editItem.store || 'CENTRAL',
           qtyOnHand:
             editItem.qtyOnHand !== undefined && editItem.qtyOnHand !== null
               ? editItem.qtyOnHand
@@ -988,7 +988,6 @@ export default function ProductFormModal({
               className="input-field text-xs resize-none"
             />
           </div>
-
         </form>
       </Modal>
 

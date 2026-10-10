@@ -971,7 +971,9 @@ export default function CentralProfitPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Inventory Cost / unit:</span>
-                  <span className="font-bold text-foreground">{formatTransferCurrency(unitCost)}</span>
+                  <span className="font-bold text-foreground">
+                    {formatTransferCurrency(unitCost)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Transfer Price / unit:</span>
@@ -1111,7 +1113,11 @@ export default function CentralProfitPage() {
                             <span className="badge-info text-3xs">{p.storeCode}</span>
                           </td>
                           <td className="px-3 py-2 text-right font-extrabold text-primary">
-                            {formatTransferAmount(p.defaultTransferPrice, { currencyCode, currencySymbol, locale })}
+                            {formatTransferAmount(p.defaultTransferPrice, {
+                              currencyCode,
+                              currencySymbol,
+                              locale,
+                            })}
                           </td>
                         </tr>
                       );

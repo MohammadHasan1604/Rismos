@@ -60,11 +60,15 @@ export default function BrandPanel() {
         </div>
 
         <h1 className="text-3xl xl:text-4xl 2xl:text-5xl font-extrabold tracking-tight leading-[1.15] text-white mb-4">
-          The modern platform to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-sky-300 to-white">{tagline}</span>
+          The modern platform to{' '}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-sky-300 to-white">
+            {tagline}
+          </span>
         </h1>
 
         <p className="text-blue-100/80 text-sm xl:text-base leading-relaxed mb-8 max-w-lg">
-          Synchronize point-of-sale, multi-store inventory, purchasing, international taxes, and financial reporting across all your locations in real time.
+          Synchronize point-of-sale, multi-store inventory, purchasing, international taxes, and
+          financial reporting across all your locations in real time.
         </p>
 
         {/* Retail Capabilities Grid */}
@@ -115,9 +119,7 @@ export default function BrandPanel() {
           <span className="text-white/40">·</span>
           <span>End-to-End Encrypted</span>
         </div>
-        <span className="text-[11px] text-blue-200/50">
-          {appName} v2.4 Enterprise
-        </span>
+        <span className="text-[11px] text-blue-200/50">{appName} v2.4 Enterprise</span>
       </div>
     </div>
   );

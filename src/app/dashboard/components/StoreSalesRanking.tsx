@@ -307,7 +307,8 @@ export default function StoreSalesRanking() {
                         )}
                       </div>
                       <p className="text-3xs text-muted-foreground mt-0.5">
-                        {st.invoiceCount} invoices · {st.totalUnits} units · Avg ticket {formatCurrency(st.avgInvoiceValue)}
+                        {st.invoiceCount} invoices · {st.totalUnits} units · Avg ticket{' '}
+                        {formatCurrency(st.avgInvoiceValue)}
                       </p>
                     </div>
                   </div>

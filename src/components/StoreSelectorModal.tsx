@@ -323,7 +323,10 @@ export default function StoreSelectorModal() {
           zIndex={130}
           footer={
             <div className="flex justify-end gap-2 w-full">
-              <button onClick={() => setDeleteStoreModal(null)} className="btn-secondary text-xs flex-1 sm:flex-initial">
+              <button
+                onClick={() => setDeleteStoreModal(null)}
+                className="btn-secondary text-xs flex-1 sm:flex-initial"
+              >
                 Cancel
               </button>
               <button

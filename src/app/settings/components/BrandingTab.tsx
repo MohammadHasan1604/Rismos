@@ -77,9 +77,12 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
   return (
     <div className="space-y-6">
       <div className="border-b border-border pb-3">
-        <h3 className="text-base font-bold text-foreground">White-Label Branding & Global Visual Identity</h3>
+        <h3 className="text-base font-bold text-foreground">
+          White-Label Branding & Global Visual Identity
+        </h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Fully white-label your retail terminal. Changes to brand name, logos, and custom color palette propagate instantaneously across all stores and terminals.
+          Fully white-label your retail terminal. Changes to brand name, logos, and custom color
+          palette propagate instantaneously across all stores and terminals.
         </p>
       </div>
 
@@ -109,7 +112,9 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
               )}
               <div>
                 <h4 className="text-sm font-bold text-foreground">{appName || 'RISMOS'}</h4>
-                <p className="text-2xs text-muted-foreground">{tagline || 'Run Retail. Smarter.'}</p>
+                <p className="text-2xs text-muted-foreground">
+                  {tagline || 'Run Retail. Smarter.'}
+                </p>
               </div>
             </div>
             <span
@@ -327,7 +332,9 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
                 className="h-12 object-contain rounded-lg border border-border p-1 bg-white"
               />
             ) : (
-              <p className="text-2xs text-muted-foreground">Using default dynamic AppLogo vector mark.</p>
+              <p className="text-2xs text-muted-foreground">
+                Using default dynamic AppLogo vector mark.
+              </p>
             )}
             <input
               type="file"
@@ -360,7 +367,9 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
                 className="h-12 object-contain rounded-lg border border-border p-1 bg-slate-900"
               />
             ) : (
-              <p className="text-2xs text-muted-foreground">Optional inverted logo for dark topbars and auth screens.</p>
+              <p className="text-2xs text-muted-foreground">
+                Optional inverted logo for dark topbars and auth screens.
+              </p>
             )}
             <input
               type="file"
@@ -393,7 +402,9 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
                 className="h-10 w-10 object-contain rounded-lg border border-border p-1 bg-white"
               />
             ) : (
-              <p className="text-2xs text-muted-foreground">Icon square used on collapsed sidebars and mobile badges.</p>
+              <p className="text-2xs text-muted-foreground">
+                Icon square used on collapsed sidebars and mobile badges.
+              </p>
             )}
             <input
               type="file"
@@ -426,7 +437,9 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
                 className="h-8 w-8 object-contain rounded border border-border p-0.5 bg-white"
               />
             ) : (
-              <p className="text-2xs text-muted-foreground">32x32px or 64x64px browser tab icon (.ico, .png, .svg).</p>
+              <p className="text-2xs text-muted-foreground">
+                32x32px or 64x64px browser tab icon (.ico, .png, .svg).
+              </p>
             )}
             <input
               type="file"

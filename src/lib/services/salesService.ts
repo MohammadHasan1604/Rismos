@@ -133,7 +133,6 @@ export async function executePOSCheckout(input: CreateSaleInput) {
   const grossProfit = Math.round((netSalesRevenue - COGS) * 100) / 100;
   const netRevenue = netSalesRevenue;
 
-
   const storeNumericMap: Record<string, string> = {
     BLR: '001',
     HYD: '002',
@@ -164,7 +163,9 @@ export async function executePOSCheckout(input: CreateSaleInput) {
       const orderNo = await generateSafeSequenceNo('salesOrder', 'orderNo', invoicePrefix, 1, tx);
 
       // 2. Lock and batch read all inventory records for the cart items with FOR UPDATE row locking
-      const invRecords = await tx.$queryRaw<Array<{ id: string; product_id: string; store_code: string; qty_on_hand: number }>>`
+      const invRecords = await tx.$queryRaw<
+        Array<{ id: string; product_id: string; store_code: string; qty_on_hand: number }>
+      >`
         SELECT id, product_id, store_code, qty_on_hand
         FROM inventory
         WHERE store_code = ${storeCode} AND product_id IN (${Prisma.join(productIds)})
@@ -290,7 +291,9 @@ export async function executePOSCheckout(input: CreateSaleInput) {
               `Thank you for shopping with ${brandingConfig?.appName || 'RISMOS'}!`,
             invoiceTerms: systemSettingsConfig?.invoiceTerms || null,
             invoiceAccentColor:
-              systemSettingsConfig?.invoiceAccentColor || (brandingConfig as any)?.primaryColor || '#002E86',
+              systemSettingsConfig?.invoiceAccentColor ||
+              (brandingConfig as any)?.primaryColor ||
+              '#002E86',
             invoiceTemplateUrl: systemSettingsConfig?.invoiceTemplateUrl || null,
             invoiceTemplateVersion: systemSettingsConfig?.invoiceTemplateVersion || 1,
             invoiceFieldMapping: systemSettingsConfig?.invoiceFieldMapping || null,

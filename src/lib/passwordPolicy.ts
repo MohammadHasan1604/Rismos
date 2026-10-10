@@ -28,7 +28,11 @@ export function validatePassword(
   if (!password || typeof password !== 'string') {
     return {
       valid: false,
-      errors: [isEnterprise ? 'Password must be at least 12 characters long' : 'Password must be at least 8 characters long'],
+      errors: [
+        isEnterprise
+          ? 'Password must be at least 12 characters long'
+          : 'Password must be at least 8 characters long',
+      ],
       score: 0,
     };
   }
@@ -129,7 +133,9 @@ export function getPasswordStrengthDisplay(score: number): string {
  * Authoritative Server-Side Password Policy Resolver
  * Checks database systemSettings.enforcePasswordPolicy
  */
-export async function validatePasswordAgainstPolicy(password: string): Promise<PasswordValidationResult> {
+export async function validatePasswordAgainstPolicy(
+  password: string
+): Promise<PasswordValidationResult> {
   let enforceEnterprise = true;
   try {
     const sys = await (prisma as any).systemSettings.findFirst({
@@ -143,4 +149,3 @@ export async function validatePasswordAgainstPolicy(password: string): Promise<P
   }
   return validatePassword(password, { enforceEnterprise });
 }
-

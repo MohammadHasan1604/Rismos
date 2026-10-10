@@ -7,7 +7,8 @@ import { useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
 
 export default function InventoryHeader() {
-  const { inventory, inventoryLedger, selectedStore, branding, formatCurrency, dateLocale } = useApp();
+  const { inventory, inventoryLedger, selectedStore, branding, formatCurrency, dateLocale } =
+    useApp();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [ledgerModalOpen, setLedgerModalOpen] = useState(false);
 

@@ -106,11 +106,7 @@ export const DigitalInvoiceModal: React.FC<DigitalInvoiceModalProps> = ({
               <Icon name="ArrowTopRightOnSquareIcon" size={14} />
               <span>Send WhatsApp</span>
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-secondary text-xs"
-            >
+            <button type="button" onClick={onClose} className="btn-secondary text-xs">
               Close
             </button>
           </div>

@@ -458,7 +458,9 @@ export async function PUT(req: NextRequest) {
           : {}),
         ...(body.email !== undefined ? { email: body.email ? body.email.trim() : null } : {}),
         ...(body.city !== undefined ? { city: body.city ? body.city.trim() : null } : {}),
-        ...(body.address !== undefined ? { address: body.address ? body.address.trim() : null } : {}),
+        ...(body.address !== undefined
+          ? { address: body.address ? body.address.trim() : null }
+          : {}),
         ...(body.status ? { status: body.status } : {}),
       },
     });

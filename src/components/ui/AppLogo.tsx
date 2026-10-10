@@ -25,9 +25,10 @@ export const AppLogo = memo(function AppLogo({
   const { branding } = useApp();
 
   const isDarkVariant = variant === 'dark-bg' || variant === 'blue-bg' || variant === 'mono-white';
-  
+
   // Prefer dark logo variant when rendering on dark/blue surfaces if available
-  const activeSrc = src || (isDarkVariant && branding.logoDarkUrl ? branding.logoDarkUrl : branding.logoUrl);
+  const activeSrc =
+    src || (isDarkVariant && branding.logoDarkUrl ? branding.logoDarkUrl : branding.logoUrl);
   const appName = branding?.appName || 'RISMOS';
   const primaryColor = branding?.primaryColor || '#002E86';
   const secondaryColor = branding?.secondaryColor || '#009ADF';
@@ -122,12 +123,7 @@ export const AppLogo = memo(function AppLogo({
               strokeLinecap="round"
             />
             {/* Command Dot */}
-            <circle
-              cx="26"
-              cy="10"
-              r="2.5"
-              fill={isDarkVariant ? '#38BDF8' : secondaryColor}
-            />
+            <circle cx="26" cy="10" r="2.5" fill={isDarkVariant ? '#38BDF8' : secondaryColor} />
           </svg>
 
           {showText && (
@@ -150,4 +146,3 @@ export const AppLogo = memo(function AppLogo({
 });
 
 export default AppLogo;
-

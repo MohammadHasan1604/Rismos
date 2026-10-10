@@ -43,7 +43,10 @@ export default function BottomSheet({
       const vv = window.visualViewport;
       if (vv) {
         const height = Math.round(vv.height);
-        sheetRef.current.style.setProperty('--vv-sheet-max-h', `${Math.min(height - 16, height * 0.9)}px`);
+        sheetRef.current.style.setProperty(
+          '--vv-sheet-max-h',
+          `${Math.min(height - 16, height * 0.9)}px`
+        );
       } else {
         sheetRef.current.style.setProperty('--vv-sheet-max-h', '88dvh');
       }

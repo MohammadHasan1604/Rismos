@@ -15,7 +15,9 @@ export default function BottomNav() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedOrder, setSavedOrder] = useState<string[]>([]);
-  const [localItems, setLocalItems] = useState<Array<{ id: string; label: string; icon: string; href: string }>>([]);
+  const [localItems, setLocalItems] = useState<
+    Array<{ id: string; label: string; icon: string; href: string }>
+  >([]);
 
   // 5-Position Nav Layout: Sales is ALWAYS the exact center (Position 3)
   const leftSlots = useMemo(() => {
@@ -408,7 +410,9 @@ export default function BottomNav() {
         {/* Custom Header Bar with Edit / Reorder Controls */}
         <div className="flex items-center justify-between pb-3 mb-2 border-b border-border/60">
           <span className="text-xs font-semibold text-muted-foreground">
-            {isEditing ? 'Reorder modules (tap arrows to sort)' : `${localItems.length} modules available`}
+            {isEditing
+              ? 'Reorder modules (tap arrows to sort)'
+              : `${localItems.length} modules available`}
           </span>
           <div className="flex items-center gap-2">
             {!isEditing ? (
@@ -468,7 +472,9 @@ export default function BottomNav() {
               >
                 <div
                   className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                    isActive(item.href) ? 'bg-primary text-primary-foreground shadow-xs' : 'bg-muted'
+                    isActive(item.href)
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'bg-muted'
                   }`}
                 >
                   <Icon
@@ -503,8 +509,8 @@ export default function BottomNav() {
                     isItemDragging
                       ? 'opacity-40 border-primary bg-primary/10 shadow-inner'
                       : isTargetOver
-                      ? 'border-primary ring-2 ring-primary/30 bg-primary/5 shadow-xs scale-[1.01]'
-                      : 'border-border/70 bg-card/60 hover:bg-muted/40'
+                        ? 'border-primary ring-2 ring-primary/30 bg-primary/5 shadow-xs scale-[1.01]'
+                        : 'border-border/70 bg-card/60 hover:bg-muted/40'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">

@@ -183,7 +183,12 @@ async function runMatrixTests() {
   }
 }
 
-runMatrixTests().catch((err) => {
-  console.error('Unhandled test failure:', err);
-  process.exit(1);
-});
+runMatrixTests()
+  .then(() => {
+    process.exit(failed > 0 ? 1 : 0);
+  })
+  .catch((err) => {
+    console.error('Unhandled test failure:', err);
+    process.exit(1);
+  });
+

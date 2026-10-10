@@ -7,7 +7,16 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { useApp } from '@/context/AppContext';
 
 export default function RecentActivityFeed() {
-  const { sales, purchases, stockTransfers, auditLogs, selectedStore, currentUser, formatCurrency, dateLocale } = useApp();
+  const {
+    sales,
+    purchases,
+    stockTransfers,
+    auditLogs,
+    selectedStore,
+    currentUser,
+    formatCurrency,
+    dateLocale,
+  } = useApp();
   const isSuperAdmin = currentUser.role === 'Super Admin';
   const isStoreManager = currentUser.role === 'Store Manager';
   const isSalesManager = currentUser.role === 'Sales Manager';
@@ -46,7 +55,10 @@ export default function RecentActivityFeed() {
       title: `PO #${p.poNo} created`,
       meta: `Vendor: ${p.vendorName || 'Supplier'} · ${formatCurrency(p.totalAmount || 0)}`,
       time: p.createdAt
-        ? new Date(p.createdAt).toLocaleDateString(dateLocale || 'en-IN', { day: '2-digit', month: 'short' })
+        ? new Date(p.createdAt).toLocaleDateString(dateLocale || 'en-IN', {
+            day: '2-digit',
+            month: 'short',
+          })
         : 'Recent',
       badge: {
         variant: p.status === 'Received' ? ('active' as const) : ('pending' as const),
@@ -70,7 +82,10 @@ export default function RecentActivityFeed() {
           title: `Stock transfer #${t.transferNo}`,
           meta: `${t.sourceStore} → ${t.destStore} · ${t.productName} · ${t.qty} units`,
           time: t.createdAt
-            ? new Date(t.createdAt).toLocaleDateString(dateLocale || 'en-IN', { day: '2-digit', month: 'short' })
+            ? new Date(t.createdAt).toLocaleDateString(dateLocale || 'en-IN', {
+                day: '2-digit',
+                month: 'short',
+              })
             : 'Recent',
           badge: { variant: 'info' as const, label: t.status },
         }))

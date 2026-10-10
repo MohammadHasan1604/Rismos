@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
-import { Vendor } from '@/context/AppContext';
+import { Vendor, useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
 
 interface DeleteVendorModalProps {
@@ -19,6 +19,8 @@ export const DeleteVendorModal: React.FC<DeleteVendorModalProps> = ({
   onDelete,
   currentUser,
 }) => {
+  const { systemSettings } = useApp();
+  const currencySymbol = systemSettings?.currencySymbol || '₹';
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -132,9 +134,7 @@ export const DeleteVendorModal: React.FC<DeleteVendorModalProps> = ({
               </p>
               <p className="text-muted-foreground mt-1">
                 {poCount > 0
-                  ? `This vendor has purchase bills or an outstanding balance of ₹${vendor.outstandingPayable.toLocaleString(
-                      'en-IN'
-                    )}. To protect warehouse inventory ledgers, tax records, and accounting history, it will be safely Archived.`
+                  ? `This vendor has purchase bills or an outstanding balance of ${currencySymbol}${vendor.outstandingPayable.toLocaleString()}. To protect warehouse inventory ledgers, tax records, and accounting history, it will be safely Archived.`
                   : `This vendor has no linked purchase orders. ${
                       isSuperAdmin
                         ? 'You can safely archive it or permanently delete it.'

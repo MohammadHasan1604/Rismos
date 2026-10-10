@@ -156,7 +156,15 @@ export default function CustomerFormModal({
       prevOpenRef.current = false;
       editCustomerIdRef.current = null;
     }
-  }, [open, customer?.id, initialPhone, initialName, isSuperAdmin, userStoreCode, defaultSuperAdminStore]);
+  }, [
+    open,
+    customer?.id,
+    initialPhone,
+    initialName,
+    isSuperAdmin,
+    userStoreCode,
+    defaultSuperAdminStore,
+  ]);
 
   const isDirty = React.useMemo(() => {
     if (isEdit) {
@@ -207,12 +215,14 @@ export default function CustomerFormModal({
       }
     }
 
-    const effectiveStoreCode = !isSuperAdmin ? userStoreCode : (serviceStore || defaultSuperAdminStore);
+    const effectiveStoreCode = !isSuperAdmin
+      ? userStoreCode
+      : serviceStore || defaultSuperAdminStore;
     const formattedPhone = cleanDigits.startsWith('+')
       ? cleanDigits
-      : (countryCode === 'IN' && cleanDigits.length === 10
-          ? `${dialCode} ${cleanDigits.slice(0, 5)} ${cleanDigits.slice(5)}`
-          : `${dialCode} ${cleanDigits}`);
+      : countryCode === 'IN' && cleanDigits.length === 10
+        ? `${dialCode} ${cleanDigits.slice(0, 5)} ${cleanDigits.slice(5)}`
+        : `${dialCode} ${cleanDigits}`;
     const cleanGstin = gstin.trim().toUpperCase();
 
     const confirmed = await confirmAction({
@@ -380,7 +390,9 @@ export default function CustomerFormModal({
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <span className="font-semibold text-foreground">{assignedStoreLabel}</span>
               </div>
-              <span className="badge-neutral text-3xs font-semibold px-2 py-0.5">Assigned Store</span>
+              <span className="badge-neutral text-3xs font-semibold px-2 py-0.5">
+                Assigned Store
+              </span>
             </div>
           ) : (
             <select
@@ -522,7 +534,6 @@ export default function CustomerFormModal({
             />
           </div>
         </div>
-
       </form>
     </Modal>
   );

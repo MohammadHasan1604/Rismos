@@ -436,7 +436,6 @@ export default function UserProfileModal() {
             </div>
           </form>
         )}
-
       </div>
     </Modal>
   );

@@ -43,9 +43,7 @@ export default function ForgotPasswordPage() {
           <div className="inline-flex items-center justify-center p-3 bg-primary/5 rounded-2xl border border-primary/10 mb-2">
             <AppLogo size={36} showText={true} />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Reset Your Password
-          </h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Reset Your Password</h1>
           <p className="text-xs text-muted-foreground">
             Enter your official staff email to receive a secure 24-hour reset link.
           </p>
@@ -59,7 +57,8 @@ export default function ForgotPasswordPage() {
                 <span>Password Reset Link Dispatched</span>
               </div>
               <p>
-                If an active account exists for <strong>{email}</strong>, a secure reset link has been sent.
+                If an active account exists for <strong>{email}</strong>, a secure reset link has
+                been sent.
               </p>
               <p className="text-3xs text-muted-foreground">
                 Please check your inbox (and spam folder). The link remains valid for 24 hours.

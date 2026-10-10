@@ -1,7 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { validatePassword, getPasswordStrengthDisplay, PasswordValidationResult } from '@/lib/passwordPolicy';
+import {
+  validatePassword,
+  getPasswordStrengthDisplay,
+  PasswordValidationResult,
+} from '@/lib/passwordPolicy';
 import { toast } from 'sonner';
 
 interface ChangePasswordFormProps {
@@ -89,9 +93,7 @@ export function ChangePasswordForm({ onSuccess, userId }: ChangePasswordFormProp
       )}
 
       <div>
-        <label className="text-xs font-semibold text-foreground block mb-1">
-          Current Password
-        </label>
+        <label className="text-xs font-semibold text-foreground block mb-1">Current Password</label>
         <input
           type="password"
           required

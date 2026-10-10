@@ -29,7 +29,8 @@ export default function VendorFormModal({
   quickMode = false,
   zIndex = 100,
 }: VendorFormModalProps) {
-  const { addVendor, updateVendor, categoriesList, confirmAction, systemSettings, branding } = useApp();
+  const { addVendor, updateVendor, categoriesList, confirmAction, systemSettings, branding } =
+    useApp();
 
   const countryCode = systemSettings?.countryCode || branding?.countryCode || 'IN';
   const jurProfile = getJurisdictionProfile(countryCode);
@@ -416,7 +417,6 @@ export default function VendorFormModal({
               />
             </div>
           </div>
-
         </form>
       </Modal>
 

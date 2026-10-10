@@ -25,7 +25,15 @@ export default function SupplierPaymentModal({
   onSuccess,
   zIndex = 100,
 }: SupplierPaymentModalProps) {
-  const { recordPurchasePayment, refreshAllData, confirmAction, paymentMethods, formatCurrency, systemSettings, branding } = useApp();
+  const {
+    recordPurchasePayment,
+    refreshAllData,
+    confirmAction,
+    paymentMethods,
+    formatCurrency,
+    systemSettings,
+    branding,
+  } = useApp();
 
   const defaultPayMethod = React.useMemo(() => {
     return paymentMethods.find((m) => m.status === 'Active')?.name || 'Cash';
@@ -170,9 +178,7 @@ export default function SupplierPaymentModal({
       });
 
       if (res.success) {
-        toast.success(
-          `Payment of ${formatCurrency(amountNum)} recorded for ${purchase.poNo}`
-        );
+        toast.success(`Payment of ${formatCurrency(amountNum)} recorded for ${purchase.poNo}`);
         await refreshAllData();
         if (onSuccess) {
           onSuccess(
@@ -328,7 +334,11 @@ export default function SupplierPaymentModal({
             </label>
             <input
               type="text"
-              placeholder={countryCode === "IN" ? "e.g. UTR / IMPS / Cheque No" : "e.g. Wire / Ref / Voucher No"}
+              placeholder={
+                countryCode === 'IN'
+                  ? 'e.g. UTR / IMPS / Cheque No'
+                  : 'e.g. Wire / Ref / Voucher No'
+              }
               value={payRef}
               onChange={(e) => setPayRef(e.target.value)}
               className="input-field text-xs font-mono h-9"

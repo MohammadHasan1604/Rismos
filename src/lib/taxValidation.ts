@@ -98,7 +98,8 @@ export function validateTaxRegistrationId(
           valid: false,
           normalized: clean,
           isOptionalOrUnregistered: false,
-          error: 'Invalid UAE TRN format. Must be 15 digits starting with 100 (e.g. 100123456789003).',
+          error:
+            'Invalid UAE TRN format. Must be 15 digits starting with 100 (e.g. 100123456789003).',
           label,
         };
       }
@@ -120,7 +121,8 @@ export function validateTaxRegistrationId(
           valid: false,
           normalized: clean,
           isOptionalOrUnregistered: false,
-          error: 'Invalid ZATCA VAT registration number. Must be 15 digits starting and ending with 3.',
+          error:
+            'Invalid ZATCA VAT registration number. Must be 15 digits starting and ending with 3.',
           label,
         };
       }
@@ -133,7 +135,8 @@ export function validateTaxRegistrationId(
           valid: false,
           normalized: clean,
           isOptionalOrUnregistered: false,
-          error: 'Invalid UK VAT registration number. Expected 9 or 12 digits (e.g. GB 123 4567 89).',
+          error:
+            'Invalid UK VAT registration number. Expected 9 or 12 digits (e.g. GB 123 4567 89).',
           label,
         };
       }

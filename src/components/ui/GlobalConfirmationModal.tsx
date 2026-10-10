@@ -290,7 +290,6 @@ export default function GlobalConfirmationModal({
             {config.idempotencyKey || 'Auto-generated Client Lock'}
           </span>
         </div>
-
       </div>
     </Modal>
   );

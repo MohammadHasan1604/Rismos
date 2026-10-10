@@ -15,8 +15,16 @@ interface PendingVendorBillsModalProps {
 }
 
 export default function PendingVendorBillsModal({ open, onClose }: PendingVendorBillsModalProps) {
-  const { purchases, vendors, selectedStore, datePeriod, recordPurchasePayment, refreshAllData, formatCurrency, dateLocale } =
-    useApp();
+  const {
+    purchases,
+    vendors,
+    selectedStore,
+    datePeriod,
+    recordPurchasePayment,
+    refreshAllData,
+    formatCurrency,
+    dateLocale,
+  } = useApp();
 
   // Fresh authoritative sync whenever modal opens
   React.useEffect(() => {

@@ -26,7 +26,20 @@ export default function VendorsPage() {
     currentUser,
     formatCurrency,
     dateLocale,
+    systemSettings,
+    branding,
   } = useApp();
+
+  const countryCode =
+    systemSettings?.countryCode || branding?.countryCode || 'IN';
+  const taxIdLabel =
+    countryCode === 'IN'
+      ? 'GSTIN'
+      : countryCode === 'AE'
+        ? 'TRN'
+        : countryCode === 'GB' || countryCode === 'SA'
+          ? 'VAT'
+          : 'Tax ID';
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -356,7 +369,7 @@ export default function VendorsPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search vendor name, GSTIN, phone, contact..."
+                placeholder={`Search vendor name, ${taxIdLabel}, phone, contact...`}
                 className="input-field pl-9 text-xs"
               />
             </div>
@@ -492,7 +505,7 @@ export default function VendorsPage() {
                           size={13}
                           className="text-muted-foreground/70"
                         />
-                        <span>GSTIN:</span>
+                        <span>{taxIdLabel}:</span>
                         <span className="font-mono text-primary font-bold text-2xs">{v.gstin}</span>
                       </p>
                     )}
@@ -552,7 +565,7 @@ export default function VendorsPage() {
                     </th>
                     <th className="px-4 py-3">Category</th>
                     <th className="px-4 py-3">Contact & Phone</th>
-                    <th className="px-4 py-3">GSTIN</th>
+                    <th className="px-4 py-3">{taxIdLabel}</th>
                     <th className="px-4 py-3">Payment Terms</th>
                     <th className="px-4 py-3 font-tabular text-right">Total Billed</th>
                     <th className="px-4 py-3 font-tabular text-right">Outstanding Payable</th>

@@ -19,14 +19,15 @@ interface ColumnDefinition {
   defaultValue?: string;
 }
 
-export async function runProductionMigrations() {
+export async function runProductionMigrations(targetPrisma?: any) {
+  const db = targetPrisma || prisma;
   console.log('========================================================================');
   console.log('🚀 RISMOS PRODUCTION DATABASE UPGRADE & MIGRATION ENGINE');
   console.log('========================================================================\n');
 
   // Helper to check existing tables
   const getExistingTables = async (): Promise<Set<string>> => {
-    const rows: any[] = await prisma.$queryRawUnsafe('SHOW TABLES');
+    const rows: any[] = await db.$queryRawUnsafe('SHOW TABLES');
     const tableNames = new Set<string>();
     for (const row of rows) {
       const val = Object.values(row)[0];
@@ -38,7 +39,7 @@ export async function runProductionMigrations() {
   // Helper to check existing columns on a table
   const getExistingColumns = async (table: string): Promise<Set<string>> => {
     try {
-      const rows: any[] = await prisma.$queryRawUnsafe(`
+      const rows: any[] = await db.$queryRawUnsafe(`
         SELECT COLUMN_NAME 
         FROM INFORMATION_SCHEMA.COLUMNS 
         WHERE TABLE_SCHEMA = DATABASE() 
@@ -53,7 +54,7 @@ export async function runProductionMigrations() {
   // Helper to check existing indexes on a table
   const getExistingIndexes = async (table: string): Promise<Set<string>> => {
     try {
-      const rows: any[] = await prisma.$queryRawUnsafe(`
+      const rows: any[] = await db.$queryRawUnsafe(`
         SELECT INDEX_NAME 
         FROM INFORMATION_SCHEMA.STATISTICS 
         WHERE TABLE_SCHEMA = DATABASE() 
@@ -69,10 +70,15 @@ export async function runProductionMigrations() {
 
   // Helper to safely add column if not exists
   const addColumnIfNotExists = async (table: string, column: string, colDef: string) => {
+    const tables = await getExistingTables();
+    if (!tables.has(table.toLowerCase())) {
+      console.log(`  ℹ️ Table \`${table}\` does not exist; skipping column \`${column}\`.`);
+      return;
+    }
     const cols = await getExistingColumns(table);
     if (!cols.has(column.toLowerCase())) {
       console.log(`  ➕ Adding column \`${table}\`.\`${column}\`...`);
-      await prisma.$executeRawUnsafe(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${colDef}`);
+      await db.$executeRawUnsafe(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${colDef}`);
       console.log(`  ✅ Added \`${table}\`.\`${column}\``);
     } else {
       console.log(`  ✓ Column \`${table}\`.\`${column}\` exists`);
@@ -81,11 +87,16 @@ export async function runProductionMigrations() {
 
   // Helper to safely add index if not exists
   const addIndexIfNotExists = async (table: string, indexName: string, indexDef: string) => {
+    const tables = await getExistingTables();
+    if (!tables.has(table.toLowerCase())) {
+      console.log(`  ℹ️ Table \`${table}\` does not exist; skipping index \`${indexName}\`.`);
+      return;
+    }
     const indexes = await getExistingIndexes(table);
     if (!indexes.has(indexName.toLowerCase())) {
       console.log(`  ➕ Adding index \`${indexName}\` to \`${table}\`...`);
       try {
-        await prisma.$executeRawUnsafe(`ALTER TABLE \`${table}\` ADD INDEX \`${indexName}\` ${indexDef}`);
+        await db.$executeRawUnsafe(`ALTER TABLE \`${table}\` ADD INDEX \`${indexName}\` ${indexDef}`);
         console.log(`  ✅ Added index \`${indexName}\``);
       } catch (err: any) {
         console.warn(`  ⚠️ Could not add index \`${indexName}\`: ${err.message}`);
@@ -102,7 +113,7 @@ export async function runProductionMigrations() {
 
   if (!existingTables.has('sequence_counters')) {
     console.log('Creating `sequence_counters` table...');
-    await prisma.$executeRawUnsafe(`
+    await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS sequence_counters (
         id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
         prefix VARCHAR(32) NOT NULL UNIQUE,
@@ -119,7 +130,7 @@ export async function runProductionMigrations() {
 
   if (!existingTables.has('password_resets')) {
     console.log('Creating `password_resets` table...');
-    await prisma.$executeRawUnsafe(`
+    await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS password_resets (
         id VARCHAR(191) NOT NULL PRIMARY KEY,
         user_id VARCHAR(191) NOT NULL,
@@ -139,7 +150,7 @@ export async function runProductionMigrations() {
 
   if (!existingTables.has('user_ui_preferences')) {
     console.log('Creating `user_ui_preferences` table...');
-    await prisma.$executeRawUnsafe(`
+    await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS user_ui_preferences (
         id VARCHAR(191) NOT NULL PRIMARY KEY,
         user_id VARCHAR(191) NOT NULL UNIQUE,
@@ -157,7 +168,7 @@ export async function runProductionMigrations() {
 
   if (!existingTables.has('step_up_grants')) {
     console.log('Creating `step_up_grants` table...');
-    await prisma.$executeRawUnsafe(`
+    await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS step_up_grants (
         id VARCHAR(191) NOT NULL PRIMARY KEY,
         user_id VARCHAR(191) NOT NULL,
@@ -177,7 +188,7 @@ export async function runProductionMigrations() {
 
   if (!existingTables.has('idempotency_records')) {
     console.log('Creating `idempotency_records` table...');
-    await prisma.$executeRawUnsafe(`
+    await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS idempotency_records (
         id VARCHAR(191) NOT NULL PRIMARY KEY,
         \`key\` VARCHAR(128) NOT NULL UNIQUE,
@@ -203,7 +214,7 @@ export async function runProductionMigrations() {
 
   if (!existingTables.has('financial_ledger')) {
     console.log('Creating `financial_ledger` table...');
-    await prisma.$executeRawUnsafe(`
+    await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS financial_ledger (
         id VARCHAR(191) NOT NULL PRIMARY KEY,
         entry_no VARCHAR(64) NOT NULL UNIQUE,
@@ -322,9 +333,9 @@ export async function runProductionMigrations() {
   // ──────────────────────────────────────────────────────────────────────────
   console.log('\n--- 3. Verifying International Column Widths ---');
   try {
-    await prisma.$executeRawUnsafe('ALTER TABLE `branding_settings` MODIFY COLUMN `pincode` VARCHAR(32) NULL');
-    await prisma.$executeRawUnsafe('ALTER TABLE `system_settings` MODIFY COLUMN `gstin` VARCHAR(32) NULL');
-    await prisma.$executeRawUnsafe('ALTER TABLE `system_settings` MODIFY COLUMN `gst_state_code` VARCHAR(16) NULL');
+    await db.$executeRawUnsafe('ALTER TABLE `branding_settings` MODIFY COLUMN `pincode` VARCHAR(32) NULL');
+    await db.$executeRawUnsafe('ALTER TABLE `system_settings` MODIFY COLUMN `gstin` VARCHAR(32) NULL');
+    await db.$executeRawUnsafe('ALTER TABLE `system_settings` MODIFY COLUMN `gst_state_code` VARCHAR(16) NULL');
     console.log('  ✅ Column widths widened for international compatibility.');
   } catch (err: any) {
     console.warn('  ⚠️ Note modifying widths:', err.message);
@@ -335,55 +346,67 @@ export async function runProductionMigrations() {
   // ──────────────────────────────────────────────────────────────────────────
   console.log('\n--- 4. Executing Safe Historical Backfills ---');
 
+  const tables = await getExistingTables();
+
   // Backfill Sales historical snapshots where NULL
-  const updatedSales = await prisma.$executeRawUnsafe(`
-    UPDATE \`sales\` 
-    SET 
-      \`country_code\` = COALESCE(NULLIF(\`country_code\`, ''), 'IN'),
-      \`currency_code\` = COALESCE(NULLIF(\`currency_code\`, ''), 'INR'),
-      \`currency_symbol\` = COALESCE(NULLIF(\`currency_symbol\`, ''), '₹'),
-      \`tax_regime\` = COALESCE(NULLIF(\`tax_regime\`, ''), 'GST')
-    WHERE \`country_code\` IS NULL 
-       OR \`currency_code\` IS NULL 
-       OR \`tax_regime\` IS NULL
-  `);
-  console.log(`  ✅ Verified/backfilled sales international snapshots (affected rows: ${updatedSales})`);
+  if (tables.has('sales')) {
+    const updatedSales = await db.$executeRawUnsafe(`
+      UPDATE \`sales\` 
+      SET 
+        \`country_code\` = COALESCE(NULLIF(\`country_code\`, ''), 'IN'),
+        \`currency_code\` = COALESCE(NULLIF(\`currency_code\`, ''), 'INR'),
+        \`currency_symbol\` = COALESCE(NULLIF(\`currency_symbol\`, ''), '₹'),
+        \`tax_regime\` = COALESCE(NULLIF(\`tax_regime\`, ''), 'GST')
+      WHERE \`country_code\` IS NULL 
+         OR \`currency_code\` IS NULL 
+         OR \`tax_regime\` IS NULL
+    `);
+    console.log(`  ✅ Verified/backfilled sales international snapshots (affected rows: ${updatedSales})`);
+  }
 
   // Backfill Purchases historical snapshots where NULL
-  const updatedPurchases = await prisma.$executeRawUnsafe(`
-    UPDATE \`purchases\` 
-    SET 
-      \`country_code\` = COALESCE(NULLIF(\`country_code\`, ''), 'IN'),
-      \`currency_code\` = COALESCE(NULLIF(\`currency_code\`, ''), 'INR'),
-      \`tax_regime\` = COALESCE(NULLIF(\`tax_regime\`, ''), 'GST')
-    WHERE \`country_code\` IS NULL 
-       OR \`currency_code\` IS NULL 
-       OR \`tax_regime\` IS NULL
-  `);
-  console.log(`  ✅ Verified/backfilled purchase international snapshots (affected rows: ${updatedPurchases})`);
+  if (tables.has('purchases')) {
+    const updatedPurchases = await db.$executeRawUnsafe(`
+      UPDATE \`purchases\` 
+      SET 
+        \`country_code\` = COALESCE(NULLIF(\`country_code\`, ''), 'IN'),
+        \`currency_code\` = COALESCE(NULLIF(\`currency_code\`, ''), 'INR'),
+        \`tax_regime\` = COALESCE(NULLIF(\`tax_regime\`, ''), 'GST')
+      WHERE \`country_code\` IS NULL 
+         OR \`currency_code\` IS NULL 
+         OR \`tax_regime\` IS NULL
+    `);
+    console.log(`  ✅ Verified/backfilled purchase international snapshots (affected rows: ${updatedPurchases})`);
+  }
 
   // Backfill Financial Ledger currency code where NULL
-  const updatedLedger = await prisma.$executeRawUnsafe(`
-    UPDATE \`financial_ledger\`
-    SET \`currency_code\` = 'INR'
-    WHERE \`currency_code\` IS NULL OR \`currency_code\` = ''
-  `);
-  console.log(`  ✅ Verified/backfilled financial ledger currencies (affected rows: ${updatedLedger})`);
+  if (tables.has('financial_ledger')) {
+    const updatedLedger = await db.$executeRawUnsafe(`
+      UPDATE \`financial_ledger\`
+      SET \`currency_code\` = 'INR'
+      WHERE \`currency_code\` IS NULL OR \`currency_code\` = ''
+    `);
+    console.log(`  ✅ Verified/backfilled financial ledger currencies (affected rows: ${updatedLedger})`);
+  }
 
   // Backfill User Sessions lastSeenAt where NULL
-  const updatedSessions = await prisma.$executeRawUnsafe(`
-    UPDATE \`user_sessions\`
-    SET \`last_seen_at\` = \`created_at\`
-    WHERE \`last_seen_at\` IS NULL
-  `);
-  console.log(`  ✅ Verified/backfilled session last_seen_at (affected rows: ${updatedSessions})`);
+  if (tables.has('user_sessions')) {
+    const updatedSessions = await db.$executeRawUnsafe(`
+      UPDATE \`user_sessions\`
+      SET \`last_seen_at\` = \`created_at\`
+      WHERE \`last_seen_at\` IS NULL
+    `);
+    console.log(`  ✅ Verified/backfilled session last_seen_at (affected rows: ${updatedSessions})`);
+  }
 
   // Backfill Store Owner where NULL
-  await prisma.$executeRawUnsafe(`
-    UPDATE \`stores\` 
-    SET \`owner_name\` = \`manager_name\` 
-    WHERE \`owner_name\` IS NULL AND \`manager_name\` IS NOT NULL
-  `);
+  if (tables.has('stores')) {
+    await db.$executeRawUnsafe(`
+      UPDATE \`stores\` 
+      SET \`owner_name\` = \`manager_name\` 
+      WHERE \`owner_name\` IS NULL AND \`manager_name\` IS NOT NULL
+    `);
+  }
 
   // Ensure standard active payment methods exist idempotently
   console.log('\n--- 4b. Verifying Authoritative Payment Methods ---');
@@ -397,11 +420,11 @@ export async function runProductionMigrations() {
   ];
 
   for (const m of defaultMethods) {
-    const existingM = await (prisma as any).paymentMethod.findFirst({
+    const existingM = await (db as any).paymentMethod.findFirst({
       where: { OR: [{ code: m.code }, { name: m.name }] },
     });
     if (!existingM) {
-      await (prisma as any).paymentMethod.create({
+      await (db as any).paymentMethod.create({
         data: {
           name: m.name,
           code: m.code,

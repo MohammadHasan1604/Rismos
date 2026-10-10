@@ -83,7 +83,9 @@ export default function ExpensesPage() {
               {filteredExpenses.length} transactions · {selectedStore}
             </p>
           </div>
-          <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-sm">{currencySymbol}</div>
+          <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-sm">
+            {currencySymbol}
+          </div>
         </div>
 
         {/* Table */}

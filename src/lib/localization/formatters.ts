@@ -147,7 +147,10 @@ export function getCurrencyContext(countryCode?: string | null): {
  * e.g. "GST (18%)", "VAT (5%)", "Sales Tax (6.25%)"
  */
 export function formatTaxLabel(
-  countryOrSettings?: string | { countryCode?: string; defaultTaxRate?: number; taxRegime?: string } | null,
+  countryOrSettings?:
+    | string
+    | { countryCode?: string; defaultTaxRate?: number; taxRegime?: string }
+    | null,
   rate?: number | string | null
 ): string {
   let countryCode: string | undefined;
@@ -172,7 +175,8 @@ export function formatTaxLabel(
   }
 
   const profile = getJurisdictionProfile(countryCode);
-  const numRate = taxRate !== undefined && taxRate !== null ? Number(taxRate) : profile.defaultTaxRate;
+  const numRate =
+    taxRate !== undefined && taxRate !== null ? Number(taxRate) : profile.defaultTaxRate;
   if (isNaN(numRate) || numRate <= 0) {
     return profile.taxLabel;
   }
@@ -207,7 +211,13 @@ export interface TaxCalculationResult {
  * Accurately calculates applicable taxes across inclusive and exclusive regimes
  */
 export function calculateApplicableTax(params: TaxCalculationParams): TaxCalculationResult {
-  const { amount = 0, taxRate = 0, isInclusive = false, countryCode = 'IN', intrastate = true } = params;
+  const {
+    amount = 0,
+    taxRate = 0,
+    isInclusive = false,
+    countryCode = 'IN',
+    intrastate = true,
+  } = params;
   const safeAmount = Math.max(0, Number(amount) || 0);
   const safeRate = Math.max(0, Number(taxRate) || 0);
 
@@ -235,7 +245,11 @@ export function calculateApplicableTax(params: TaxCalculationParams): TaxCalcula
       const halfRate = safeRate / 2;
       const halfTax = Math.round((taxAmount / 2) * 100) / 100;
       breakdown.push({ name: 'CGST', rate: halfRate, amount: halfTax });
-      breakdown.push({ name: 'SGST', rate: halfRate, amount: Math.round((taxAmount - halfTax) * 100) / 100 });
+      breakdown.push({
+        name: 'SGST',
+        rate: halfRate,
+        amount: Math.round((taxAmount - halfTax) * 100) / 100,
+      });
     } else {
       breakdown.push({ name: 'IGST', rate: safeRate, amount: taxAmount });
     }

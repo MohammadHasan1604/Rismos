@@ -45,7 +45,12 @@ export function BrandThemeProvider({ children }: { children: React.ReactNode }) 
         }
       }
     }
-  }, [branding?.primaryColor, branding?.secondaryColor, branding?.accentColor, branding?.faviconUrl]);
+  }, [
+    branding?.primaryColor,
+    branding?.secondaryColor,
+    branding?.accentColor,
+    branding?.faviconUrl,
+  ]);
 
   const applyPreset = (presetId: string) => {
     const preset = BRAND_THEME_PRESETS.find((p) => p.id === presetId);

@@ -43,8 +43,9 @@ export async function POST(req: NextRequest) {
       sysSettings?.sessionTimeoutMins && sysSettings.sessionTimeoutMins > 0
         ? sysSettings.sessionTimeoutMins
         : 43200; // 30 days in minutes
-    const sessionCookieMaxAgeSecs = sessionTimeoutMins ? sessionTimeoutMins * 60 : SESSION_COOKIE_MAX_AGE;
-
+    const sessionCookieMaxAgeSecs = sessionTimeoutMins
+      ? sessionTimeoutMins * 60
+      : SESSION_COOKIE_MAX_AGE;
 
     // 2. Fast In-Memory Rate Limiting Check (IP DDoS protection: 50 requests/15m; Account lockout: dynamic attempts/15m)
     const ipRateLimit = checkRateLimit(`ip:${clientIp}`, 50);

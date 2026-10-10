@@ -96,7 +96,7 @@ export default function ExpenseFormModal({
   // Stores list
   const storeOptions: SelectOption[] = useMemo(() => {
     return [
-      { value: 'CENTRAL', label: 'COSKO Central Warehouse (CENTRAL)', sublabel: 'Central Hub' },
+      { value: 'CENTRAL', label: 'Central Warehouse (CENTRAL)', sublabel: 'Central Hub' },
       ...storesList
         .filter((s) => s.code !== 'CENTRAL')
         .map((st) => ({
@@ -426,7 +426,6 @@ export default function ExpenseFormModal({
               </span>
             </div>
           )}
-
         </form>
       </Modal>
 

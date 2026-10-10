@@ -4036,9 +4036,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         );
       }
 
-      toast.success(
-        `Payment of ${formatCurrency(paymentData.amount)} recorded successfully!`
-      );
+      toast.success(`Payment of ${formatCurrency(paymentData.amount)} recorded successfully!`);
       await refreshDomainData('purchases');
       return {
         success: true,
@@ -4073,8 +4071,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           createdAt: c.createdAt,
           storeCode: c.storeCode || custData.storeCode,
           storeProfiles: c.storeProfiles || [],
-          serviceStores:
-            c.serviceStores || (c.storeProfiles || []).map((p: any) => p.storeCode),
+          serviceStores: c.serviceStores || (c.storeProfiles || []).map((p: any) => p.storeCode),
         };
         setCustomers((prev) => [newCust, ...prev.filter((cust) => cust.id !== newCust.id)]);
         addAuditLog('Customers', 'Add Customer', `Registered customer "${newCust.name}"`);

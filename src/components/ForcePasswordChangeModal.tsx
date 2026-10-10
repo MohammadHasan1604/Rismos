@@ -7,7 +7,8 @@ import { toast } from 'sonner';
 import { validatePassword, getPasswordStrengthDisplay } from '@/lib/passwordPolicy';
 
 export default function ForcePasswordChangeModal() {
-  const { currentUser, changeUserPassword, setCurrentUser, logoutUser } = useApp();
+  const { currentUser, changeUserPassword, setCurrentUser, logoutUser, branding } = useApp();
+  const appName = branding?.appName || 'RISMOS';
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -37,7 +38,9 @@ export default function ForcePasswordChangeModal() {
 
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.valid) {
-      setError(passwordValidation.errors[0] || 'Password does not meet enterprise security requirements');
+      setError(
+        passwordValidation.errors[0] || 'Password does not meet enterprise security requirements'
+      );
       return;
     }
 
@@ -80,7 +83,7 @@ export default function ForcePasswordChangeModal() {
           </div>
           <h2 className="text-xl font-bold text-foreground">Password Update Required</h2>
           <p className="text-xs text-muted-foreground">
-            Welcome to COSKO Enterprise. As a security requirement for newly provisioned and
+            Welcome to {appName}. As a security requirement for newly provisioned and
             bootstrapped accounts, you must replace your temporary password before accessing the
             system.
           </p>
@@ -138,22 +141,25 @@ export default function ForcePasswordChangeModal() {
                 <Icon name={showNew ? 'EyeSlashIcon' : 'EyeIcon'} size={15} />
               </button>
             </div>
-            {newPassword.length > 0 && (() => {
-              const res = validatePassword(newPassword);
-              return (
-                <div className="mt-1.5 space-y-1">
-                  <div className="text-3xs font-mono font-semibold text-muted-foreground">
-                    {getPasswordStrengthDisplay(res.score)}
+            {newPassword.length > 0 &&
+              (() => {
+                const res = validatePassword(newPassword);
+                return (
+                  <div className="mt-1.5 space-y-1">
+                    <div className="text-3xs font-mono font-semibold text-muted-foreground">
+                      {getPasswordStrengthDisplay(res.score)}
+                    </div>
+                    {res.errors.length > 0 && (
+                      <p className="text-3xs text-danger">⚠️ {res.errors[0]}</p>
+                    )}
+                    {res.valid && (
+                      <p className="text-3xs text-emerald-500 font-semibold">
+                        ✅ Password meets all requirements
+                      </p>
+                    )}
                   </div>
-                  {res.errors.length > 0 && (
-                    <p className="text-3xs text-danger">⚠️ {res.errors[0]}</p>
-                  )}
-                  {res.valid && (
-                    <p className="text-3xs text-emerald-500 font-semibold">✅ Password meets all requirements</p>
-                  )}
-                </div>
-              );
-            })()}
+                );
+              })()}
           </div>
 
           <div>

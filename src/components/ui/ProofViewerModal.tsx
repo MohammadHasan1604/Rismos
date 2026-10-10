@@ -219,7 +219,8 @@ export default function ProofViewerModal({ open, onClose, data, proof }: ProofVi
                   Payment proof file is missing from object storage
                 </p>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  The transaction voucher metadata exists in database, but the physical file could not be retrieved from object storage.
+                  The transaction voucher metadata exists in database, but the physical file could
+                  not be retrieved from object storage.
                 </p>
               </div>
             </div>

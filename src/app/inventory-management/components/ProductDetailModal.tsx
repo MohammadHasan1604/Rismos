@@ -131,9 +131,7 @@ export default function ProductDetailModal({ item, onClose }: ProductDetailModal
             <div className="p-3 rounded-lg border border-border bg-card">
               <p className="text-2xs text-muted-foreground uppercase font-semibold">MRP</p>
               <p className="text-sm font-bold text-muted-foreground mt-0.5 font-tabular">
-                {item.mrp !== undefined && item.mrp !== null
-                  ? formatCurrency(item.mrp)
-                  : '—'}
+                {item.mrp !== undefined && item.mrp !== null ? formatCurrency(item.mrp) : '—'}
               </p>
             </div>
           </div>

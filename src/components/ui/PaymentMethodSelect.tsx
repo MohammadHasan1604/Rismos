@@ -78,9 +78,12 @@ export default function PaymentMethodSelect({
 
   // Authoritative source: DB PaymentMethod table (active only)
   const activeMethods: PaymentMethodItem[] = useMemo(() => {
-    const source = (contextPaymentMethods && contextPaymentMethods.length > 0)
-      ? contextPaymentMethods
-      : (fetchedMethods.length > 0 ? fetchedMethods : BASELINE_FALLBACK);
+    const source =
+      contextPaymentMethods && contextPaymentMethods.length > 0
+        ? contextPaymentMethods
+        : fetchedMethods.length > 0
+          ? fetchedMethods
+          : BASELINE_FALLBACK;
 
     return source
       .filter((m) => !m.status || m.status === 'Active')
@@ -88,7 +91,7 @@ export default function PaymentMethodSelect({
         name: m.name,
         label: m.label || m.name,
         sublabel: m.sublabel || `${m.type || m.name} payment instrument`,
-        badge: m.badge || (m.type || m.name),
+        badge: m.badge || m.type || m.name,
       }));
   }, [contextPaymentMethods, fetchedMethods]);
 
@@ -144,19 +147,18 @@ export default function PaymentMethodSelect({
           })}
 
           {/* Historical fallback pill if currently selected */}
-          {value &&
-            !activeMethods.some((m) => m.name.toLowerCase() === value.toLowerCase()) && (
-              <button
-                type="button"
-                disabled={disabled}
-                className="h-11 px-3 rounded-xl text-xs font-bold border border-warning/50 bg-warning/10 text-warning flex items-center justify-center gap-1.5 col-span-3 min-h-[44px]"
-              >
-                <span>{value}</span>
-                <span className="text-4xs px-1.5 py-0.5 rounded bg-warning/20 font-mono">
-                  Historical
-                </span>
-              </button>
-            )}
+          {value && !activeMethods.some((m) => m.name.toLowerCase() === value.toLowerCase()) && (
+            <button
+              type="button"
+              disabled={disabled}
+              className="h-11 px-3 rounded-xl text-xs font-bold border border-warning/50 bg-warning/10 text-warning flex items-center justify-center gap-1.5 col-span-3 min-h-[44px]"
+            >
+              <span>{value}</span>
+              <span className="text-4xs px-1.5 py-0.5 rounded bg-warning/20 font-mono">
+                Historical
+              </span>
+            </button>
+          )}
         </div>
       </div>
     );

@@ -545,7 +545,9 @@ export default function SettingsPage() {
           <div className="flex items-start justify-between gap-3">
             <div className="page-header">
               <h1 className="page-title">Settings</h1>
-              <p className="page-subtitle">White-label branding, fiscal tax rules, invoicing & security</p>
+              <p className="page-subtitle">
+                White-label branding, fiscal tax rules, invoicing & security
+              </p>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {!isSuperAdmin && <span className="badge-warning text-3xs">Read-Only</span>}

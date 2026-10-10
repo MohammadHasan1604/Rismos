@@ -348,363 +348,371 @@ export default function UserFormModal({
 
   return (
     <>
-    <Modal
-      open={open}
-      onClose={handleSafeClose}
-      title={isEdit ? `Edit Team Member: ${user?.name}` : 'Register New Team Member'}
-      subtitle={
-        isEdit
-          ? `Manage operational profile and store assignments for ${user?.email}`
-          : 'Provision new staff account, operational role, and assigned store access'
-      }
-      size="standard"
-      zIndex={zIndex}
-      footer={
-        <div className="flex items-center justify-end gap-2 w-full">
-          <button
-            type="button"
-            onClick={handleSafeClose}
-            className="btn-secondary text-xs flex-1 sm:flex-initial"
-            disabled={isSubmitting}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="user-form"
-            className="btn-primary text-xs gap-1.5 font-bold flex-1 sm:flex-initial"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Icon name="CheckIcon" size={14} />
-                {isEdit ? 'Update Team Member' : 'Register Team Member'}
-              </>
-            )}
-          </button>
-        </div>
-      }
-    >
-      <form id="user-form" onSubmit={handleSubmit} className="space-y-4 py-2">
-        {/* Error Alert Banner with Retry Guidance */}
-        {submitError && (
-          <div className="p-3 rounded-xl bg-danger/10 border border-danger/30 text-danger text-xs flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Icon name="ExclamationTriangleIcon" size={16} className="flex-shrink-0" />
-              <span>{submitError}</span>
-            </div>
+      <Modal
+        open={open}
+        onClose={handleSafeClose}
+        title={isEdit ? `Edit Team Member: ${user?.name}` : 'Register New Team Member'}
+        subtitle={
+          isEdit
+            ? `Manage operational profile and store assignments for ${user?.email}`
+            : 'Provision new staff account, operational role, and assigned store access'
+        }
+        size="standard"
+        zIndex={zIndex}
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
             <button
               type="button"
-              onClick={() => setSubmitError(null)}
-              className="text-xs text-danger/80 hover:text-danger font-semibold cursor-pointer underline flex-shrink-0"
+              onClick={handleSafeClose}
+              className="btn-secondary text-xs flex-1 sm:flex-initial"
+              disabled={isSubmitting}
             >
-              Dismiss
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="user-form"
+              className="btn-primary text-xs gap-1.5 font-bold flex-1 sm:flex-initial"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Icon name="CheckIcon" size={14} />
+                  {isEdit ? 'Update Team Member' : 'Register Team Member'}
+                </>
+              )}
             </button>
           </div>
-        )}
-
-        {/* Protected Super Admin Notice Banner */}
-        {isProtectedSuperAdmin && (
-          <div className="p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Icon name="ShieldCheckIcon" size={18} />
-              <div>
-                <p className="font-bold text-xs">Protected System Root Account</p>
-                <p className="text-3xs text-danger/80">
-                  Role: Super Admin (Level 100) · Unrestricted System Authority
-                </p>
+        }
+      >
+        <form id="user-form" onSubmit={handleSubmit} className="space-y-4 py-2">
+          {/* Error Alert Banner with Retry Guidance */}
+          {submitError && (
+            <div className="p-3 rounded-xl bg-danger/10 border border-danger/30 text-danger text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Icon name="ExclamationTriangleIcon" size={16} className="flex-shrink-0" />
+                <span>{submitError}</span>
               </div>
-            </div>
-            <span className="badge-danger text-3xs font-extrabold flex items-center gap-1">
-              <Icon name="LockClosedIcon" size={11} /> Locked
-            </span>
-          </div>
-        )}
-
-        {/* 1. Name & Email */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-bold text-foreground block mb-1">
-              Full Name <span className="text-danger">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              autoFocus
-              placeholder="e.g. Ananya Rao"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input-field text-xs"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-foreground block mb-1">
-              Official Email <span className="text-danger">*</span>
-            </label>
-            <input
-              type="email"
-              required
-              placeholder="ananya@cosko.in"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input-field text-xs"
-            />
-          </div>
-        </div>
-
-        {/* 2. Phone & Password */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-bold text-foreground block mb-1">Contact Phone</label>
-            <input
-              type="tel"
-              placeholder="e.g. 9876543210"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="input-field text-xs font-mono"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-foreground block mb-1">
-              {isEdit ? 'Change Password (Leave blank to keep)' : 'Initial Password *'}
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required={!isEdit}
-                placeholder={isEdit ? '••••••••' : 'Min 8 characters'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-field text-xs pr-9"
-              />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                onClick={() => setSubmitError(null)}
+                className="text-xs text-danger/80 hover:text-danger font-semibold cursor-pointer underline flex-shrink-0"
               >
-                <Icon name={showPassword ? 'EyeSlashIcon' : 'EyeIcon'} size={14} />
+                Dismiss
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* 3. Operational Role & RBAC Level */}
-        <div>
-          <label className="text-xs font-bold text-foreground block mb-1">
-            System Role & RBAC Clearance <span className="text-danger">*</span>
-          </label>
-          {isProtectedSuperAdmin ? (
-            <div className="input-field text-xs font-semibold bg-muted text-muted-foreground flex items-center justify-between cursor-not-allowed">
-              <span>Super Admin (Level 100 — System Root)</span>
-              <Icon name="LockClosedIcon" size={13} className="text-muted-foreground" />
-            </div>
-          ) : (
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as any)}
-              className="input-field text-xs font-medium"
-            >
-              {permittedRoles.map((r) => (
-                <option key={r.role} value={r.role}>
-                  {r.role} (Level {r.level}) — {r.desc}
-                </option>
-              ))}
-            </select>
           )}
-          <p className="text-3xs text-muted-foreground mt-1">
-            Defines module access clearances, financial reporting authorities, and POS terminal
-            privileges.
-          </p>
-        </div>
 
-        {/* 4. Assigned Store — Exactly ONE operational store for Store Manager / Sales Manager */}
-        {isCallerSuperAdmin ? (
-          <div className="space-y-2 p-3.5 rounded-xl border border-border bg-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <Icon name="BuildingStorefrontIcon" size={15} className="text-primary" />
-                  <label className="text-xs font-bold text-foreground">
-                    Assigned Operational Store <span className="text-danger">*</span>
-                  </label>
+          {/* Protected Super Admin Notice Banner */}
+          {isProtectedSuperAdmin && (
+            <div className="p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Icon name="ShieldCheckIcon" size={18} />
+                <div>
+                  <p className="font-bold text-xs">Protected System Root Account</p>
+                  <p className="text-3xs text-danger/80">
+                    Role: Super Admin (Level 100) · Unrestricted System Authority
+                  </p>
                 </div>
-                <p className="text-3xs text-muted-foreground mt-0.5">
-                  Every Store Manager and Sales Manager account is strictly assigned to exactly ONE
-                  operational store.
-                </p>
               </div>
+              <span className="badge-danger text-3xs font-extrabold flex items-center gap-1">
+                <Icon name="LockClosedIcon" size={11} /> Locked
+              </span>
+            </div>
+          )}
 
-              {/* + Add New Store button for Super Admin */}
-              <button
-                type="button"
-                onClick={() => setIsAddStoreOpen(true)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors cursor-pointer shrink-0"
-              >
-                <Icon name="PlusIcon" size={13} />
-                <span>Add Store</span>
-              </button>
+          {/* 1. Name & Email */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-foreground block mb-1">
+                Full Name <span className="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                autoFocus
+                placeholder="e.g. Ananya Rao"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="input-field text-xs"
+              />
             </div>
 
-            {/* Custom Searchable Combobox */}
-            <div className="relative" ref={storeMenuRef}>
-              <button
-                type="button"
-                onClick={() => setIsStoreMenuOpen(!isStoreMenuOpen)}
-                className="w-full input-field text-xs flex items-center justify-between gap-2 cursor-pointer bg-background hover:bg-muted/30 transition-colors py-2 px-3 text-left font-normal"
-                aria-haspopup="listbox"
-                aria-expanded={isStoreMenuOpen}
-              >
-                {selectedStoreObj ? (
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="font-mono font-bold bg-primary/15 text-primary text-3xs px-1.5 py-0.5 rounded">
-                      {selectedStoreObj.code}
-                    </span>
-                    <span className="font-semibold text-foreground truncate">{selectedStoreObj.name}</span>
-                    {selectedStoreObj.city && (
-                      <span className="text-muted-foreground text-3xs truncate">({selectedStoreObj.city})</span>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground">Select a store...</span>
-                )}
-                <Icon
-                  name={isStoreMenuOpen ? 'ChevronUpIcon' : 'ChevronDownIcon'}
-                  size={14}
-                  className="text-muted-foreground shrink-0"
-                />
-              </button>
+            <div>
+              <label className="text-xs font-bold text-foreground block mb-1">
+                Official Email <span className="text-danger">*</span>
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="ananya@cosko.in"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input-field text-xs"
+              />
+            </div>
+          </div>
 
-              {isStoreMenuOpen && (
-                <div className="absolute z-50 left-0 right-0 mt-1 bg-popover text-popover-foreground border border-border rounded-xl shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95">
-                  <div className="p-2 border-b border-border/60 bg-muted/20">
-                    <div className="relative">
-                      <Icon
-                        name="MagnifyingGlassIcon"
-                        size={14}
-                        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Search by name, code, city..."
-                        value={storeSearch}
-                        onChange={(e) => setStoreSearch(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-                        autoFocus
-                      />
+          {/* 2. Phone & Password */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-foreground block mb-1">Contact Phone</label>
+              <input
+                type="tel"
+                placeholder="e.g. 9876543210"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="input-field text-xs font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-foreground block mb-1">
+                {isEdit ? 'Change Password (Leave blank to keep)' : 'Initial Password *'}
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required={!isEdit}
+                  placeholder={isEdit ? '••••••••' : 'Min 8 characters'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-field text-xs pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <Icon name={showPassword ? 'EyeSlashIcon' : 'EyeIcon'} size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Operational Role & RBAC Level */}
+          <div>
+            <label className="text-xs font-bold text-foreground block mb-1">
+              System Role & RBAC Clearance <span className="text-danger">*</span>
+            </label>
+            {isProtectedSuperAdmin ? (
+              <div className="input-field text-xs font-semibold bg-muted text-muted-foreground flex items-center justify-between cursor-not-allowed">
+                <span>Super Admin (Level 100 — System Root)</span>
+                <Icon name="LockClosedIcon" size={13} className="text-muted-foreground" />
+              </div>
+            ) : (
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as any)}
+                className="input-field text-xs font-medium"
+              >
+                {permittedRoles.map((r) => (
+                  <option key={r.role} value={r.role}>
+                    {r.role} (Level {r.level}) — {r.desc}
+                  </option>
+                ))}
+              </select>
+            )}
+            <p className="text-3xs text-muted-foreground mt-1">
+              Defines module access clearances, financial reporting authorities, and POS terminal
+              privileges.
+            </p>
+          </div>
+
+          {/* 4. Assigned Store — Exactly ONE operational store for Store Manager / Sales Manager */}
+          {isCallerSuperAdmin ? (
+            <div className="space-y-2 p-3.5 rounded-xl border border-border bg-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Icon name="BuildingStorefrontIcon" size={15} className="text-primary" />
+                    <label className="text-xs font-bold text-foreground">
+                      Assigned Operational Store <span className="text-danger">*</span>
+                    </label>
+                  </div>
+                  <p className="text-3xs text-muted-foreground mt-0.5">
+                    Every Store Manager and Sales Manager account is strictly assigned to exactly
+                    ONE operational store.
+                  </p>
+                </div>
+
+                {/* + Add New Store button for Super Admin */}
+                <button
+                  type="button"
+                  onClick={() => setIsAddStoreOpen(true)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors cursor-pointer shrink-0"
+                >
+                  <Icon name="PlusIcon" size={13} />
+                  <span>Add Store</span>
+                </button>
+              </div>
+
+              {/* Custom Searchable Combobox */}
+              <div className="relative" ref={storeMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsStoreMenuOpen(!isStoreMenuOpen)}
+                  className="w-full input-field text-xs flex items-center justify-between gap-2 cursor-pointer bg-background hover:bg-muted/30 transition-colors py-2 px-3 text-left font-normal"
+                  aria-haspopup="listbox"
+                  aria-expanded={isStoreMenuOpen}
+                >
+                  {selectedStoreObj ? (
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="font-mono font-bold bg-primary/15 text-primary text-3xs px-1.5 py-0.5 rounded">
+                        {selectedStoreObj.code}
+                      </span>
+                      <span className="font-semibold text-foreground truncate">
+                        {selectedStoreObj.name}
+                      </span>
+                      {selectedStoreObj.city && (
+                        <span className="text-muted-foreground text-3xs truncate">
+                          ({selectedStoreObj.city})
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">Select a store...</span>
+                  )}
+                  <Icon
+                    name={isStoreMenuOpen ? 'ChevronUpIcon' : 'ChevronDownIcon'}
+                    size={14}
+                    className="text-muted-foreground shrink-0"
+                  />
+                </button>
+
+                {isStoreMenuOpen && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 bg-popover text-popover-foreground border border-border rounded-xl shadow-lg overflow-hidden animate-in fade-in-0 zoom-in-95">
+                    <div className="p-2 border-b border-border/60 bg-muted/20">
+                      <div className="relative">
+                        <Icon
+                          name="MagnifyingGlassIcon"
+                          size={14}
+                          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Search by name, code, city..."
+                          value={storeSearch}
+                          onChange={(e) => setStoreSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto p-1 space-y-0.5" role="listbox">
+                      {filteredStores.length === 0 ? (
+                        <div className="py-4 text-center text-xs text-muted-foreground">
+                          No stores found matching &quot;{storeSearch}&quot;
+                        </div>
+                      ) : (
+                        filteredStores.map((st) => {
+                          const isSelected = assignedStores[0] === st.code;
+                          return (
+                            <button
+                              key={st.code}
+                              type="button"
+                              onClick={() => {
+                                setAssignedStores([st.code]);
+                                setIsStoreMenuOpen(false);
+                                setStoreSearch('');
+                              }}
+                              className={`w-full flex items-center justify-between p-2 rounded-lg text-xs cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-primary/10 text-primary font-semibold'
+                                  : 'hover:bg-muted text-foreground'
+                              }`}
+                              role="option"
+                              aria-selected={isSelected}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <span
+                                  className={`font-mono font-bold text-3xs px-1.5 py-0.5 rounded ${
+                                    isSelected
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'bg-muted text-muted-foreground'
+                                  }`}
+                                >
+                                  {st.code}
+                                </span>
+                                <span className="truncate">{st.name}</span>
+                                {st.city && (
+                                  <span className="text-3xs text-muted-foreground truncate">
+                                    ({st.city})
+                                  </span>
+                                )}
+                              </div>
+                              {isSelected && (
+                                <Icon
+                                  name="CheckIcon"
+                                  size={14}
+                                  className="text-primary shrink-0"
+                                />
+                              )}
+                            </button>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Store Manager creating staff: Control MUST NOT render; store is displayed as read-only contextual info */
+            <div className="p-3.5 rounded-xl border border-border/80 bg-muted/20 flex items-center justify-between text-xs">
+              <div className="space-y-0.5">
+                <span className="font-bold text-foreground block">Assigned Store Location</span>
+                <p className="text-3xs text-muted-foreground">
+                  Staff member will automatically be assigned to your branch (
+                  {currentUser.store || 'BLR'}).
+                </p>
+              </div>
+              <span className="badge-primary text-xs font-mono font-bold px-2.5 py-1 rounded-lg">
+                {currentUser.store || 'BLR'}
+              </span>
+            </div>
+          )}
 
-                  <div className="max-h-48 overflow-y-auto p-1 space-y-0.5" role="listbox">
-                    {filteredStores.length === 0 ? (
-                      <div className="py-4 text-center text-xs text-muted-foreground">
-                        No stores found matching &quot;{storeSearch}&quot;
-                      </div>
-                    ) : (
-                      filteredStores.map((st) => {
-                        const isSelected = assignedStores[0] === st.code;
-                        return (
-                          <button
-                            key={st.code}
-                            type="button"
-                            onClick={() => {
-                              setAssignedStores([st.code]);
-                              setIsStoreMenuOpen(false);
-                              setStoreSearch('');
-                            }}
-                            className={`w-full flex items-center justify-between p-2 rounded-lg text-xs cursor-pointer transition-colors ${
-                              isSelected
-                                ? 'bg-primary/10 text-primary font-semibold'
-                                : 'hover:bg-muted text-foreground'
-                            }`}
-                            role="option"
-                            aria-selected={isSelected}
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              <span
-                                className={`font-mono font-bold text-3xs px-1.5 py-0.5 rounded ${
-                                  isSelected
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground'
-                                }`}
-                              >
-                                {st.code}
-                              </span>
-                              <span className="truncate">{st.name}</span>
-                              {st.city && (
-                                <span className="text-3xs text-muted-foreground truncate">
-                                  ({st.city})
-                                </span>
-                              )}
-                            </div>
-                            {isSelected && (
-                              <Icon name="CheckIcon" size={14} className="text-primary shrink-0" />
-                            )}
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              )}
+          {/* 5. Account Status */}
+          <div className="p-3 rounded-xl border border-border bg-card">
+            <div>
+              <label className="text-2xs font-semibold text-foreground block mb-1">
+                Account Status
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as any)}
+                className="input-field text-xs font-medium"
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Suspended">Suspended</option>
+              </select>
             </div>
           </div>
-        ) : (
-          /* Store Manager creating staff: Control MUST NOT render; store is displayed as read-only contextual info */
-          <div className="p-3.5 rounded-xl border border-border/80 bg-muted/20 flex items-center justify-between text-xs">
-            <div className="space-y-0.5">
-              <span className="font-bold text-foreground block">Assigned Store Location</span>
-              <p className="text-3xs text-muted-foreground">
-                Staff member will automatically be assigned to your branch (
-                {currentUser.store || 'BLR'}).
-              </p>
-            </div>
-            <span className="badge-primary text-xs font-mono font-bold px-2.5 py-1 rounded-lg">
-              {currentUser.store || 'BLR'}
-            </span>
-          </div>
-        )}
+        </form>
+      </Modal>
 
-        {/* 5. Account Status */}
-        <div className="p-3 rounded-xl border border-border bg-card">
-          <div>
-            <label className="text-2xs font-semibold text-foreground block mb-1">
-              Account Status
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
-              className="input-field text-xs font-medium"
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Suspended">Suspended</option>
-            </select>
-          </div>
-        </div>
-      </form>
-    </Modal>
-
-    {/* Nested Add Store Modal for Super Admin — Higher z-index preserves UserForm draft state */}
-    {isCallerSuperAdmin && isAddStoreOpen && (
-      <StoreFormModal
-        open={isAddStoreOpen}
-        onClose={() => setIsAddStoreOpen(false)}
-        zIndex={zIndex + 20}
-        onSuccess={(newStore) => {
-          if (newStore?.code) {
-            setAssignedStores([newStore.code]);
-          }
-          setIsAddStoreOpen(false);
-        }}
-      />
-    )}
+      {/* Nested Add Store Modal for Super Admin — Higher z-index preserves UserForm draft state */}
+      {isCallerSuperAdmin && isAddStoreOpen && (
+        <StoreFormModal
+          open={isAddStoreOpen}
+          onClose={() => setIsAddStoreOpen(false)}
+          zIndex={zIndex + 20}
+          onSuccess={(newStore) => {
+            if (newStore?.code) {
+              setAssignedStores([newStore.code]);
+            }
+            setIsAddStoreOpen(false);
+          }}
+        />
+      )}
     </>
   );
 }
