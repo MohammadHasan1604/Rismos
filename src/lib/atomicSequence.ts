@@ -85,7 +85,8 @@ export async function getNextSequenceNumber(
   };
 
   let lastError: any = null;
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  const maxAttempts = client ? 1 : 10;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       if (client) {
         // Caller already provided an active interactive transaction
@@ -97,7 +98,7 @@ export async function getNextSequenceNumber(
             return await executeAtomicIncrement(tx);
           },
           {
-            maxWait: 15000,
+            maxWait: 20000,
             timeout: 45000,
             isolationLevel: 'ReadCommitted',
           }
@@ -109,8 +110,9 @@ export async function getNextSequenceNumber(
         // Don't retry inside caller-managed transaction
         break;
       }
-      if (attempt < 3) {
-        await new Promise((resolve) => setTimeout(resolve, attempt * 150));
+      if (attempt < maxAttempts) {
+        const jitter = Math.floor(Math.random() * 50);
+        await new Promise((resolve) => setTimeout(resolve, Math.min(600, attempt * 100 + jitter)));
       }
     }
   }
