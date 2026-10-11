@@ -437,6 +437,8 @@ async function runPasswordSecurityMatrix() {
       }
     } catch (cleanupErr) {
       console.warn('Test cleanup warning:', cleanupErr);
+    } finally {
+      await prisma.$disconnect().catch(() => {});
     }
   }
 
@@ -444,8 +446,8 @@ async function runPasswordSecurityMatrix() {
 }
 
 runPasswordSecurityMatrix()
-  .catch((err) => {
+  .catch(async (err) => {
     console.error('Fatal test error:', err);
+    await prisma.$disconnect().catch(() => {});
     process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+  });

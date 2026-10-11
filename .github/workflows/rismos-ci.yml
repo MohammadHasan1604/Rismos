@@ -88,10 +88,16 @@ jobs:
       - name: 15. Execute Responsive & Viewport Overflow Suite
         run: npm run test:responsive
 
-      - name: 16. Execute End-to-End Production Journey Suite
+      - name: 16. Execute Responsive Form & Modal Primitives Suite
+        run: npm run test:responsive-modal
+
+      - name: 17. Execute Password Recovery Security Matrix Suite
+        run: npm run test:password-matrix
+
+      - name: 18. Execute End-to-End Production Journey Suite
         run: npm run test:e2e
 
-      - name: 17. Execute Production Next.js Build Gate
+      - name: 19. Execute Production Next.js Build Gate
         run: npm run build
         env:
           NODE_ENV: production
