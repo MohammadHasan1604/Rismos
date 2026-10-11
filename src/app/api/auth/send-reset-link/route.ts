@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
+    await recordDurableRateLimitAttempt(`pwd-reset:ip:${clientIp}`, 10, 900);
 
     const body = await req.json().catch(() => null);
     if (!body || !body.email || typeof body.email !== 'string') {

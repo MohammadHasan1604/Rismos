@@ -76,7 +76,7 @@ export function buildWhatsAppInvoiceMessage(receipt: WhatsAppInvoiceData): strin
   const formattedAmount = formatMoney(totalPaid, { currencyCode, locale, decimals });
 
   // 5. Payment method
-  const paymentMethod = receipt.paymentMethod || 'UPI';
+  const paymentMethod = receipt.paymentMethod || 'Paid';
 
   // 6. Summarized Items
   let itemsSection = '';

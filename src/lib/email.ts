@@ -22,12 +22,33 @@ export interface SendEmailOptions {
   };
 }
 
+/**
+ * Escapes unsafe HTML characters to prevent template injection and XSS in email clients.
+ */
+export function escapeHtml(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export async function sendEmail(
   options: SendEmailOptions
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   const { to, subject, template, data } = options;
-  const appName = data?.appName || 'RISMOS';
-  const expiresIn = data?.expiresIn || '15 minutes';
+  const rawAppName = data?.appName || 'RISMOS';
+  const appName = escapeHtml(rawAppName);
+  const safeSubject = escapeHtml(subject);
+  const rawExpiresIn = data?.expiresIn || '15 minutes';
+  const expiresIn = escapeHtml(rawExpiresIn);
+  const safeUserName = escapeHtml(data?.userName || 'Team Member');
+  const safeInvitedBy = escapeHtml(data?.invitedBy || '');
+  const rawResetUrl = data?.resetUrl ? String(data.resetUrl) : '';
+  // Ensure resetUrl is a valid http(s) URL
+  const safeResetUrl = /^https?:\/\//i.test(rawResetUrl) ? escapeHtml(rawResetUrl) : '#';
 
   let htmlContent = '';
 
@@ -35,7 +56,7 @@ export async function sendEmail(
     const isInvitation = Boolean(data.invitedBy);
     const headingText = isInvitation ? 'Password Reset Invitation' : 'Password Reset Request';
     const bodyLead = isInvitation
-      ? `An administrator (<strong>${data.invitedBy}</strong>) has dispatched a secure password reset link for your ${appName} staff account.`
+      ? `An administrator (<strong>${safeInvitedBy}</strong>) has dispatched a secure password reset link for your ${appName} staff account.`
       : `We received a request to reset the password for your ${appName} staff account.`;
 
     htmlContent = `
@@ -44,7 +65,7 @@ export async function sendEmail(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${subject}</title>
+  <title>${safeSubject}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 32px 16px;">
@@ -64,7 +85,7 @@ export async function sendEmail(
             <td style="padding: 32px 32px 24px 32px;">
               <h2 style="margin: 0 0 16px 0; color: #0f172a; font-size: 18px; font-weight: 700;">${headingText}</h2>
               <p style="margin: 0 0 16px 0; color: #334155; font-size: 14px; line-height: 1.6;">
-                Hello <strong>${data.userName || 'Team Member'}</strong>,
+                Hello <strong>${safeUserName}</strong>,
               </p>
               <p style="margin: 0 0 20px 0; color: #334155; font-size: 14px; line-height: 1.6;">
                 ${bodyLead} Click the button below to set a new password:
@@ -74,7 +95,7 @@ export async function sendEmail(
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 28px 0;">
                 <tr>
                   <td align="center">
-                    <a href="${data.resetUrl}" style="display: inline-block; background-color: #002E86; color: #ffffff; padding: 14px 32px; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,46,134,0.25);">
+                    <a href="${safeResetUrl}" style="display: inline-block; background-color: #002E86; color: #ffffff; padding: 14px 32px; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,46,134,0.25);">
                       Reset Password
                     </a>
                   </td>
@@ -91,7 +112,7 @@ export async function sendEmail(
               <!-- Fallback Direct URL -->
               <p style="margin: 16px 0 0 0; color: #64748b; font-size: 12px; line-height: 1.6;">
                 If the button above does not work, copy and paste this link into your browser:<br>
-                <a href="${data.resetUrl}" style="color: #002E86; word-break: break-all; font-size: 11px;">${data.resetUrl}</a>
+                <a href="${safeResetUrl}" style="color: #002E86; word-break: break-all; font-size: 11px;">${safeResetUrl}</a>
               </p>
 
               <!-- Advisory -->

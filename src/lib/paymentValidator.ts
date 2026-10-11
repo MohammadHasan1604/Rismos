@@ -81,25 +81,32 @@ export async function getActivePaymentMethods(): Promise<string[]> {
       activeMethodsCache = dbMethods.map((m) => m.name);
       lastCacheFetchTime = now;
       return activeMethodsCache;
+    } else {
+      activeMethodsCache = [];
+      lastCacheFetchTime = now;
+      return activeMethodsCache;
     }
   } catch (err) {
-    console.warn('[paymentValidator] Failed to query DB payment methods, using baseline:', err);
+    console.warn('[paymentValidator] Failed to query DB payment methods:', err);
   }
 
-  // Fallback to baseline
-  activeMethodsCache = [...ALLOWED_PAYMENT_METHODS];
-  lastCacheFetchTime = now;
+  // If DB query failed due to connection error, use baseline only if cache uninitialized
+  if (!activeMethodsCache) {
+    activeMethodsCache = [...ALLOWED_PAYMENT_METHODS];
+    lastCacheFetchTime = now;
+  }
   return activeMethodsCache;
 }
 
 /**
  * Authoritative async validation against the live database PaymentMethod table.
+ * Absolute source of truth for all financial mutations.
  */
 export async function validatePaymentMethodAgainstDb(
   method: unknown,
   options?: { allowHistorical?: boolean }
 ): Promise<PaymentValidationResult> {
-  if (!method || typeof method !== 'string') {
+  if (!method || typeof method !== 'string' || method.trim().length === 0) {
     return {
       valid: false,
       error: 'Payment method is required.',
@@ -108,34 +115,39 @@ export async function validatePaymentMethodAgainstDb(
 
   const trimmed = method.trim();
   const lower = trimmed.toLowerCase();
+  const aliased = METHOD_ALIASES[lower] || trimmed;
 
-  // 1. Query the DB record directly
+  // 1. Authoritative DB Lookup: check by trimmed name/code and standard alias
   try {
     const record = await prisma.paymentMethod.findFirst({
       where: {
-        OR: [{ name: { equals: trimmed } }, { code: { equals: trimmed.toUpperCase() } }],
+        OR: [
+          { name: { equals: trimmed } },
+          { code: { equals: trimmed.toUpperCase() } },
+          { name: { equals: aliased } },
+          { code: { equals: aliased.toUpperCase() } },
+        ],
       },
     });
 
     if (record) {
-      if (record.status === 'Inactive') {
+      if (record.status !== 'Active') {
         if (options?.allowHistorical) {
           return { valid: true, normalized: record.name, isInactive: true };
         }
         return {
           valid: false,
-          error: `Payment method "${record.name}" is currently deactivated. Please select an active payment method.`,
+          error: `Payment method "${record.name}" is currently deactivated in system settings. Please select an active payment method.`,
           isInactive: true,
         };
       }
       return { valid: true, normalized: record.name };
     }
   } catch (err) {
-    console.warn('[paymentValidator] DB lookup error:', err);
+    console.warn('[paymentValidator] Authoritative DB lookup error:', err);
   }
 
-  // 2. Check alias mapping against active methods
-  const aliased = METHOD_ALIASES[lower] || trimmed;
+  // 2. Check alias mapping against active methods currently in DB
   const activeMethods = await getActivePaymentMethods();
   const matched = activeMethods.find(
     (m) => m.toLowerCase() === lower || m.toLowerCase() === aliased.toLowerCase()
@@ -145,14 +157,14 @@ export async function validatePaymentMethodAgainstDb(
     return { valid: true, normalized: matched };
   }
 
-  // If allowHistorical is set and it was a valid string, allow display
+  // If allowHistorical is set and it was a non-empty string, allow historical display
   if (options?.allowHistorical) {
     return { valid: true, normalized: trimmed };
   }
 
   return {
     valid: false,
-    error: `Invalid payment method "${trimmed}". Active payment methods: ${activeMethods.join(', ')}.`,
+    error: `Invalid or deactivated payment method "${trimmed}". Active payment methods: ${activeMethods.length > 0 ? activeMethods.join(', ') : 'None configured'}.`,
   };
 }
 

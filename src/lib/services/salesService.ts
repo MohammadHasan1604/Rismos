@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../db';
 import { broadcastRealtimeEvent, getStoreChannel } from '../realtime';
 import { generateSafeSequenceNo } from '../sequenceUtils';
-import { validatePaymentMethod } from '../paymentValidator';
+import { validatePaymentMethodAgainstDb } from '../paymentValidator';
 import { TaxService } from './taxService';
 
 export interface CreateSaleInput {
@@ -42,8 +42,8 @@ export interface CreateSaleInput {
  * 5. International Tax Engine & Snapshot: Resolves jurisdiction tax regime and creates immutable financial snapshots.
  */
 export async function executePOSCheckout(input: CreateSaleInput) {
-  // Validate payment method strictly
-  const paymentValidation = validatePaymentMethod(input.paymentMethod);
+  // Validate payment method strictly against DB
+  const paymentValidation = await validatePaymentMethodAgainstDb(input.paymentMethod);
   if (!paymentValidation.valid) {
     const err: any = new Error(paymentValidation.error);
     err.statusCode = 400;

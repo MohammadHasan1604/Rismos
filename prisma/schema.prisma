@@ -8,7 +8,7 @@ generator client {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 1. STORE HUBS
+// 1. STORE HUBS — Canonical physical/logical business locations
 // ──────────────────────────────────────────────────────────────────────────────
 model StoreHub {
   id          String   @id @default(uuid())
@@ -24,13 +24,23 @@ model StoreHub {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  userAssignments  UserStoreAssignment[]
+  inventoryItems   Inventory[]
+  ledgerEntries    InventoryLedger[]
+  customerProfiles CustomerStoreProfile[]
+  purchases        PurchaseOrder[]
+  sales            SalesOrder[]
+  expenses         Expense[]
+  financialLedger  FinancialLedgerEntry[]
+  attendanceDays   AttendanceDay[]
+
   @@index([status])
   @@index([createdAt])
   @@map("stores")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 2. USER ACCOUNTS (Exactly 3 roles: Super Admin, Store Manager, Sales Manager)
+// 2. USER ACCOUNTS (RBAC: Super Admin, Store Manager, Sales Manager)
 // ──────────────────────────────────────────────────────────────────────────────
 model UserAccount {
   id                  String    @id @default(uuid())
@@ -89,7 +99,7 @@ model UserPermissionOverride {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 2B. DATABASE-BACKED SESSIONS — 30-day durable sessions with revocation
+// 2B. DATABASE-BACKED SESSIONS — Configurable lifetime, revocation, audit
 // ──────────────────────────────────────────────────────────────────────────────
 model UserSession {
   id        String    @id @default(uuid())
@@ -112,7 +122,7 @@ model UserSession {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 3. USER STORE ASSIGNMENTS
+// 3. USER STORE ASSIGNMENTS — Canonical source of truth for user store access
 // ──────────────────────────────────────────────────────────────────────────────
 model UserStoreAssignment {
   id        String   @id @default(uuid())
@@ -120,10 +130,12 @@ model UserStoreAssignment {
   storeCode String   @map("store_code") @db.VarChar(16)
   createdAt DateTime @default(now()) @map("created_at")
 
-  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store StoreHub    @relation(fields: [storeCode], references: [code], onDelete: Restrict)
 
   @@unique([userId, storeCode])
   @@index([storeCode])
+  @@index([userId])
   @@map("user_store_assignments")
 }
 
@@ -181,9 +193,9 @@ model Product {
   model            String?  @db.VarChar(64)
   category         String   @db.VarChar(64)
   subcategory      String?  @db.VarChar(64)
-  baseCostPrice    Decimal  @default(0) @map("base_cost_price") @db.Decimal(12, 2)
-  baseSellingPrice Decimal  @default(0) @map("base_selling_price") @db.Decimal(12, 2)
-  mrp              Decimal? @db.Decimal(12, 2)
+  baseCostPrice    Decimal  @default(0) @map("base_cost_price") @db.Decimal(15, 2)
+  baseSellingPrice Decimal  @default(0) @map("base_selling_price") @db.Decimal(15, 2)
+  mrp              Decimal? @db.Decimal(15, 2)
   gstRate          Decimal  @default(0) @map("gst_rate") @db.Decimal(5, 2)
   warrantyMonths   Int      @default(0) @map("warranty_months")
   imageUrl         String?  @map("image_url") @db.LongText
@@ -222,16 +234,18 @@ model Inventory {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  store   StoreHub @relation(fields: [storeCode], references: [code], onDelete: Restrict)
 
   @@unique([productId, storeCode])
   @@index([storeCode])
+  @@index([productId])
   @@index([qtyOnHand])
   @@map("inventory")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 7. INVENTORY LEDGER — Immutable movement history
+// 7. INVENTORY LEDGER — Immutable movement history (Restrict on product/store)
 // ──────────────────────────────────────────────────────────────────────────────
 model InventoryLedger {
   id                  String   @id @default(uuid())
@@ -240,14 +254,15 @@ model InventoryLedger {
   refNo               String   @map("ref_no") @db.VarChar(64)
   type                String   @db.VarChar(32)
   qtyChange           Int      @map("qty_change")
-  costPerUnit         Decimal  @map("cost_per_unit") @db.Decimal(12, 2)
-  sellingPricePerUnit Decimal? @map("selling_price_per_unit") @db.Decimal(12, 2)
+  costPerUnit         Decimal  @map("cost_per_unit") @db.Decimal(15, 4)
+  sellingPricePerUnit Decimal? @map("selling_price_per_unit") @db.Decimal(15, 2)
   balanceAfter        Int      @map("balance_after")
   notes               String?  @db.VarChar(255)
   createdBy           String?  @map("created_by") @db.VarChar(128)
   createdAt           DateTime @default(now()) @map("created_at")
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  store   StoreHub @relation(fields: [storeCode], references: [code], onDelete: Restrict)
 
   @@index([storeCode])
   @@index([refNo])
@@ -294,14 +309,14 @@ model StockTransferItem {
   transferId           String  @map("transfer_id")
   productId            String  @map("product_id")
   qty                  Int
-  costPerUnit          Decimal @map("cost_per_unit") @db.Decimal(12, 2)
-  transferPricePerUnit Decimal @map("transfer_price_per_unit") @db.Decimal(12, 2)
-  lineTotalCost        Decimal @map("line_total_cost") @db.Decimal(12, 2)
-  lineTotalValue       Decimal @map("line_total_value") @db.Decimal(12, 2)
-  lineProfit           Decimal @map("line_profit") @db.Decimal(12, 2)
+  costPerUnit          Decimal @map("cost_per_unit") @db.Decimal(15, 4)
+  transferPricePerUnit Decimal @map("transfer_price_per_unit") @db.Decimal(15, 2)
+  lineTotalCost        Decimal @map("line_total_cost") @db.Decimal(15, 2)
+  lineTotalValue       Decimal @map("line_total_value") @db.Decimal(15, 2)
+  lineProfit           Decimal @map("line_profit") @db.Decimal(15, 2)
 
-  transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
-  product  Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Restrict)
+  product  Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([transferId])
   @@index([productId])
@@ -341,13 +356,14 @@ model CustomerStoreProfile {
   id            String   @id @default(uuid())
   customerId    String   @map("customer_id")
   storeCode     String   @map("store_code") @db.VarChar(16)
-  creditBalance Decimal  @default(0.00) @map("credit_balance") @db.Decimal(12, 2)
+  creditBalance Decimal  @default(0.00) @map("credit_balance") @db.Decimal(15, 2)
   totalSpent    Decimal  @default(0.00) @map("total_spent") @db.Decimal(15, 2)
   totalOrders   Int      @default(0) @map("total_orders")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  store    StoreHub @relation(fields: [storeCode], references: [code], onDelete: Restrict)
 
   @@unique([customerId, storeCode])
   @@index([storeCode])
@@ -388,7 +404,7 @@ model RepairEnquiry {
   normalizedPhone  String   @map("normalized_phone") @db.VarChar(32)
   deviceName       String   @map("device_name") @db.VarChar(128)
   issueDescription String   @map("issue_description") @db.VarChar(255)
-  estimatedCost    Decimal  @map("estimated_cost") @db.Decimal(12, 2)
+  estimatedCost    Decimal  @map("estimated_cost") @db.Decimal(15, 2)
   status           String   @default("Pending Diagnosis") @db.VarChar(32)
   assignedTech     String?  @map("assigned_tech") @db.VarChar(128)
   storeCode        String?  @map("store_code") @db.VarChar(16)
@@ -461,7 +477,8 @@ model PurchaseOrder {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  vendor   Vendor              @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendor   Vendor              @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  store    StoreHub            @relation(fields: [storeCode], references: [code], onDelete: Restrict)
   items    PurchaseOrderItem[]
   payments PurchasePayment[]
   grns     GoodsReceivedNote[]
@@ -489,7 +506,7 @@ model PurchasePayment {
   recordedBy    String   @map("recorded_by") @db.VarChar(128)
   createdAt     DateTime @default(now()) @map("created_at")
 
-  purchase PurchaseOrder @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  purchase PurchaseOrder @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
 
   @@index([purchaseId])
   @@index([paymentDate])
@@ -507,7 +524,7 @@ model GoodsReceivedNote {
   notes        String?  @db.VarChar(255)
   createdAt    DateTime @default(now()) @map("created_at")
 
-  purchase PurchaseOrder @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  purchase PurchaseOrder @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
 
   @@index([purchaseId])
   @@index([storeCode])
@@ -522,14 +539,14 @@ model PurchaseOrderItem {
   productId   String   @map("product_id")
   qtyOrdered  Int      @map("qty_ordered")
   qtyReceived Int      @map("qty_received")
-  unitCost    Decimal  @map("unit_cost") @db.Decimal(12, 2)
+  unitCost    Decimal  @map("unit_cost") @db.Decimal(15, 4)
   taxRate     Decimal? @default(0) @map("tax_rate") @db.Decimal(5, 2)
-  taxAmount   Decimal? @default(0) @map("tax_amount") @db.Decimal(12, 2)
-  discount    Decimal? @default(0) @db.Decimal(12, 2)
-  lineTotal   Decimal  @map("line_total") @db.Decimal(12, 2)
+  taxAmount   Decimal? @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  discount    Decimal? @default(0) @db.Decimal(15, 2)
+  lineTotal   Decimal  @map("line_total") @db.Decimal(15, 2)
 
-  po      PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
-  product Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  po      PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Restrict)
+  product Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([poId])
   @@index([productId])
@@ -572,6 +589,7 @@ model SalesOrder {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   customer Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  store    StoreHub         @relation(fields: [storeCode], references: [code], onDelete: Restrict)
   items    SalesOrderItem[]
 
   @@index([storeCode])
@@ -591,17 +609,17 @@ model SalesOrderItem {
   productName     String  @map("product_name") @db.VarChar(160)
   sku             String  @db.VarChar(64)
   qty             Int
-  unitPrice       Decimal @map("unit_price") @db.Decimal(12, 2)
-  unitCost        Decimal @map("unit_cost") @db.Decimal(12, 2)
+  unitPrice       Decimal @map("unit_price") @db.Decimal(15, 2)
+  unitCost        Decimal @map("unit_cost") @db.Decimal(15, 4)
   discountPercent Decimal @default(0.00) @map("discount_percent") @db.Decimal(5, 2)
-  lineTotal       Decimal @map("line_total") @db.Decimal(12, 2)
-  lineProfit      Decimal @map("line_profit") @db.Decimal(12, 2)
+  lineTotal       Decimal @map("line_total") @db.Decimal(15, 2)
+  lineProfit      Decimal @map("line_profit") @db.Decimal(15, 2)
   taxRate         Decimal @default(0.00) @map("tax_rate") @db.Decimal(5, 2)
-  taxAmount       Decimal @default(0.00) @map("tax_amount") @db.Decimal(12, 2)
+  taxAmount       Decimal @default(0.00) @map("tax_amount") @db.Decimal(15, 2)
   hsnSac          String? @map("hsn_sac") @db.VarChar(32)
 
-  order   SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order   SalesOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  product Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
   @@index([productId])
@@ -616,7 +634,7 @@ model Expense {
   expenseNo     String   @unique @map("expense_no") @db.VarChar(64)
   storeCode     String   @map("store_code") @db.VarChar(16)
   category      String   @db.VarChar(64)
-  amount        Decimal  @db.Decimal(12, 2)
+  amount        Decimal  @db.Decimal(15, 2)
   description   String   @db.VarChar(255)
   paymentMethod String   @default("UPI") @map("payment_method") @db.VarChar(32)
   referenceNo   String?  @map("reference_no") @db.VarChar(64)
@@ -625,6 +643,8 @@ model Expense {
   recordedBy    String?  @map("recorded_by") @db.VarChar(128)
   date          DateTime @default(now())
   createdAt     DateTime @default(now()) @map("created_at")
+
+  store StoreHub @relation(fields: [storeCode], references: [code], onDelete: Restrict)
 
   @@index([storeCode])
   @@index([createdAt])
@@ -638,7 +658,7 @@ model CentralExpense {
   id            String   @id @default(uuid())
   expenseNo     String   @unique @map("expense_no") @db.VarChar(64)
   category      String   @db.VarChar(64)
-  amount        Decimal  @db.Decimal(12, 2)
+  amount        Decimal  @db.Decimal(15, 2)
   description   String   @db.VarChar(255)
   paymentMethod String   @default("UPI") @map("payment_method") @db.VarChar(32)
   referenceNo   String?  @map("reference_no") @db.VarChar(64)
@@ -791,6 +811,8 @@ model FinancialLedgerEntry {
   createdBy       String   @map("created_by") @db.VarChar(128)
   createdAt       DateTime @default(now()) @map("created_at")
 
+  store StoreHub @relation(fields: [storeCode], references: [code], onDelete: Restrict)
+
   @@index([storeCode])
   @@index([entryDate])
   @@index([accountCategory])
@@ -826,7 +848,7 @@ model IdempotencyRecord {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 17. PAYMENT METHODS (Cash, UPI, Other only)
+// 17. PAYMENT METHODS (DB Authoritative)
 // ──────────────────────────────────────────────────────────────────────────────
 model PaymentMethod {
   id          String   @id @default(uuid())
@@ -890,7 +912,8 @@ model AttendanceDay {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  UserAccount @relation(fields: [userId], references: [id], onDelete: Restrict)
+  store StoreHub    @relation(fields: [storeCode], references: [code], onDelete: Restrict)
 
   @@unique([userId, localDate])
   @@index([storeCode])
@@ -1111,4 +1134,3 @@ model SecurityRateLimit {
   @@index([expiresAt])
   @@map("security_rate_limits")
 }
-

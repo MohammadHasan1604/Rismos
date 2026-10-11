@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent } from '@/lib/realtime';
+import { sendEmail } from '@/lib/email';
 
 export interface AlertEvaluationSummary {
   lowStockAlertsCreated: number;
@@ -152,7 +153,14 @@ export async function evaluateSystemAlerts(): Promise<AlertEvaluationSummary> {
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
     for (const po of overduePOs) {
-      const remainingBalance = Number(po.totalCost) - Number(po.paidAmount || 0);
+      // Authoritative purchase reconciliation formula: totalCost - paidAmount - creditAmount
+      const remainingBalance = Math.max(
+        0,
+        Number(po.totalCost) - Number(po.paidAmount || 0) - Number(po.creditAmount || 0)
+      );
+      if (remainingBalance <= 0.01) {
+        continue; // Fully settled or credited, not overdue
+      }
       for (const targetUser of recipientUsers) {
         const recentNotif = await (prisma as any).notification.findFirst({
           where: {
@@ -194,10 +202,11 @@ export async function evaluateSystemAlerts(): Promise<AlertEvaluationSummary> {
 
     // Business timezone resolution
     const branding = await (prisma as any).brandingSetting
-      .findFirst({ select: { timezone: true } })
+      .findFirst({ select: { timezone: true, appName: true } })
       .catch(() => null);
     const businessTimezone = branding?.timezone || 'Asia/Kolkata';
 
+    // Accurate local start-of-day calculation using configured business timezone
     let startOfToday: Date;
     try {
       const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -206,8 +215,12 @@ export async function evaluateSystemAlerts(): Promise<AlertEvaluationSummary> {
         month: '2-digit',
         day: '2-digit',
       });
-      const localDateStr = formatter.format(new Date()); // e.g. 2026-10-08
-      startOfToday = new Date(`${localDateStr}T00:00:00.000Z`);
+      const [year, month, day] = formatter.format(new Date()).split('-').map(Number);
+      const utcRef = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+      const invDate = new Date(utcRef.toLocaleString('en-US', { timeZone: 'UTC' }));
+      const tzDate = new Date(utcRef.toLocaleString('en-US', { timeZone: businessTimezone }));
+      const diff = invDate.getTime() - tzDate.getTime();
+      startOfToday = new Date(utcRef.getTime() + diff);
     } catch {
       startOfToday = new Date();
       startOfToday.setUTCHours(0, 0, 0, 0);
@@ -253,24 +266,64 @@ export async function evaluateSystemAlerts(): Promise<AlertEvaluationSummary> {
     }
   }
 
-  // 6. Transparent Outbound Email Status (never faked)
+  // 6. Truthful Outbound Email Delivery (Never Faked)
   const isEmailConfigured = Boolean(
     process.env.SMTP_HOST || process.env.RESEND_API_KEY || process.env.SENDGRID_API_KEY
   );
 
-  const emailStatus: AlertEvaluationSummary['emailStatus'] = isEmailConfigured
-    ? 'SENT'
-    : 'NOT_CONFIGURED';
+  const totalCreated = lowStockAlertsCreated + overdueBillAlertsCreated + dailyDigestCreated;
+  let emailStatus: AlertEvaluationSummary['emailStatus'] = 'NOT_CONFIGURED';
+  let emailMessage = 'Email provider not configured';
 
-  const emailMessage = isEmailConfigured
-    ? 'Outbound email notifications dispatched to configured recipients.'
-    : 'Email provider not configured';
+  if (!isEmailConfigured) {
+    emailStatus = 'NOT_CONFIGURED';
+    emailMessage = 'No outbound email provider configured on server.';
+  } else if (totalCreated === 0) {
+    emailStatus = 'SENT';
+    emailMessage = 'No active alerts breached thresholds during evaluation; digest up to date.';
+  } else {
+    // Dispatch actual summary email via authoritative sendEmail
+    let dispatched = 0;
+    let failedCount = 0;
+    for (const targetUser of recipientUsers) {
+      try {
+        const sendResult = await sendEmail({
+          to: targetUser.email,
+          subject: `Alert Digest: ${totalCreated} active operational updates`,
+          template: 'notification',
+          data: {
+            userName: targetUser.name,
+            lowStockAlertsCreated,
+            overdueBillAlertsCreated,
+            dailyDigestCreated,
+            totalCreated,
+            evaluatedAt: evaluatedAt.toISOString(),
+          },
+        });
+        if (sendResult.success) {
+          dispatched++;
+        } else {
+          failedCount++;
+        }
+      } catch (err) {
+        failedCount++;
+      }
+    }
+
+    if (failedCount > 0 && dispatched === 0) {
+      emailStatus = 'FAILED';
+      emailMessage = 'Provider failed to deliver outbound notification emails.';
+    } else {
+      emailStatus = 'SENT';
+      emailMessage = `Outbound email notifications confirmed delivered to ${dispatched} recipient(s).`;
+    }
+  }
 
   return {
     lowStockAlertsCreated,
     overdueBillAlertsCreated,
     dailyDigestCreated,
-    totalCreated: lowStockAlertsCreated + overdueBillAlertsCreated + dailyDigestCreated,
+    totalCreated,
     emailStatus,
     emailMessage,
     evaluatedAt,

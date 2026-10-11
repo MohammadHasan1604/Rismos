@@ -1,0 +1,1136 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 1. STORE HUBS — Canonical physical/logical business locations
+// ──────────────────────────────────────────────────────────────────────────────
+model StoreHub {
+  id          String   @id @default(uuid())
+  code        String   @unique @db.VarChar(16)
+  name        String   @db.VarChar(128)
+  city        String   @db.VarChar(64)
+  address     String   @db.VarChar(255)
+  timezone    String   @default("Asia/Kolkata") @db.VarChar(64)
+  ownerName   String?  @map("owner_name") @db.VarChar(128)
+  managerName String?  @map("manager_name") @db.VarChar(128)
+  phone       String?  @db.VarChar(32)
+  status      String   @default("Active") @db.VarChar(16)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userAssignments  UserStoreAssignment[]
+  inventoryItems   Inventory[]
+  ledgerEntries    InventoryLedger[]
+  customerProfiles CustomerStoreProfile[]
+  purchases        PurchaseOrder[]
+  sales            SalesOrder[]
+  expenses         Expense[]
+  financialLedger  FinancialLedgerEntry[]
+  attendanceDays   AttendanceDay[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("stores")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 2. USER ACCOUNTS (RBAC: Super Admin, Store Manager, Sales Manager)
+// ──────────────────────────────────────────────────────────────────────────────
+model UserAccount {
+  id                  String    @id @default(uuid())
+  email               String    @unique @db.VarChar(128)
+  passwordHash        String    @map("password_hash") @db.VarChar(255)
+  name                String    @db.VarChar(128)
+  phone               String?   @db.VarChar(32)
+  role                String    @default("Sales Manager") @db.VarChar(32)
+  securityLevel       Int       @default(40) @map("security_level")
+  storeScope          String    @default("BLR") @map("store_scope") @db.VarChar(64)
+  status              String    @default("Active") @db.VarChar(16)
+  mustChangePassword  Boolean   @default(false) @map("must_change_password")
+  avatarUrl           String?   @map("avatar_url") @db.LongText
+  lastLogin           DateTime? @map("last_login")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  storeAssignments    UserStoreAssignment[]
+  sessions            UserSession[]
+  attendanceDays      AttendanceDay[]
+  deleteRequests      DeleteRequest[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]               @relation("AuditLogUser")
+  fileAssets          FileAsset[]
+  presence            UserPresence?
+  permissionOverrides UserPermissionOverride[]
+  passwordResets      PasswordReset[]
+  uiPreference        UserUiPreference?
+  stepUpGrants        StepUpGrant[]
+
+  @@index([role])
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 2C. USER PERMISSION OVERRIDES (ALLOW / DENY per user)
+// ──────────────────────────────────────────────────────────────────────────────
+model UserPermissionOverride {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  permissionCode String   @map("permission_code") @db.VarChar(64)
+  overrideType   String   @map("override_type") @db.VarChar(16) // "ALLOW" | "DENY"
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionCode])
+  @@index([userId])
+  @@index([permissionCode])
+  @@map("user_permission_overrides")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 2B. DATABASE-BACKED SESSIONS — Configurable lifetime, revocation, audit
+// ──────────────────────────────────────────────────────────────────────────────
+model UserSession {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash") @db.VarChar(128)
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  ipAddress String?   @map("ip_address") @db.VarChar(64)
+  userAgent String?   @map("user_agent") @db.VarChar(255)
+  createdAt DateTime  @default(now()) @map("created_at")
+  lastSeenAt DateTime? @map("last_seen_at")
+
+  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@index([lastSeenAt])
+  @@map("user_sessions")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 3. USER STORE ASSIGNMENTS — Canonical source of truth for user store access
+// ──────────────────────────────────────────────────────────────────────────────
+model UserStoreAssignment {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  storeCode String   @map("store_code") @db.VarChar(16)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store StoreHub    @relation(fields: [storeCode], references: [code], onDelete: Restrict)
+
+  @@unique([userId, storeCode])
+  @@index([storeCode])
+  @@index([userId])
+  @@map("user_store_assignments")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 4. CATEGORIES & TAXONOMY
+// ──────────────────────────────────────────────────────────────────────────────
+model Category {
+  id               String   @id @default(uuid())
+  name             String   @db.VarChar(128)
+  slug             String   @unique @db.VarChar(128)
+  parentCategoryId String?  @map("parent_category_id")
+  categoryType     String   @default("Product") @map("category_type") @db.VarChar(64)
+  description      String?  @db.VarChar(255)
+  imageUrl         String?  @map("image_url") @db.LongText
+  icon             String?  @db.VarChar(64)
+  status           String   @default("Active") @db.VarChar(16)
+  sortOrder        Int      @default(0) @map("sort_order")
+  createdBy        String?  @map("created_by") @db.VarChar(128)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryHierarchy")
+
+  @@index([parentCategoryId])
+  @@index([categoryType])
+  @@index([status])
+  @@index([sortOrder])
+  @@index([createdAt])
+  @@map("categories")
+}
+
+model CategoryType {
+  id          String   @id @default(uuid())
+  name        String   @unique @db.VarChar(64)
+  code        String   @unique @db.VarChar(64)
+  description String?  @db.VarChar(255)
+  color       String?  @default("primary") @db.VarChar(32)
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("category_types")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 5. PRODUCTS & CATALOG
+// ──────────────────────────────────────────────────────────────────────────────
+model Product {
+  id               String   @id @default(uuid())
+  sku              String   @unique @db.VarChar(64)
+  barcode          String?  @db.VarChar(64)
+  name             String   @db.VarChar(160)
+  brand            String?  @db.VarChar(64)
+  model            String?  @db.VarChar(64)
+  category         String   @db.VarChar(64)
+  subcategory      String?  @db.VarChar(64)
+  baseCostPrice    Decimal  @default(0) @map("base_cost_price") @db.Decimal(15, 2)
+  baseSellingPrice Decimal  @default(0) @map("base_selling_price") @db.Decimal(15, 2)
+  mrp              Decimal? @db.Decimal(15, 2)
+  gstRate          Decimal  @default(0) @map("gst_rate") @db.Decimal(5, 2)
+  warrantyMonths   Int      @default(0) @map("warranty_months")
+  imageUrl         String?  @map("image_url") @db.LongText
+  description      String?  @db.Text
+  status           String   @default("active") @db.VarChar(16)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  inventoryItems Inventory[]
+  ledgerEntries  InventoryLedger[]
+  transferItems  StockTransferItem[]
+  poItems        PurchaseOrderItem[]
+  saleItems      SalesOrderItem[]
+
+  @@index([category])
+  @@index([brand])
+  @@index([status])
+  @@index([createdAt])
+  @@index([name])
+  @@index([barcode])
+  @@map("products")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 6. INVENTORY
+// ──────────────────────────────────────────────────────────────────────────────
+model Inventory {
+  id          String   @id @default(uuid())
+  productId   String   @map("product_id")
+  storeCode   String   @map("store_code") @db.VarChar(16)
+  qtyOnHand   Int      @default(0) @map("qty_on_hand")
+  qtyReserved Int      @default(0) @map("qty_reserved")
+  reorderPt   Int      @default(5) @map("reorder_pt")
+  maxStock    Int      @default(50) @map("max_stock")
+  shelfLoc    String?  @map("shelf_loc") @db.VarChar(32)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  product Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  store   StoreHub @relation(fields: [storeCode], references: [code], onDelete: Restrict)
+
+  @@unique([productId, storeCode])
+  @@index([storeCode])
+  @@index([productId])
+  @@index([qtyOnHand])
+  @@map("inventory")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 7. INVENTORY LEDGER — Immutable movement history (Restrict on product/store)
+// ──────────────────────────────────────────────────────────────────────────────
+model InventoryLedger {
+  id                  String   @id @default(uuid())
+  productId           String   @map("product_id")
+  storeCode           String   @map("store_code") @db.VarChar(16)
+  refNo               String   @map("ref_no") @db.VarChar(64)
+  type                String   @db.VarChar(32)
+  qtyChange           Int      @map("qty_change")
+  costPerUnit         Decimal  @map("cost_per_unit") @db.Decimal(15, 4)
+  sellingPricePerUnit Decimal? @map("selling_price_per_unit") @db.Decimal(15, 2)
+  balanceAfter        Int      @map("balance_after")
+  notes               String?  @db.VarChar(255)
+  createdBy           String?  @map("created_by") @db.VarChar(128)
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  product Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  store   StoreHub @relation(fields: [storeCode], references: [code], onDelete: Restrict)
+
+  @@index([storeCode])
+  @@index([refNo])
+  @@index([productId])
+  @@index([createdAt])
+  @@index([type])
+  @@index([storeCode, createdAt])
+  @@map("inventory_ledger")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 8. STOCK TRANSFERS
+// ──────────────────────────────────────────────────────────────────────────────
+model StockTransfer {
+  id                 String    @id @default(uuid())
+  transferNo         String    @unique @map("transfer_no") @db.VarChar(64)
+  sourceStore        String    @map("source_store") @db.VarChar(16)
+  destStore          String    @map("dest_store") @db.VarChar(16)
+  status             String    @default("Received") @db.VarChar(32)
+  shipDate           DateTime  @default(now()) @map("ship_date")
+  receiveDate        DateTime? @map("receive_date")
+  requestedBy        String    @map("requested_by") @db.VarChar(128)
+  receivedBy         String?   @map("received_by") @db.VarChar(128)
+  totalUnits         Int       @map("total_units")
+  totalCost          Decimal   @map("total_cost") @db.Decimal(15, 2)
+  totalTransferValue Decimal   @map("total_transfer_value") @db.Decimal(15, 2)
+  grossProfit        Decimal   @map("gross_profit") @db.Decimal(15, 2)
+  notes              String?   @db.VarChar(255)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  items StockTransferItem[]
+
+  @@index([sourceStore])
+  @@index([destStore])
+  @@index([status])
+  @@index([createdAt])
+  @@index([shipDate])
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id                   String  @id @default(uuid())
+  transferId           String  @map("transfer_id")
+  productId            String  @map("product_id")
+  qty                  Int
+  costPerUnit          Decimal @map("cost_per_unit") @db.Decimal(15, 4)
+  transferPricePerUnit Decimal @map("transfer_price_per_unit") @db.Decimal(15, 2)
+  lineTotalCost        Decimal @map("line_total_cost") @db.Decimal(15, 2)
+  lineTotalValue       Decimal @map("line_total_value") @db.Decimal(15, 2)
+  lineProfit           Decimal @map("line_profit") @db.Decimal(15, 2)
+
+  transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Restrict)
+  product  Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([transferId])
+  @@index([productId])
+  @@map("stock_transfer_items")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 9. CUSTOMERS — Store-scoped via CustomerStoreProfile
+// ──────────────────────────────────────────────────────────────────────────────
+model Customer {
+  id              String   @id @default(uuid())
+  name            String   @db.VarChar(128)
+  phone           String   @db.VarChar(32)
+  normalizedPhone String   @map("normalized_phone") @db.VarChar(32)
+  email           String?  @db.VarChar(128)
+  city            String   @default("Bengaluru") @db.VarChar(64)
+  address         String?  @db.VarChar(255)
+  status          String   @default("Active") @db.VarChar(16)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  storeProfiles CustomerStoreProfile[]
+  repairs       RepairEnquiry[]
+  sales         SalesOrder[]
+  externalLinks CustomerExternalLink[]
+
+  @@index([normalizedPhone])
+  @@index([createdAt])
+  @@index([status])
+  @@index([name])
+  @@index([phone])
+  @@map("customers")
+}
+
+/// Tracks per-store relationship data for customers (store-scoped privacy)
+model CustomerStoreProfile {
+  id            String   @id @default(uuid())
+  customerId    String   @map("customer_id")
+  storeCode     String   @map("store_code") @db.VarChar(16)
+  creditBalance Decimal  @default(0.00) @map("credit_balance") @db.Decimal(15, 2)
+  totalSpent    Decimal  @default(0.00) @map("total_spent") @db.Decimal(15, 2)
+  totalOrders   Int      @default(0) @map("total_orders")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  store    StoreHub @relation(fields: [storeCode], references: [code], onDelete: Restrict)
+
+  @@unique([customerId, storeCode])
+  @@index([storeCode])
+  @@index([customerId])
+  @@map("customer_store_profiles")
+}
+
+model CustomerExternalLink {
+  id                   String    @id @default(uuid())
+  coskoCustomerId      String?   @map("cosko_customer_id")
+  sourceSystem         String    @default("LEGACY_MYSQL_DB") @map("source_system") @db.VarChar(64)
+  externalCustomerId   String    @map("external_customer_id") @db.VarChar(64)
+  externalCustomerName String    @map("external_customer_name") @db.VarChar(128)
+  normalizedMobile     String    @map("normalized_mobile") @db.VarChar(32)
+  linkStatus           String    @default("AUTO_MATCHED") @map("link_status") @db.VarChar(32)
+  matchType            String    @default("EXACT_PHONE") @map("match_type") @db.VarChar(32)
+  verifiedBy           String?   @map("verified_by") @db.VarChar(128)
+  verifiedAt           DateTime? @map("verified_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  customer Customer? @relation(fields: [coskoCustomerId], references: [id], onDelete: SetNull)
+
+  @@index([normalizedMobile])
+  @@index([externalCustomerId])
+  @@index([linkStatus])
+  @@index([coskoCustomerId])
+  @@map("customer_external_links")
+}
+
+/// Read-only historical repair records — no new repairs created
+model RepairEnquiry {
+  id               String   @id @default(uuid())
+  ticketNo         String   @unique @map("ticket_no") @db.VarChar(32)
+  customerId       String?  @map("customer_id")
+  customerName     String   @map("customer_name") @db.VarChar(128)
+  customerPhone    String   @map("customer_phone") @db.VarChar(32)
+  normalizedPhone  String   @map("normalized_phone") @db.VarChar(32)
+  deviceName       String   @map("device_name") @db.VarChar(128)
+  issueDescription String   @map("issue_description") @db.VarChar(255)
+  estimatedCost    Decimal  @map("estimated_cost") @db.Decimal(15, 2)
+  status           String   @default("Pending Diagnosis") @db.VarChar(32)
+  assignedTech     String?  @map("assigned_tech") @db.VarChar(128)
+  storeCode        String?  @map("store_code") @db.VarChar(16)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([normalizedPhone])
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("repair_enquiries")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 10. VENDORS & PURCHASES
+// ──────────────────────────────────────────────────────────────────────────────
+model Vendor {
+  id            String   @id @default(uuid())
+  code          String   @unique @db.VarChar(32)
+  name          String   @db.VarChar(128)
+  contactPerson String   @map("contact_person") @db.VarChar(128)
+  email         String   @db.VarChar(128)
+  phone         String   @db.VarChar(32)
+  city          String   @db.VarChar(64)
+  address       String?  @db.VarChar(255)
+  categories    String   @db.VarChar(255)
+  gstin         String?  @default("") @db.VarChar(32)
+  paymentTerms  String   @default("Net 30") @map("payment_terms") @db.VarChar(32)
+  leadTimeDays  Int?     @map("lead_time_days")
+  rating        Decimal? @db.Decimal(3, 1)
+  storeCode     String   @map("store_code") @db.VarChar(16)
+  status        String   @default("Active") @db.VarChar(16)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  purchases PurchaseOrder[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([storeCode])
+  @@map("vendors")
+}
+
+model PurchaseOrder {
+  id             String    @id @default(uuid())
+  poNo           String    @unique @map("po_no") @db.VarChar(64)
+  invoiceNo      String?   @map("invoice_no") @db.VarChar(64)
+  vendorId       String    @map("vendor_id")
+  storeCode      String    @map("store_code") @db.VarChar(16)
+  orderDate      DateTime  @default(now()) @map("order_date")
+  expectedDate   DateTime? @map("expected_date")
+  dueDate        DateTime? @map("due_date")
+  receivedDate   DateTime? @map("received_date")
+  subtotal       Decimal?  @default(0) @db.Decimal(15, 2)
+  taxAmount      Decimal?  @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  discountAmount Decimal?  @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  totalCost      Decimal   @map("total_cost") @db.Decimal(15, 2)
+  paidAmount     Decimal   @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  creditAmount   Decimal   @default(0) @map("credit_amount") @db.Decimal(15, 2)
+  status         String    @default("Ordered") @db.VarChar(32)
+  paymentStatus  String    @default("Unpaid") @map("payment_status") @db.VarChar(32)
+  createdBy      String    @map("created_by") @db.VarChar(128)
+  notes          String?   @db.VarChar(255)
+  countryCode    String    @default("IN") @map("country_code") @db.VarChar(8)
+  currencyCode   String    @default("INR") @map("currency_code") @db.VarChar(8)
+  taxRegime      String    @default("GST") @map("tax_regime") @db.VarChar(32)
+  taxBreakdownJson String? @map("tax_breakdown_json") @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  vendor   Vendor              @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  store    StoreHub            @relation(fields: [storeCode], references: [code], onDelete: Restrict)
+  items    PurchaseOrderItem[]
+  payments PurchasePayment[]
+  grns     GoodsReceivedNote[]
+
+  @@index([storeCode])
+  @@index([vendorId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([storeCode, createdAt])
+  @@index([orderDate])
+  @@map("purchases")
+}
+
+model PurchasePayment {
+  id            String   @id @default(uuid())
+  purchaseId    String   @map("purchase_id")
+  voucherNo     String?  @map("voucher_no") @db.VarChar(64)
+  amount        Decimal  @db.Decimal(15, 2)
+  paymentDate   DateTime @default(now()) @map("payment_date")
+  paymentMethod String   @default("UPI") @map("payment_method") @db.VarChar(32)
+  referenceNo   String?  @map("reference_no") @db.VarChar(64)
+  receiptUrl    String?  @map("receipt_url") @db.LongText
+  notes         String?  @db.VarChar(255)
+  recordedBy    String   @map("recorded_by") @db.VarChar(128)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  purchase PurchaseOrder @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseId])
+  @@index([paymentDate])
+  @@index([createdAt])
+  @@map("purchase_payments")
+}
+
+model GoodsReceivedNote {
+  id           String   @id @default(uuid())
+  grnNo        String   @unique @map("grn_no") @db.VarChar(64)
+  purchaseId   String   @map("purchase_id")
+  storeCode    String   @map("store_code") @db.VarChar(16)
+  receivedDate DateTime @default(now()) @map("received_date")
+  receivedBy   String   @map("received_by") @db.VarChar(128)
+  notes        String?  @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  purchase PurchaseOrder @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseId])
+  @@index([storeCode])
+  @@index([receivedDate])
+  @@index([createdAt])
+  @@map("goods_received_notes")
+}
+
+model PurchaseOrderItem {
+  id          String   @id @default(uuid())
+  poId        String   @map("po_id")
+  productId   String   @map("product_id")
+  qtyOrdered  Int      @map("qty_ordered")
+  qtyReceived Int      @map("qty_received")
+  unitCost    Decimal  @map("unit_cost") @db.Decimal(15, 4)
+  taxRate     Decimal? @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  taxAmount   Decimal? @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  discount    Decimal? @default(0) @db.Decimal(15, 2)
+  lineTotal   Decimal  @map("line_total") @db.Decimal(15, 2)
+
+  po      PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Restrict)
+  product Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([poId])
+  @@index([productId])
+  @@map("purchase_items")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 11. SALES & POS
+// ──────────────────────────────────────────────────────────────────────────────
+model SalesOrder {
+  id              String   @id @default(uuid())
+  orderNo         String   @unique @map("order_no") @db.VarChar(64)
+  storeCode       String   @map("store_code") @db.VarChar(16)
+  customerId      String?  @map("customer_id")
+  customerName    String   @map("customer_name") @db.VarChar(128)
+  customerPhone   String   @map("customer_phone") @db.VarChar(32)
+  subtotal        Decimal  @db.Decimal(15, 2)
+  taxAmount       Decimal  @map("tax_amount") @db.Decimal(15, 2)
+  discountAmount  Decimal  @default(0.00) @map("discount_amount") @db.Decimal(15, 2)
+  grandTotal      Decimal  @map("grand_total") @db.Decimal(15, 2)
+  totalCost       Decimal  @map("total_cost") @db.Decimal(15, 2)
+  grossProfit     Decimal  @map("gross_profit") @db.Decimal(15, 2)
+  paymentMethod   String   @default("UPI") @map("payment_method") @db.VarChar(32)
+  referenceNo     String?  @map("reference_no") @db.VarChar(64)
+  paymentProofUrl String?  @map("payment_proof_url") @db.LongText
+  status          String   @default("Completed") @db.VarChar(16)
+  cashierName     String   @map("cashier_name") @db.VarChar(128)
+  photosJson      String?  @map("photos_json") @db.Text
+  countryCode     String   @default("IN") @map("country_code") @db.VarChar(8)
+  currencyCode    String   @default("INR") @map("currency_code") @db.VarChar(8)
+  currencySymbol  String   @default("₹") @map("currency_symbol") @db.VarChar(8)
+  taxRegime       String   @default("GST") @map("tax_regime") @db.VarChar(32)
+  taxInclusive    Boolean  @default(false) @map("tax_inclusive")
+  taxConfigVersion Int     @default(1) @map("tax_config_version")
+  taxRegistrationSnapshot String? @map("tax_registration_snapshot") @db.VarChar(64)
+  taxBreakdownJson String? @map("tax_breakdown_json") @db.Text
+  invoiceTemplateVersion Int @default(1) @map("invoice_template_version")
+  invoiceSnapshotJson String? @map("invoice_snapshot_json") @db.LongText
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  customer Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  store    StoreHub         @relation(fields: [storeCode], references: [code], onDelete: Restrict)
+  items    SalesOrderItem[]
+
+  @@index([storeCode])
+  @@index([orderNo])
+  @@index([createdAt])
+  @@index([storeCode, createdAt])
+  @@index([status])
+  @@index([customerId])
+  @@index([paymentMethod])
+  @@map("sales")
+}
+
+model SalesOrderItem {
+  id              String  @id @default(uuid())
+  orderId         String  @map("order_id")
+  productId       String  @map("product_id")
+  productName     String  @map("product_name") @db.VarChar(160)
+  sku             String  @db.VarChar(64)
+  qty             Int
+  unitPrice       Decimal @map("unit_price") @db.Decimal(15, 2)
+  unitCost        Decimal @map("unit_cost") @db.Decimal(15, 4)
+  discountPercent Decimal @default(0.00) @map("discount_percent") @db.Decimal(5, 2)
+  lineTotal       Decimal @map("line_total") @db.Decimal(15, 2)
+  lineProfit      Decimal @map("line_profit") @db.Decimal(15, 2)
+  taxRate         Decimal @default(0.00) @map("tax_rate") @db.Decimal(5, 2)
+  taxAmount       Decimal @default(0.00) @map("tax_amount") @db.Decimal(15, 2)
+  hsnSac          String? @map("hsn_sac") @db.VarChar(32)
+
+  order   SalesOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  product Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 12. EXPENSES
+// ──────────────────────────────────────────────────────────────────────────────
+model Expense {
+  id            String   @id @default(uuid())
+  expenseNo     String   @unique @map("expense_no") @db.VarChar(64)
+  storeCode     String   @map("store_code") @db.VarChar(16)
+  category      String   @db.VarChar(64)
+  amount        Decimal  @db.Decimal(15, 2)
+  description   String   @db.VarChar(255)
+  paymentMethod String   @default("UPI") @map("payment_method") @db.VarChar(32)
+  referenceNo   String?  @map("reference_no") @db.VarChar(64)
+  receiptUrl    String?  @map("receipt_url") @db.LongText
+  approvedBy    String   @map("approved_by") @db.VarChar(128)
+  recordedBy    String?  @map("recorded_by") @db.VarChar(128)
+  date          DateTime @default(now())
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  store StoreHub @relation(fields: [storeCode], references: [code], onDelete: Restrict)
+
+  @@index([storeCode])
+  @@index([createdAt])
+  @@index([date])
+  @@index([category])
+  @@index([storeCode, date])
+  @@map("expenses")
+}
+
+model CentralExpense {
+  id            String   @id @default(uuid())
+  expenseNo     String   @unique @map("expense_no") @db.VarChar(64)
+  category      String   @db.VarChar(64)
+  amount        Decimal  @db.Decimal(15, 2)
+  description   String   @db.VarChar(255)
+  paymentMethod String   @default("UPI") @map("payment_method") @db.VarChar(32)
+  referenceNo   String?  @map("reference_no") @db.VarChar(64)
+  receiptUrl    String?  @map("receipt_url") @db.LongText
+  approvedBy    String   @map("approved_by") @db.VarChar(128)
+  recordedBy    String?  @map("recorded_by") @db.VarChar(128)
+  date          DateTime @default(now())
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([date])
+  @@index([category])
+  @@map("central_expenses")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 13. AUDIT LOGS
+// ──────────────────────────────────────────────────────────────────────────────
+model AuditLog {
+  id        String   @id @default(uuid())
+  module    String   @db.VarChar(64)
+  action    String   @db.VarChar(128)
+  details   String   @db.Text
+  userId    String?  @map("user_id")
+  userEmail String   @map("user_email") @db.VarChar(128)
+  userRole  String   @map("user_role") @db.VarChar(64)
+  storeCode String   @map("store_code") @db.VarChar(16)
+  ipAddress String?  @map("ip_address") @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user UserAccount? @relation("AuditLogUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([module])
+  @@index([userEmail])
+  @@index([createdAt])
+  @@index([storeCode])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 14. SYSTEM SETTINGS & BRANDING
+// ──────────────────────────────────────────────────────────────────────────────
+model BrandingSetting {
+  id              String   @id @default("cosko_branding_config")
+  appName         String   @default("RISMOS") @map("app_name") @db.VarChar(128)
+  logoUrl         String?  @map("logo_url") @db.LongText
+  logoDarkUrl     String?  @map("logo_dark_url") @db.LongText
+  appIconUrl      String?  @map("app_icon_url") @db.LongText
+  faviconUrl      String?  @map("favicon_url") @db.LongText
+  tagline         String   @default("Run Retail. Smarter.") @db.VarChar(255)
+  primaryColor    String?  @default("#002E86") @map("primary_color") @db.VarChar(32)
+  secondaryColor  String?  @default("#009ADF") @map("secondary_color") @db.VarChar(32)
+  accentColor     String?  @default("#2563EB") @map("accent_color") @db.VarChar(32)
+  supportEmail    String   @default("support@rismos.com") @map("support_email") @db.VarChar(128)
+  supportPhone    String?  @map("support_phone") @db.VarChar(32)
+  businessName    String?  @map("business_name") @db.VarChar(255)
+  businessAddress String?  @map("business_address") @db.Text
+  city            String?  @db.VarChar(64)
+  state           String?  @db.VarChar(64)
+  pincode         String?  @db.VarChar(32)
+  country         String?  @default("India") @db.VarChar(64)
+  countryCode     String?  @default("IN") @map("country_code") @db.VarChar(8)
+  timezone        String?  @default("Asia/Kolkata") @db.VarChar(64)
+  locale          String?  @default("en-IN") @db.VarChar(16)
+  baseCurrency    String   @default("INR (₹)") @map("base_currency") @db.VarChar(32)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("branding_settings")
+}
+
+model SystemSettings {
+  id                     String   @id @default("cosko_system_config")
+  // ─── Jurisdiction & International Tax ───
+  countryCode            String?  @default("IN") @map("country_code") @db.VarChar(8)
+  currencyCode           String?  @default("INR") @map("currency_code") @db.VarChar(8)
+  currencySymbol         String?  @default("₹") @map("currency_symbol") @db.VarChar(8)
+  taxRegime              String?  @default("GST") @map("tax_regime") @db.VarChar(32)
+  taxInclusivePricing    Boolean  @default(false) @map("tax_inclusive_pricing")
+  taxRegistrationNumber  String?  @map("tax_registration_number") @db.VarChar(64)
+  taxJurisdictionState   String?  @map("tax_jurisdiction_state") @db.VarChar(64)
+  jurisdictionConfig     String?  @map("jurisdiction_config") @db.Text
+  taxConfigVersion       Int      @default(1) @map("tax_config_version")
+  // ─── GST / Regional Tax Legacy & Explicit Fields ───
+  gstin                  String?  @db.VarChar(32)
+  legalBusinessName      String?  @map("legal_business_name") @db.VarChar(255)
+  tradeName              String?  @map("trade_name") @db.VarChar(255)
+  gstState               String?  @map("gst_state") @db.VarChar(64)
+  gstStateCode           String?  @map("gst_state_code") @db.VarChar(16)
+  gstRegistrationType    String   @default("Regular") @map("gst_registration_type") @db.VarChar(32)
+  defaultTaxRate         Decimal  @default(18) @map("default_tax_rate") @db.Decimal(5, 2)
+  hsnMandatory           Boolean  @default(false) @map("hsn_mandatory")
+  enableReverseCharge    Boolean  @default(false) @map("enable_reverse_charge")
+  gstBusinessAddress     String?  @map("gst_business_address") @db.Text
+  // ─── Invoice Template ───
+  invoiceHeader          String   @default("RISMOS Retail Enterprise") @map("invoice_header") @db.VarChar(255)
+  invoiceFooter          String   @default("Thank you for shopping with us! Goods once sold cannot be returned without original receipt.") @map("invoice_footer") @db.VarChar(500)
+  invoiceTerms           String?  @map("invoice_terms") @db.Text
+  invoiceAccentColor     String   @default("primary") @map("invoice_accent_color") @db.VarChar(32)
+  watermarkOpacity       Int      @default(5) @map("watermark_opacity")
+  showStoreAddress       Boolean  @default(true) @map("show_store_address")
+  invoiceTemplateUrl     String?  @map("invoice_template_url") @db.LongText
+  invoiceTemplateVersion Int      @default(1) @map("invoice_template_version")
+  invoiceFieldMapping    String?  @map("invoice_field_mapping") @db.Text
+  showPaymentQr          Boolean  @default(false) @map("show_payment_qr")
+  paymentUpiId           String?  @map("payment_upi_id") @db.VarChar(128)
+  paymentBankDetails     String?  @map("payment_bank_details") @db.Text
+  // ─── Security ───
+  sessionTimeoutMins     Int      @default(43200) @map("session_timeout_mins")
+  maxLoginAttempts       Int      @default(5) @map("max_login_attempts")
+  enforcePasswordPolicy  Boolean  @default(true) @map("enforce_password_policy")
+  sensitiveActionConfirm Boolean  @default(true) @map("sensitive_action_confirm")
+  // ─── Alerts ───
+  lowStockAlerts         Boolean  @default(true) @map("low_stock_alerts")
+  lowStockThreshold      Int      @default(5) @map("low_stock_threshold")
+  overduePaymentAlerts   Boolean  @default(true) @map("overdue_payment_alerts")
+  overdueThresholdDays   Int      @default(30) @map("overdue_threshold_days")
+  dailySalesDigest       Boolean  @default(false) @map("daily_sales_digest")
+  securityEventAlerts    Boolean  @default(true) @map("security_event_alerts")
+  alertRecipientEmails   String?  @map("alert_recipient_emails") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 15. FINANCIAL & GENERAL LEDGER
+// ──────────────────────────────────────────────────────────────────────────────
+model FinancialLedgerEntry {
+  id              String   @id @default(uuid())
+  entryNo         String   @unique @map("entry_no") @db.VarChar(64)
+  entryDate       DateTime @default(now()) @map("entry_date")
+  storeCode       String   @map("store_code") @db.VarChar(16)
+  accountCategory String   @map("account_category") @db.VarChar(32)
+  accountName     String   @map("account_name") @db.VarChar(64)
+  debit           Decimal  @default(0.00) @db.Decimal(15, 2)
+  credit          Decimal  @default(0.00) @db.Decimal(15, 2)
+  amount          Decimal  @db.Decimal(15, 2)
+  refType         String   @map("ref_type") @db.VarChar(32)
+  refId           String?  @map("ref_id") @db.VarChar(64)
+  refNo           String   @map("ref_no") @db.VarChar(64)
+  entityName      String?  @map("entity_name") @db.VarChar(128)
+  description     String   @db.VarChar(255)
+  isEliminated    Boolean  @default(false) @map("is_eliminated")
+  metadataJson    String?  @map("metadata_json") @db.Text
+  currencyCode    String   @default("INR") @map("currency_code") @db.VarChar(8)
+  createdBy       String   @map("created_by") @db.VarChar(128)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  store StoreHub @relation(fields: [storeCode], references: [code], onDelete: Restrict)
+
+  @@index([storeCode])
+  @@index([entryDate])
+  @@index([accountCategory])
+  @@index([refType])
+  @@index([refNo])
+  @@index([storeCode, entryDate])
+  @@index([accountCategory, entryDate])
+  @@map("financial_ledger")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 16. IDEMPOTENCY & DUPLICATE PROTECTION
+// ──────────────────────────────────────────────────────────────────────────────
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  key          String   @unique @db.VarChar(128)
+  action       String   @db.VarChar(64)
+  status       String   @default("PROCESSING") @db.VarChar(32)
+  responseCode Int?     @map("response_code")
+  responseData String?  @map("response_data") @db.LongText
+  entityId     String?  @map("entity_id") @db.VarChar(64)
+  userId       String?  @map("user_id") @db.VarChar(64)
+  storeCode    String?  @map("store_code") @db.VarChar(16)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  expiresAt    DateTime @map("expires_at")
+
+  @@index([key])
+  @@index([action])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 17. PAYMENT METHODS (DB Authoritative)
+// ──────────────────────────────────────────────────────────────────────────────
+model PaymentMethod {
+  id          String   @id @default(uuid())
+  name        String   @unique @db.VarChar(64)
+  code        String   @unique @db.VarChar(64)
+  type        String   @default("Digital") @db.VarChar(32)
+  description String?  @db.VarChar(255)
+  status      String   @default("Active") @db.VarChar(16)
+  isSystem    Boolean  @default(false) @map("is_system")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([sortOrder])
+  @@map("payment_methods")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 18. BRANDS & UNITS
+// ──────────────────────────────────────────────────────────────────────────────
+model Brand {
+  id          String   @id @default(uuid())
+  name        String   @unique @db.VarChar(64)
+  code        String   @unique @db.VarChar(64)
+  description String?  @db.VarChar(255)
+  status      String   @default("Active") @db.VarChar(16)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("brands")
+}
+
+model Unit {
+  id          String   @id @default(uuid())
+  name        String   @unique @db.VarChar(64)
+  code        String   @unique @db.VarChar(32)
+  symbol      String   @default("pcs") @db.VarChar(16)
+  description String?  @db.VarChar(255)
+  status      String   @default("Active") @db.VarChar(16)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("units")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 19. ATTENDANCE — Server-authoritative, one shift per user per local date
+// ──────────────────────────────────────────────────────────────────────────────
+model AttendanceDay {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  localDate     String    @map("local_date") @db.VarChar(10) // YYYY-MM-DD in store timezone
+  storeCode     String    @map("store_code") @db.VarChar(16)
+  shiftStartUtc DateTime  @map("shift_start_utc")
+  shiftEndUtc   DateTime? @map("shift_end_utc")
+  totalSeconds  Int       @default(0) @map("total_seconds")
+  status        String    @default("ACTIVE") @db.VarChar(16) // ACTIVE, COMPLETED
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user  UserAccount @relation(fields: [userId], references: [id], onDelete: Restrict)
+  store StoreHub    @relation(fields: [storeCode], references: [code], onDelete: Restrict)
+
+  @@unique([userId, localDate])
+  @@index([storeCode])
+  @@index([localDate])
+  @@index([status])
+  @@index([userId, storeCode])
+  @@map("attendance_days")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 20. DELETE APPROVAL WORKFLOW
+// ──────────────────────────────────────────────────────────────────────────────
+model DeleteRequest {
+  id               String    @id @default(uuid())
+  requesterId      String    @map("requester_id")
+  requesterRole    String    @map("requester_role") @db.VarChar(32)
+  requesterStore   String    @map("requester_store") @db.VarChar(16)
+  entityType       String    @map("entity_type") @db.VarChar(32)
+  entityId         String    @map("entity_id") @db.VarChar(64)
+  entityName       String    @map("entity_name") @db.VarChar(255)
+  reason           String    @db.VarChar(500)
+  beforeStateJson  String    @map("before_state_json") @db.LongText
+  dependencyImpact String?   @map("dependency_impact") @db.Text
+  financialImpact  String?   @map("financial_impact") @db.Text
+  status           String    @default("PENDING") @db.VarChar(16)
+  executionMode    String?   @map("execution_mode") @db.VarChar(16)
+  reviewedBy       String?   @map("reviewed_by") @db.VarChar(128)
+  reviewedAt       DateTime? @map("reviewed_at")
+  rejectionReason  String?   @map("rejection_reason") @db.VarChar(500)
+  auditLogId       String?   @map("audit_log_id") @db.VarChar(64)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  requester UserAccount @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+
+  @@unique([entityType, entityId, status], name: "unique_pending_delete")
+  @@index([requesterId])
+  @@index([status])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("delete_requests")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 21. NOTIFICATIONS
+// ──────────────────────────────────────────────────────────────────────────────
+model Notification {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  title             String   @db.VarChar(255)
+  message           String   @db.Text
+  type              String   @default("info") @db.VarChar(16)
+  category          String   @default("SYSTEM") @db.VarChar(32)
+  relatedEntityType String?  @map("related_entity_type") @db.VarChar(32)
+  relatedEntityId   String?  @map("related_entity_id") @db.VarChar(64)
+  actionUrl         String?  @map("action_url") @db.VarChar(255)
+  isRead            Boolean  @default(false) @map("is_read")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([category])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 22. FILE ASSETS — Durable proof/upload storage metadata
+// ──────────────────────────────────────────────────────────────────────────────
+model FileAsset {
+  id                String   @id @default(uuid())
+  objectKey         String   @unique @map("object_key") @db.VarChar(512)
+  storageProvider   String   @default("s3") @map("storage_provider") @db.VarChar(32)
+  mimeType          String   @map("mime_type") @db.VarChar(128)
+  byteSize          Int      @map("byte_size")
+  sha256Hash        String?  @map("sha256_hash") @db.VarChar(64)
+  originalFilename  String   @map("original_filename") @db.VarChar(255)
+  createdByUserId   String   @map("created_by_user_id")
+  storeCode         String?  @map("store_code") @db.VarChar(16)
+  relatedEntityType String?  @map("related_entity_type") @db.VarChar(32)
+  relatedEntityId   String?  @map("related_entity_id") @db.VarChar(64)
+  privacyLevel      String   @default("STORE_PRIVATE") @map("privacy_level") @db.VarChar(32)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  createdBy UserAccount @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([storeCode])
+  @@index([relatedEntityType, relatedEntityId])
+  @@index([createdByUserId])
+  @@index([createdAt])
+  @@map("file_assets")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 23. REALTIME OUTBOX — Durable event persistence for distributed pub-sub
+// ──────────────────────────────────────────────────────────────────────────────
+model RealtimeOutbox {
+  id          String    @id @default(uuid())
+  channel     String    @db.VarChar(64)
+  event       String    @db.VarChar(64)
+  payload     String    @db.Text
+  storeCode   String?   @map("store_code") @db.VarChar(16)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  processedAt DateTime? @map("processed_at")
+
+  @@index([channel])
+  @@index([storeCode])
+  @@index([createdAt])
+  @@map("realtime_outbox")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 24. USER PRESENCE & LIVE WORK ACTIVITY
+// ──────────────────────────────────────────────────────────────────────────────
+model UserPresence {
+  id            String   @id @default(uuid())
+  userId        String   @unique @map("user_id")
+  status        String   @default("OFFLINE") @db.VarChar(16) // ONLINE, IDLE, OFFLINE
+  lastHeartbeat DateTime @default(now()) @map("last_heartbeat")
+  lastSeen      DateTime @default(now()) @map("last_seen")
+  currentStore  String?  @map("current_store") @db.VarChar(16)
+  deviceInfo    String?  @map("device_info") @db.VarChar(255)
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([lastHeartbeat])
+  @@map("user_presence")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 25. ATOMIC SEQUENCE COUNTERS — Concurrency-Safe Sequence & Document Numbers
+// ──────────────────────────────────────────────────────────────────────────────
+model SequenceCounter {
+  id           Int      @id @default(autoincrement())
+  prefix       String   @unique @db.VarChar(32)
+  currentValue BigInt   @default(0) @map("current_value")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([prefix])
+  @@map("sequence_counters")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 26. PASSWORD RESETS — Enterprise 15-Minute Tokenized Self-Serve Reset Flow
+// ──────────────────────────────────────────────────────────────────────────────
+model PasswordReset {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  token     String    @unique @db.VarChar(128) // SHA256 hash of reset token
+  expiresAt DateTime  @map("expires_at")
+  ipAddress String?   @map("ip_address") @db.VarChar(64)
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_resets")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 27. USER UI PREFERENCES — User-specific UI custom ordering & layouts
+// ──────────────────────────────────────────────────────────────────────────────
+model UserUiPreference {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  preferencesJson String   @map("preferences_json") @db.Text
+  version         Int      @default(1)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_ui_preferences")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 28. STEP-UP GRANTS — Time-limited, single-use grants for critical operations
+// ──────────────────────────────────────────────────────────────────────────────
+model StepUpGrant {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @unique @map("token_hash") @db.VarChar(128)
+  actionType String    @map("action_type") @db.VarChar(64)
+  expiresAt  DateTime  @map("expires_at")
+  usedAt     DateTime? @map("used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@map("step_up_grants")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 29. SECURITY RATE LIMITS — Serverless-Durable Abuse Protection
+// ──────────────────────────────────────────────────────────────────────────────
+model SecurityRateLimit {
+  id               String   @id @default(uuid())
+  keyHash          String   @unique @map("key_hash") @db.VarChar(128)
+  attempts         Int      @default(1)
+  firstAttemptTime BigInt   @map("first_attempt_time")
+  blockedUntil     BigInt?  @map("blocked_until")
+  expiresAt        DateTime @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@index([keyHash])
+  @@index([expiresAt])
+  @@map("security_rate_limits")
+}

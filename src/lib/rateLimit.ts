@@ -273,6 +273,22 @@ export async function recordDurableRateLimitAttempt(
   return memResult;
 }
 
+/**
+ * Clears both in-memory and durable database rate limit records for a key.
+ */
+export async function clearDurableRateLimit(key: string): Promise<void> {
+  clearRateLimit(key);
+  const keyHash = hashKey(key);
+  try {
+    await prisma.$executeRaw`
+      DELETE FROM security_rate_limits
+      WHERE key_hash = ${keyHash}
+    `;
+  } catch {
+    // Database query failed; in-memory store already cleared
+  }
+}
+
 export function getClientIp(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {

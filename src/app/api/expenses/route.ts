@@ -10,7 +10,7 @@ import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent, getStoreChannel } from '@/lib/realtime';
 import { generateSafeSequenceNo } from '@/lib/sequenceUtils';
 import { executeWithIdempotency } from '@/lib/idempotency';
-import { validatePaymentMethod } from '@/lib/paymentValidator';
+import { validatePaymentMethodAgainstDb } from '@/lib/paymentValidator';
 import { TaxService } from '@/lib/services/taxService';
 
 /**
@@ -132,7 +132,10 @@ export async function POST(req: NextRequest) {
       `EXP-REF-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
     const expenseDate = body.date ? new Date(body.date) : new Date();
-    const paymentValidation = validatePaymentMethod(body.paymentMethod || 'Other');
+    if (!body.paymentMethod || !String(body.paymentMethod).trim()) {
+      return NextResponse.json({ error: 'Payment method is required.' }, { status: 400 });
+    }
+    const paymentValidation = await validatePaymentMethodAgainstDb(body.paymentMethod);
     if (!paymentValidation.valid) {
       return NextResponse.json({ error: paymentValidation.error }, { status: 400 });
     }
@@ -363,7 +366,7 @@ export async function PUT(req: NextRequest) {
     }
     if (body.description !== undefined) updateData.description = body.description;
     if (body.paymentMethod) {
-      const paymentValidation = validatePaymentMethod(body.paymentMethod);
+      const paymentValidation = await validatePaymentMethodAgainstDb(body.paymentMethod);
       if (!paymentValidation.valid) {
         return NextResponse.json({ error: paymentValidation.error }, { status: 400 });
       }

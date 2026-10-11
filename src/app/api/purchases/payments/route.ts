@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent, getStoreChannel, persistOutboxEvent } from '@/lib/realtime';
 import { generateDateSequenceNo } from '@/lib/sequenceUtils';
 import { executeWithIdempotency } from '@/lib/idempotency';
-import { validatePaymentMethod } from '@/lib/paymentValidator';
+import { validatePaymentMethodAgainstDb } from '@/lib/paymentValidator';
 
 /**
  * Helper to compute overdue days and status
@@ -330,8 +330,11 @@ export async function POST(req: NextRequest) {
 
     const paymentDate = body.paymentDate ? new Date(body.paymentDate) : new Date();
 
-    // Strict Canonical Payment Method Enforcement (Cash, UPI, Other)
-    const paymentValidation = validatePaymentMethod(body.paymentMethod || 'Other');
+    // Strict Canonical Payment Method Enforcement (Authoritative DB Validation)
+    if (!body.paymentMethod || !String(body.paymentMethod).trim()) {
+      return NextResponse.json({ error: 'Payment method is required.' }, { status: 400 });
+    }
+    const paymentValidation = await validatePaymentMethodAgainstDb(body.paymentMethod);
     if (!paymentValidation.valid) {
       return NextResponse.json({ error: paymentValidation.error }, { status: 400 });
     }

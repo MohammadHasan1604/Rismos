@@ -8,12 +8,20 @@ import {
   hashToken,
   hashSessionToken,
 } from '@/lib/auth';
-import { checkRateLimit, recordFailedAttempt, clearRateLimit, getClientIp } from '@/lib/rateLimit';
+import {
+  checkRateLimit,
+  recordFailedAttempt,
+  clearRateLimit,
+  getClientIp,
+  checkDurableRateLimit,
+  recordDurableRateLimitAttempt,
+  clearDurableRateLimit,
+} from '@/lib/rateLimit';
 import { createSecurityAlertNotification } from '@/lib/services/alertService';
 
 const DEFAULT_MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes temporary lockout
-const SESSION_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days default in seconds
+const DEFAULT_SESSION_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days default in seconds
 const DEFAULT_SESSION_MS = 30 * 24 * 60 * 60 * 1000; // 30-day session expiry constant in ms
 
 export async function POST(req: NextRequest) {
@@ -43,17 +51,19 @@ export async function POST(req: NextRequest) {
       sysSettings?.sessionTimeoutMins && sysSettings.sessionTimeoutMins > 0
         ? sysSettings.sessionTimeoutMins
         : 43200; // 30 days in minutes
-    const sessionCookieMaxAgeSecs = sessionTimeoutMins
+    const sessionCookieMaxAgeSecs: number = sessionTimeoutMins
       ? sessionTimeoutMins * 60
-      : SESSION_COOKIE_MAX_AGE;
+      : DEFAULT_SESSION_COOKIE_MAX_AGE;
 
-    // 2. Fast In-Memory Rate Limiting Check (IP DDoS protection: 50 requests/15m; Account lockout: dynamic attempts/15m)
+    // 2. Fast In-Memory & Durable Rate Limiting Check (IP DDoS protection: 50 requests/15m)
     const ipRateLimit = checkRateLimit(`ip:${clientIp}`, 50);
-    if (!ipRateLimit.allowed) {
+    const durableIpCheck = await checkDurableRateLimit(`login:ip:${clientIp}`, 50, 900);
+    if (!ipRateLimit.allowed || !durableIpCheck.allowed) {
+      const retryAfter = Math.max(ipRateLimit.retryAfterSeconds || 0, durableIpCheck.retryAfterSeconds || 0, 900);
       return NextResponse.json(
         {
-          error: `Too many login attempts from this network. Please try again in ${ipRateLimit.retryAfterSeconds || 900} seconds.`,
-          retryAfter: ipRateLimit.retryAfterSeconds,
+          error: `Too many login attempts from this network. Please try again in ${retryAfter} seconds.`,
+          retryAfter,
           locked: true,
         },
         { status: 429 }
@@ -78,7 +88,9 @@ export async function POST(req: NextRequest) {
     // 4. Generic rejection on missing user (prevents account enumeration)
     if (!user) {
       recordFailedAttempt(`ip:${clientIp}`, 50);
+      await recordDurableRateLimitAttempt(`login:ip:${clientIp}`, 50, 900);
       const r = recordFailedAttempt(`email:${cleanEmail}`, maxFailedAttempts);
+      await recordDurableRateLimitAttempt(`login:account:${cleanEmail}`, maxFailedAttempts, 900);
       if (!r.allowed) {
         return NextResponse.json(
           {
@@ -155,6 +167,9 @@ export async function POST(req: NextRequest) {
 
       recordFailedAttempt(`ip:${clientIp}`, 50);
       recordFailedAttempt(`email:${cleanEmail}`, maxFailedAttempts);
+      await recordDurableRateLimitAttempt(`login:ip:${clientIp}`, 50, 900);
+      await recordDurableRateLimitAttempt(`login:account:${user.id}`, maxFailedAttempts, 900);
+      await recordDurableRateLimitAttempt(`login:account:${cleanEmail}`, maxFailedAttempts, 900);
 
       if (isNowLocked) {
         createSecurityAlertNotification({
@@ -189,6 +204,9 @@ export async function POST(req: NextRequest) {
     // 8. Successful Authentication - Clear rate limit & reset database lockout counters
     clearRateLimit(`ip:${clientIp}`);
     clearRateLimit(`email:${cleanEmail}`);
+    await clearDurableRateLimit(`login:ip:${clientIp}`);
+    await clearDurableRateLimit(`login:account:${user.id}`);
+    await clearDurableRateLimit(`login:account:${cleanEmail}`);
 
     try {
       await prisma.userAccount.update({
@@ -271,6 +289,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Set secure HttpOnly session cookie matching configured timeout
+    const SESSION_COOKIE_MAX_AGE = sessionCookieMaxAgeSecs;
     response.cookies.set('cosko_session', finalToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

@@ -9,7 +9,7 @@ import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent, getStoreChannel } from '@/lib/realtime';
 import { generateSafeSequenceNo, generateDateSequenceNo } from '@/lib/sequenceUtils';
 import { executeWithIdempotency } from '@/lib/idempotency';
-import { validatePaymentMethod } from '@/lib/paymentValidator';
+import { validatePaymentMethodAgainstDb } from '@/lib/paymentValidator';
 import { TaxService } from '@/lib/services/taxService';
 
 /**
@@ -429,7 +429,12 @@ export async function POST(req: NextRequest) {
               'Payment Reference / UTR number is mandatory when recording advance payment for a Purchase Order.'
             );
           }
-          const paymentValidation = validatePaymentMethod(body.paymentMethod || 'UPI');
+          if (!body.paymentMethod || !String(body.paymentMethod).trim()) {
+            throw new Error(
+              'Payment method is required when recording an advance payment for a Purchase Order.'
+            );
+          }
+          const paymentValidation = await validatePaymentMethodAgainstDb(body.paymentMethod);
           if (!paymentValidation.valid) {
             throw new Error(paymentValidation.error);
           }
@@ -491,7 +496,7 @@ export async function POST(req: NextRequest) {
                 4,
                 tx
               );
-              const paymentMethod = body.paymentMethod || 'UPI';
+              const paymentMethod = body.paymentMethod;
 
               const payment = await tx.purchasePayment.create({
                 data: {

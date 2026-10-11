@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
 import { validatePasswordAgainstPolicy } from '@/lib/passwordPolicyServer';
 import { invalidateUserSessions } from '@/lib/authPipeline';
-import { checkDurableRateLimit, getClientIp } from '@/lib/rateLimit';
+import { checkDurableRateLimit, recordDurableRateLimitAttempt, clearDurableRateLimit, getClientIp } from '@/lib/rateLimit';
 
 /**
  * POST /api/auth/reset-password
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
+    await recordDurableRateLimitAttempt(`pwd-reset-submit:ip:${clientIp}`, 20, 900);
 
     const body = await req.json().catch(() => null);
 

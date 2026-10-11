@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/db';
-import { checkDurableRateLimit, getClientIp } from '@/lib/rateLimit';
+import { checkDurableRateLimit, recordDurableRateLimitAttempt, getClientIp } from '@/lib/rateLimit';
 
 /**
  * GET /api/auth/verify-reset-token?token=...
@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
         { status: 429 }
       );
     }
+    await recordDurableRateLimitAttempt(`pwd-verify:ip:${clientIp}`, 30, 900);
 
     const { searchParams } = new URL(req.url);
     const rawToken = searchParams.get('token');
@@ -57,6 +58,7 @@ export async function GET(req: NextRequest) {
         { status: 429 }
       );
     }
+    await recordDurableRateLimitAttempt(`pwd-verify:token:${hashedToken}`, 10, 900);
 
     const resetRecord = await (prisma as any).passwordReset.findFirst({
       where: { token: hashedToken },

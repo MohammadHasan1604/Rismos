@@ -49,8 +49,10 @@ export function getTrustedAppOrigin(req?: Request): string {
     return 'http://localhost:4028';
   }
 
-  // 3. Fallback in production if APP_URL missing: fail-safe to canonical HTTPS domain
-  return 'https://rismos.app';
+  // 3. Strict production safety: Fail closed with actionable configuration error
+  throw new Error(
+    '[CRITICAL CONFIGURATION ERROR] APP_URL, NEXT_PUBLIC_APP_URL, or NEXT_PUBLIC_SITE_URL must be explicitly configured in production. Cannot safely construct password recovery URL without trusted origin.'
+  );
 }
 
 export function buildTrustedResetUrl(req: Request | undefined, rawToken: string): string {

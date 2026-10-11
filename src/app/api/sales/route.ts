@@ -9,7 +9,7 @@ import {
   requireStoreScope,
   validatePhysicalStore,
 } from '@/lib/authPipeline';
-import { validatePaymentMethod } from '@/lib/paymentValidator';
+import { validatePaymentMethodAgainstDb } from '@/lib/paymentValidator';
 import { verifySensitiveAction } from '@/lib/sensitiveAction';
 
 /**
@@ -137,8 +137,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Strict Canonical Payment Method Enforcement (Cash, UPI, Other)
-    const paymentValidation = validatePaymentMethod(body.paymentMethod);
+    // Strict Canonical Payment Method Enforcement (Authoritative DB Validation)
+    const paymentValidation = await validatePaymentMethodAgainstDb(body.paymentMethod);
     if (!paymentValidation.valid) {
       return NextResponse.json({ error: paymentValidation.error }, { status: 400 });
     }

@@ -39,6 +39,16 @@ export interface LedgerEntryInput {
  */
 export async function recordLedgerEntries(tx: any, entries: LedgerEntryInput[]) {
   if (!entries || entries.length === 0) return [];
+
+  // Enforce authoritative double-entry invariant: sum(debits) === sum(credits)
+  const totalDebit = Math.round(entries.reduce((sum, e) => sum + (e.debit || 0), 0) * 100) / 100;
+  const totalCredit = Math.round(entries.reduce((sum, e) => sum + (e.credit || 0), 0) * 100) / 100;
+  if (Math.abs(totalDebit - totalCredit) > 0.01) {
+    throw new Error(
+      `[FINANCIAL INVARIANT VIOLATION] Double-entry ledger mismatch: Total Debits (${totalDebit}) do not equal Total Credits (${totalCredit}) for transaction batch ref "${entries[0]?.refNo || 'unknown'}".`
+    );
+  }
+
   const data = entries.map((item) => ({
     entryNo: item.entryNo,
     entryDate: item.entryDate || new Date(),

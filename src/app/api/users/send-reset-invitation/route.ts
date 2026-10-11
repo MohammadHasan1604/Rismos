@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { authenticateRequest, createAuditLog } from '@/lib/authPipeline';
-import { checkDurableRateLimit, getClientIp } from '@/lib/rateLimit';
+import { checkDurableRateLimit, recordDurableRateLimitAttempt, getClientIp } from '@/lib/rateLimit';
 import { buildTrustedResetUrl } from '@/lib/trustedOrigin';
 
 /**
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
+    await recordDurableRateLimitAttempt(`admin-pwd-invite:${authUser.id}`, 20, 3600);
 
     const body = await req.json().catch(() => null);
     if (!body || (!body.userId && !body.email)) {
