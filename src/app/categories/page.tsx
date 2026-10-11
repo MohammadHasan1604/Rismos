@@ -206,9 +206,122 @@ export default function CategoriesPage() {
           </div>
         </div>
 
-        {/* Categories Table View */}
+        {/* Categories Roster: Independent Mobile Cards (<md) & Desktop Table (>=md) */}
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile Category Cards (<md) */}
+          <div className="block md:hidden divide-y divide-border">
+            {filteredCategories.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground space-y-2">
+                <Icon name="FolderIcon" size={32} className="mx-auto text-muted-foreground/50 mb-1" />
+                <p className="font-semibold text-sm">No categories match your search criteria</p>
+                <p className="text-3xs">Try adjusting the filter options or click "Add" to create one.</p>
+              </div>
+            ) : (
+              filteredCategories.map((cat) => {
+                const productsLinked = inventory.filter(
+                  (i) =>
+                    i.category === cat.name ||
+                    i.category === cat.slug ||
+                    i.subcategory === cat.name ||
+                    i.subcategory === cat.slug
+                ).length;
+
+                return (
+                  <div key={`m-cat-${cat.id}`} className="p-4 space-y-3 bg-card hover:bg-muted/10 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div
+                            className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cat.status === 'Active' ? 'bg-success' : 'bg-muted-foreground'}`}
+                          />
+                          <p className="font-bold text-sm text-foreground truncate">{cat.name}</p>
+                          <span className="text-3xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
+                            {cat.slug}
+                          </span>
+                        </div>
+                        {cat.description && (
+                          <p className="text-2xs text-muted-foreground mt-1 line-clamp-2">
+                            {cat.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex-shrink-0">
+                        <ToggleSwitch
+                          checked={cat.status === 'Active'}
+                          onChange={() => toggleCategoryStatus(cat.id)}
+                          size="sm"
+                          onText="ON"
+                          offText="OFF"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 flex-wrap text-2xs pt-1 border-t border-border/50">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {cat.parentCategoryName ? (
+                          <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-3xs font-bold inline-flex items-center gap-1">
+                            <Icon name="FolderIcon" size={10} />
+                            {cat.parentCategoryName}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-3xs font-bold">
+                            Root Group
+                          </span>
+                        )}
+
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-3xs font-bold ${
+                            cat.categoryType === 'Device'
+                              ? 'bg-info/15 text-info'
+                              : cat.categoryType === 'Spare Part'
+                                ? 'bg-primary/15 text-primary'
+                                : cat.categoryType === 'EV'
+                                  ? 'bg-success/15 text-success'
+                                  : cat.categoryType === 'Home Appliance'
+                                    ? 'bg-warning/15 text-warning'
+                                    : 'bg-muted text-foreground'
+                          }`}
+                        >
+                          {cat.categoryType}
+                        </span>
+
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded-full text-3xs ${productsLinked > 0 ? 'bg-primary/10 text-primary font-extrabold' : 'bg-muted/60 text-muted-foreground'}`}
+                        >
+                          {productsLinked} SKUs
+                        </span>
+                      </div>
+
+                      {/* Mobile Actions with touch target >= 44px */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(cat)}
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={`Edit category ${cat.name}`}
+                        >
+                          <Icon name="PencilSquareIcon" size={16} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteCat(cat)}
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-danger/10 text-muted-foreground hover:text-danger transition-colors"
+                          aria-label={`Archive or delete category ${cat.name}`}
+                        >
+                          <Icon name="ArchiveBoxIcon" size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Category Table (>=md) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-muted-foreground uppercase text-3xs font-bold tracking-wider">

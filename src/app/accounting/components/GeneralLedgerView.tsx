@@ -123,86 +123,169 @@ export const GeneralLedgerView: React.FC<GeneralLedgerViewProps> = ({
             No ledger records match the selected filters.
           </div>
         ) : (
-          <div className="overflow-x-auto scrollbar-thin">
-            <table className="w-full text-left min-w-[900px]">
-              <thead>
-                <tr className="bg-muted text-2xs font-bold uppercase text-muted-foreground">
-                  <th className="px-4 py-3 sticky left-0 z-20 bg-muted border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
-                    Entry #
-                  </th>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Store</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Account Name</th>
-                  <th className="px-4 py-3">Ref No</th>
-                  <th className="px-4 py-3">Entity / Narration</th>
-                  <th className="px-4 py-3 text-right font-tabular">Debit</th>
-                  <th className="px-4 py-3 text-right font-tabular">Credit</th>
-                  <th className="px-4 py-3 text-center">Payment Proof</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border text-xs font-tabular">
-                {ledgerEntries.map((le) => (
-                  <tr key={`le-${le.id}`} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-4 py-3 font-mono font-bold text-primary whitespace-nowrap sticky left-0 z-10 bg-card border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
-                      {le.entryNo}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                      {new Date(le.entryDate).toLocaleDateString(dateLocale || 'en-IN', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-foreground">{le.storeCode}</td>
-                    <td className="px-4 py-3">
+          <>
+            {/* Mobile Ledger Cards (<md) */}
+            <div className="block md:hidden divide-y divide-border">
+              {ledgerEntries.map((le) => (
+                <div key={`m-le-${le.id}`} className="p-4 space-y-2.5 bg-card hover:bg-muted/10 transition-colors">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono font-bold text-xs text-primary">{le.entryNo}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="badge-secondary text-3xs font-mono font-bold px-1.5 py-0.5">
+                        {le.storeCode}
+                      </span>
+                      <span className="text-3xs text-muted-foreground whitespace-nowrap">
+                        {new Date(le.entryDate).toLocaleDateString(dateLocale || 'en-IN', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-xs text-foreground">{le.accountName}</p>
                       <span className="badge-neutral text-3xs font-bold">{le.accountCategory}</span>
-                    </td>
-                    <td className="px-4 py-3 font-bold text-foreground">{le.accountName}</td>
-                    <td className="px-4 py-3 font-mono text-muted-foreground">{le.refNo}</td>
-                    <td
-                      className="px-4 py-3 max-w-[260px] truncate text-muted-foreground"
-                      title={le.description}
-                    >
-                      {le.description}
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-foreground">
-                      {le.debit > 0 ? formatCurrency(le.debit) : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-foreground">
-                      {le.credit > 0 ? formatCurrency(le.credit) : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {le.proofUrl ? (
-                        <button
-                          onClick={() =>
-                            onViewProof({
-                              url: le.proofUrl!,
-                              referenceNo: le.referenceNo || le.refNo || le.entryNo,
-                              amount: le.debit > 0 ? le.debit : le.credit,
-                              paymentMethod: le.paymentMethod || 'Journal Voucher',
-                              paymentDate: le.entryDate,
-                              payeeOrPayer: le.entityName || le.accountName,
-                              recordedBy: le.createdBy || 'Finance Dept',
-                              timestamp: le.entryDate,
-                              notes: le.description,
-                            })
-                          }
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-3xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors shadow-2xs cursor-pointer"
-                          title="View Attached Payment Proof"
-                        >
-                          <Icon name="DocumentCheckIcon" size={13} />
-                          View Proof
-                        </button>
-                      ) : (
-                        <span className="text-3xs text-muted-foreground italic">-</span>
+                      {le.refNo && (
+                        <span className="text-3xs font-mono text-muted-foreground bg-muted px-1 rounded">
+                          {le.refNo}
+                        </span>
                       )}
-                    </td>
+                    </div>
+                    {le.description && (
+                      <p className="text-2xs text-muted-foreground mt-1 line-clamp-2">
+                        {le.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/50 text-xs font-tabular">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <span className="text-3xs text-muted-foreground block">Debit</span>
+                        <span className={`font-bold ${le.debit > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                          {le.debit > 0 ? formatCurrency(le.debit) : '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-3xs text-muted-foreground block">Credit</span>
+                        <span className={`font-bold ${le.credit > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                          {le.credit > 0 ? formatCurrency(le.credit) : '—'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {le.proofUrl && (
+                      <button
+                        onClick={() =>
+                          onViewProof({
+                            url: le.proofUrl!,
+                            referenceNo: le.referenceNo || le.refNo || le.entryNo,
+                            amount: le.debit > 0 ? le.debit : le.credit,
+                            paymentMethod: le.paymentMethod || 'Journal Voucher',
+                            paymentDate: le.entryDate,
+                            payeeOrPayer: le.entityName || le.accountName,
+                            recordedBy: le.createdBy || 'Finance Dept',
+                            timestamp: le.entryDate,
+                            notes: le.description,
+                          })
+                        }
+                        className="min-h-[44px] px-3 inline-flex items-center gap-1.5 rounded-lg text-2xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors shadow-2xs"
+                        aria-label={`View payment proof for entry ${le.entryNo}`}
+                      >
+                        <Icon name="DocumentCheckIcon" size={14} />
+                        <span>Proof</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Ledger Table (>=md) */}
+            <div className="hidden md:block overflow-x-auto scrollbar-thin">
+              <table className="w-full text-left min-w-[900px]">
+                <thead>
+                  <tr className="bg-muted text-2xs font-bold uppercase text-muted-foreground">
+                    <th className="px-4 py-3 sticky left-0 z-20 bg-muted border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
+                      Entry #
+                    </th>
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">Store</th>
+                    <th className="px-4 py-3">Category</th>
+                    <th className="px-4 py-3">Account Name</th>
+                    <th className="px-4 py-3">Ref No</th>
+                    <th className="px-4 py-3">Entity / Narration</th>
+                    <th className="px-4 py-3 text-right font-tabular">Debit</th>
+                    <th className="px-4 py-3 text-right font-tabular">Credit</th>
+                    <th className="px-4 py-3 text-center">Payment Proof</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border text-xs font-tabular">
+                  {ledgerEntries.map((le) => (
+                    <tr key={`le-${le.id}`} className="hover:bg-muted/40 transition-colors">
+                      <td className="px-4 py-3 font-mono font-bold text-primary whitespace-nowrap sticky left-0 z-10 bg-card border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
+                        {le.entryNo}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                        {new Date(le.entryDate).toLocaleDateString(dateLocale || 'en-IN', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-foreground">{le.storeCode}</td>
+                      <td className="px-4 py-3">
+                        <span className="badge-neutral text-3xs font-bold">{le.accountCategory}</span>
+                      </td>
+                      <td className="px-4 py-3 font-bold text-foreground">{le.accountName}</td>
+                      <td className="px-4 py-3 font-mono text-muted-foreground">{le.refNo}</td>
+                      <td
+                        className="px-4 py-3 max-w-[260px] truncate text-muted-foreground"
+                        title={le.description}
+                      >
+                        {le.description}
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-foreground">
+                        {le.debit > 0 ? formatCurrency(le.debit) : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-foreground">
+                        {le.credit > 0 ? formatCurrency(le.credit) : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {le.proofUrl ? (
+                          <button
+                            onClick={() =>
+                              onViewProof({
+                                url: le.proofUrl!,
+                                referenceNo: le.referenceNo || le.refNo || le.entryNo,
+                                amount: le.debit > 0 ? le.debit : le.credit,
+                                paymentMethod: le.paymentMethod || 'Journal Voucher',
+                                paymentDate: le.entryDate,
+                                payeeOrPayer: le.entityName || le.accountName,
+                                recordedBy: le.createdBy || 'Finance Dept',
+                                timestamp: le.entryDate,
+                                notes: le.description,
+                              })
+                            }
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-3xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors shadow-2xs cursor-pointer"
+                            title="View Attached Payment Proof"
+                          >
+                            <Icon name="DocumentCheckIcon" size={13} />
+                            View Proof
+                          </button>
+                        ) : (
+                          <span className="text-3xs text-muted-foreground italic">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

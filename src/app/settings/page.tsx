@@ -9,7 +9,7 @@ import PaymentMethodModal from '@/components/forms/PaymentMethodModal';
 import SuperAdminGuard from '@/components/SuperAdminGuard';
 import { StorageService } from '@/lib/storageService';
 
-import { BrandingTab } from './components/BrandingTab';
+import { BrandingTab, BrandingUploadStatus } from './components/BrandingTab';
 import { ProfileTab } from './components/ProfileTab';
 import { TaxTab } from './components/TaxTab';
 import { InvoiceTab } from './components/InvoiceTab';
@@ -119,6 +119,8 @@ export default function SettingsPage() {
   const [supportEmailBranding, setSupportEmailBranding] = useState(
     branding.supportEmail || 'support@rismos.com'
   );
+  const [logoStatus, setLogoStatus] = useState<BrandingUploadStatus>('idle');
+  const [faviconStatus, setFaviconStatus] = useState<BrandingUploadStatus>('idle');
 
   // ─── Tab 2: Profile State ───
   const [businessName, setBusinessName] = useState(
@@ -322,94 +324,138 @@ export default function SettingsPage() {
     }
   }, [systemSettings]);
 
-  // File Upload Handlers
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // File Upload Handlers with Direct Database Persistence
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
     if (!allowedTypes.includes(file.type)) {
+      setLogoStatus('upload_failed');
       toast.error('Invalid file type! Upload a PNG, JPG, WebP, or SVG logo image.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
+      setLogoStatus('upload_failed');
       toast.error('File size exceeds 5MB! Please upload a smaller logo.');
       return;
     }
 
-    StorageService.uploadFile('branding', file, file.name)
-      .then((res) => {
-        if (res.url) {
-          setLogoUrl(res.url);
-          toast.success('Logo uploaded! Click "Save Changes" to apply permanently.');
-        }
-      })
-      .catch((err) => toast.error('Failed to upload logo: ' + err.message));
+    setLogoStatus('uploading');
+    try {
+      const res = await StorageService.uploadFile('branding', file, file.name);
+      if (!res?.url) {
+        setLogoStatus('upload_failed');
+        toast.error('Failed to upload logo image to permanent storage.');
+        return;
+      }
+
+      setLogoStatus('saving');
+      const saveRes = await updateSystemSettings('branding', {
+        appName: appName || 'RISMOS',
+        tagline,
+        logoUrl: res.url,
+        faviconUrl,
+      });
+
+      if (saveRes.success) {
+        setLogoUrl(res.url);
+        setLogoStatus('saved');
+        toast.success('Universal brand logo saved and synchronized across all terminals!');
+      } else {
+        setLogoStatus('save_failed');
+        toast.error(saveRes.error || 'Failed to persist logo to database.');
+      }
+    } catch (err: any) {
+      setLogoStatus('upload_failed');
+      toast.error('Failed to upload logo: ' + (err.message || 'Storage error'));
+    }
   };
 
-  const handleLogoDarkUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Invalid file type! Upload a PNG, JPG, WebP, or SVG logo image.');
-      return;
+  const handleRemoveLogo = async () => {
+    setLogoStatus('saving');
+    try {
+      const saveRes = await updateSystemSettings('branding', {
+        appName: appName || 'RISMOS',
+        tagline,
+        logoUrl: null,
+        faviconUrl,
+      });
+      if (saveRes.success) {
+        setLogoUrl(null);
+        setLogoStatus('saved');
+        toast.success('Brand logo removed. Reverted to default mark.');
+      } else {
+        setLogoStatus('save_failed');
+        toast.error(saveRes.error || 'Failed to update database.');
+      }
+    } catch {
+      setLogoStatus('save_failed');
+      toast.error('Error removing brand logo');
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size exceeds 5MB! Please upload a smaller logo.');
-      return;
-    }
-
-    StorageService.uploadFile('branding', file, file.name)
-      .then((res) => {
-        if (res.url) {
-          setLogoDarkUrl(res.url);
-          toast.success('Dark variant logo uploaded! Click "Save Changes" to apply.');
-        }
-      })
-      .catch((err) => toast.error('Failed to upload dark logo: ' + err.message));
   };
 
-  const handleAppIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Invalid file type! Upload a square PNG, JPG, WebP, or SVG icon.');
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('App icon must be under 2MB.');
-      return;
-    }
-
-    StorageService.uploadFile('branding', file, file.name)
-      .then((res) => {
-        if (res.url) {
-          setAppIconUrl(res.url);
-          toast.success('App icon uploaded! Click "Save Changes" to apply.');
-        }
-      })
-      .catch((err) => toast.error('Failed to upload app icon: ' + err.message));
-  };
-
-  const handleFaviconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 1024 * 1024) {
+      setFaviconStatus('upload_failed');
       toast.error('Favicon must be under 1MB.');
       return;
     }
-    StorageService.uploadFile('branding', file, file.name)
-      .then((res) => {
-        if (res.url) {
-          setFaviconUrl(res.url);
-          toast.success('Favicon uploaded! Click "Save Branding Settings" to apply.');
-        }
-      })
-      .catch((err) => toast.error('Failed to upload favicon: ' + err.message));
+
+    setFaviconStatus('uploading');
+    try {
+      const res = await StorageService.uploadFile('branding', file, file.name);
+      if (!res?.url) {
+        setFaviconStatus('upload_failed');
+        toast.error('Failed to upload favicon to permanent storage.');
+        return;
+      }
+
+      setFaviconStatus('saving');
+      const saveRes = await updateSystemSettings('branding', {
+        appName: appName || 'RISMOS',
+        tagline,
+        logoUrl,
+        faviconUrl: res.url,
+      });
+
+      if (saveRes.success) {
+        setFaviconUrl(res.url);
+        setFaviconStatus('saved');
+        toast.success('Browser favicon saved and updated!');
+      } else {
+        setFaviconStatus('save_failed');
+        toast.error(saveRes.error || 'Failed to persist favicon to database.');
+      }
+    } catch (err: any) {
+      setFaviconStatus('upload_failed');
+      toast.error('Failed to upload favicon: ' + (err.message || 'Storage error'));
+    }
+  };
+
+  const handleRemoveFavicon = async () => {
+    setFaviconStatus('saving');
+    try {
+      const saveRes = await updateSystemSettings('branding', {
+        appName: appName || 'RISMOS',
+        tagline,
+        logoUrl,
+        faviconUrl: null,
+      });
+      if (saveRes.success) {
+        setFaviconUrl(null);
+        setFaviconStatus('saved');
+        toast.success('Browser favicon removed.');
+      } else {
+        setFaviconStatus('save_failed');
+        toast.error(saveRes.error || 'Failed to update database.');
+      }
+    } catch {
+      setFaviconStatus('save_failed');
+      toast.error('Error removing favicon');
+    }
   };
 
   const handleInvoiceTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -450,18 +496,17 @@ export default function SettingsPage() {
         const payload = {
           appName: appName || 'RISMOS',
           tagline,
-          supportEmail: supportEmailBranding,
-          supportPhone,
-          businessName,
-          primaryColor,
-          secondaryColor,
-          accentColor,
           logoUrl,
-          logoDarkUrl,
-          appIconUrl,
           faviconUrl,
         };
-        await updateSystemSettings('branding', payload);
+        const res = await updateSystemSettings('branding', payload);
+        if (res.success) {
+          setLogoStatus('saved');
+          setFaviconStatus('saved');
+          toast.success('Branding identity settings saved successfully!');
+        } else {
+          toast.error(res.error || 'Failed to save branding settings');
+        }
       } else if (activeTab === 'profile') {
         await updateSystemSettings('profile', {
           businessName,
@@ -607,28 +652,16 @@ export default function SettingsPage() {
                 setAppName={setAppName}
                 tagline={tagline}
                 setTagline={setTagline}
-                supportEmailBranding={supportEmailBranding}
-                setSupportEmailBranding={setSupportEmailBranding}
-                supportPhone={supportPhone}
-                setSupportPhone={setSupportPhone}
-                primaryColor={primaryColor}
-                setPrimaryColor={setPrimaryColor}
-                secondaryColor={secondaryColor}
-                setSecondaryColor={setSecondaryColor}
-                accentColor={accentColor}
-                setAccentColor={setAccentColor}
                 logoUrl={logoUrl}
                 setLogoUrl={setLogoUrl}
-                logoDarkUrl={logoDarkUrl}
-                setLogoDarkUrl={setLogoDarkUrl}
-                appIconUrl={appIconUrl}
-                setAppIconUrl={setAppIconUrl}
                 faviconUrl={faviconUrl}
                 setFaviconUrl={setFaviconUrl}
                 handleLogoUpload={handleLogoUpload}
-                handleLogoDarkUpload={handleLogoDarkUpload}
-                handleAppIconUpload={handleAppIconUpload}
                 handleFaviconUpload={handleFaviconUpload}
+                handleRemoveLogo={handleRemoveLogo}
+                handleRemoveFavicon={handleRemoveFavicon}
+                logoStatus={logoStatus}
+                faviconStatus={faviconStatus}
                 handleResetBrandingTab={handleResetBrandingTab}
                 isSuperAdmin={isSuperAdmin}
               />

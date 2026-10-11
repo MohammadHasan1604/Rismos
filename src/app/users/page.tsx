@@ -84,6 +84,8 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Inactive' | 'Suspended'>(
     'All'
   );
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedMobileUser, setExpandedMobileUser] = useState<string | null>(null);
 
   // Permission UI Category Expand/Collapse State
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
@@ -179,8 +181,19 @@ export default function UsersPage() {
     if (statusFilter !== 'All') {
       users = users.filter((u) => u.status === statusFilter);
     }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      users = users.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q) ||
+          u.role.toLowerCase().includes(q) ||
+          u.storeScope.toLowerCase().includes(q) ||
+          (u.allowedStores && u.allowedStores.some((s) => s.toLowerCase().includes(q)))
+      );
+    }
     return users;
-  }, [rbacCurrentUser, rbacUsers, currentUser.role, currentUser.store, statusFilter]);
+  }, [rbacCurrentUser, rbacUsers, currentUser.role, currentUser.store, statusFilter, searchQuery]);
 
   const toggleCategoryCollapse = (cat: string) => {
     setCollapsedCategories((prev) => ({ ...prev, [cat]: !prev[cat] }));
@@ -255,30 +268,6 @@ export default function UsersPage() {
     };
   };
 
-  const roleDescriptions = [
-    {
-      role: 'Super Admin',
-      level: 100,
-      access:
-        'Level 100 — Unrestricted enterprise authority, user provisioning, global settings & enterprise audit logs.',
-      badge: 'badge-danger',
-    },
-    {
-      role: 'Store Manager',
-      level: 80,
-      access:
-        'Level 80 — Assigned store operations, local inventory CRUD, purchase orders, customer CRM & daily reporting.',
-      badge: 'badge-warning',
-    },
-    {
-      role: 'Sales Manager',
-      level: 40,
-      access:
-        'Level 40 — POS terminal billing checkout, walk-in customer creation, receipt printing & sale photo proof.',
-      badge: 'badge-primary',
-    },
-  ];
-
   if (currentUser.role === 'Sales Manager') {
     return (
       <AppLayout activeRoute="/users">
@@ -307,7 +296,8 @@ export default function UsersPage() {
           </div>
           <button
             onClick={() => setInviteModal(true)}
-            className="btn-primary gap-1.5 text-xs flex-shrink-0"
+            className="btn-primary gap-1.5 text-xs flex-shrink-0 min-h-[40px] px-3.5"
+            aria-label="Add New User Account"
           >
             <Icon name="UserPlusIcon" size={14} />
             <span className="hidden sm:inline">Add User</span>
@@ -315,48 +305,41 @@ export default function UsersPage() {
           </button>
         </div>
 
-        {/* Security Level Matrix Cards */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-[var(--page-gutter)] px-[var(--page-gutter)] md:mx-0 md:px-0 md:grid md:grid-cols-3 md:gap-3 pb-1 md:pb-0">
-          {roleDescriptions.map((rd) => (
-            <div
-              key={`matrix-${rd.role}`}
-              className="card p-3 md:p-4 space-y-1.5 border-l-4 min-w-[160px] md:min-w-0 flex-shrink-0 md:flex-shrink"
-              style={{
-                borderColor:
-                  rd.level === 100
-                    ? 'var(--danger)'
-                    : rd.level === 80
-                      ? 'var(--warning)'
-                      : 'var(--primary)',
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <span className={`${rd.badge} text-2xs`}>Lvl {rd.level}</span>
-                <span className="text-3xs font-bold uppercase text-muted-foreground">
-                  {rd.role}
-                </span>
-              </div>
-              <p className="text-2xs md:text-xs text-muted-foreground leading-relaxed">
-                {rd.access}
-              </p>
-            </div>
-          ))}
-        </div>
-
         {/* Filter Bar & User Roster */}
         <div className="card overflow-hidden">
-          <div className="px-3 md:px-4 py-3 border-b border-border/60 flex flex-col md:flex-row md:items-center justify-between gap-2">
-            <div>
-              <h3 className="section-header">Accounts</h3>
+          <div className="p-3 md:p-4 border-b border-border/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {/* Live Search Input */}
+            <div className="relative flex-1 max-w-md w-full">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                <Icon name="MagnifyingGlassIcon" size={15} />
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, email, role, or store..."
+                aria-label="Search user accounts"
+                className="input-field pl-9 pr-8 py-2 text-xs w-full min-h-[40px]"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search input"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs p-1"
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
             {/* Status Filter Tabs */}
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
+            <div className="flex items-center gap-1 bg-muted p-1 rounded-lg overflow-x-auto scrollbar-none flex-shrink-0">
               {(['All', 'Active', 'Inactive', 'Suspended'] as const).map((st) => (
                 <button
                   key={`filter-${st}`}
                   onClick={() => setStatusFilter(st)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                  className={`px-3 py-1.5 min-h-[36px] text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
                     statusFilter === st
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground hover:text-foreground'
@@ -370,116 +353,208 @@ export default function UsersPage() {
 
           {/* Mobile User Cards (<md) */}
           <div className="block md:hidden divide-y divide-border">
-            {visibleUsers.map((u) => {
-              const level =
-                u.securityLevel ||
-                (u.role === 'Super Admin' ? 100 : u.role === 'Store Manager' ? 80 : 40);
-              const isProtectedSuperAdmin = u.role === 'Super Admin';
-              const fullUserRecord = usersList.find((usr) => usr.id === u.id);
-              const allowedStores = u.allowedStores || [u.storeScope];
+            {visibleUsers.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground space-y-2">
+                <Icon name="UserGroupIcon" size={32} className="mx-auto opacity-40" />
+                <p className="font-semibold text-sm">No accounts found</p>
+                <p className="text-2xs">Try adjusting your search criteria or status filter.</p>
+              </div>
+            ) : (
+              visibleUsers.map((u) => {
+                const level =
+                  u.securityLevel ||
+                  (u.role === 'Super Admin' ? 100 : u.role === 'Store Manager' ? 80 : 40);
+                const isProtectedSuperAdmin = u.role === 'Super Admin';
+                const fullUserRecord = usersList.find((usr) => usr.id === u.id);
+                const allowedStores = u.allowedStores || [u.storeScope];
+                const isExpanded = expandedMobileUser === u.id;
+                const canReset =
+                  fullUserRecord &&
+                  ((currentUser.role === 'Super Admin' && u.role !== 'Super Admin') ||
+                    (currentUser.role === 'Store Manager' &&
+                      u.role === 'Sales Manager' &&
+                      (u.storeScope === currentUser.store ||
+                        (currentUser.allowedStores &&
+                          currentUser.allowedStores.includes(u.storeScope)))));
+                const canEdit =
+                  fullUserRecord && (!isProtectedSuperAdmin || currentUser.role === 'Super Admin');
+                const canDelete =
+                  fullUserRecord &&
+                  u.id !== currentUser.id &&
+                  (!isProtectedSuperAdmin || currentUser.role === 'Super Admin');
 
-              return (
-                <div
-                  key={`m-usr-${u.id}`}
-                  className="p-4 space-y-3 bg-card hover:bg-muted/10 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {u.avatarUrl ? (
-                        <img
-                          src={u.avatarUrl}
-                          alt={u.name}
-                          className="w-10 h-10 rounded-full object-cover border border-border flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">
-                          {u.name.substring(0, 2).toUpperCase()}
+                return (
+                  <div
+                    key={`m-usr-${u.id}`}
+                    className="p-4 space-y-3 bg-card hover:bg-muted/10 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {u.avatarUrl ? (
+                          <img
+                            src={u.avatarUrl}
+                            alt={u.name}
+                            className="w-10 h-10 rounded-full object-cover border border-border flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">
+                            {u.name.substring(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-bold text-sm text-foreground truncate">{u.name}</p>
+                            {isProtectedSuperAdmin && (
+                              <span className="text-3xs bg-danger/10 text-danger border border-danger/20 px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
+                                <Icon name="LockClosedIcon" size={10} /> Level 100
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-2xs text-muted-foreground truncate">{u.email}</p>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="font-bold text-sm text-foreground truncate">{u.name}</p>
-                          {isProtectedSuperAdmin && (
-                            <span className="text-3xs bg-danger/10 text-danger border border-danger/20 px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
-                              <Icon name="LockClosedIcon" size={10} /> Level 100
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-2xs text-muted-foreground truncate">{u.email}</p>
+                      </div>
+
+                      <select
+                        value={u.status}
+                        aria-label={`Status for ${u.name}`}
+                        disabled={isProtectedSuperAdmin && currentUser.role !== 'Super Admin'}
+                        onChange={(e) => toggleUserStatus(u.id, e.target.value as any)}
+                        className={`text-3xs font-bold px-2 py-2 min-h-[44px] rounded-md border flex-shrink-0 ${
+                          u.status === 'Active'
+                            ? 'bg-positive/10 text-positive border-positive/30'
+                            : u.status === 'Suspended'
+                              ? 'bg-danger/10 text-danger border-danger/30'
+                              : 'bg-muted text-muted-foreground border-border'
+                        }`}
+                      >
+                        <option value="Active">ACTIVE</option>
+                        <option value="Inactive">INACTIVE</option>
+                        <option value="Suspended">SUSPENDED</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 flex-wrap text-2xs pt-1 border-t border-border/50">
+                      <span
+                        className={`badge ${level === 100 ? 'badge-danger' : level === 80 ? 'badge-warning' : 'badge-info'} text-3xs`}
+                      >
+                        Level {level} · {u.role}
+                      </span>
+
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-3xs text-muted-foreground font-semibold">Stores:</span>
+                        {allowedStores.map((st) => (
+                          <span
+                            key={`st-m-${st}`}
+                            className="badge-secondary text-3xs font-mono font-bold px-1.5 py-0.5"
+                          >
+                            {st}
+                          </span>
+                        ))}
                       </div>
                     </div>
 
-                    <select
-                      value={u.status}
-                      disabled={isProtectedSuperAdmin && currentUser.role !== 'Super Admin'}
-                      onChange={(e) => toggleUserStatus(u.id, e.target.value as any)}
-                      className={`text-3xs font-bold px-2 py-1 rounded-md border flex-shrink-0 ${
-                        u.status === 'Active'
-                          ? 'bg-positive/10 text-positive border-positive/30'
-                          : u.status === 'Suspended'
-                            ? 'bg-danger/10 text-danger border-danger/30'
-                            : 'bg-muted text-muted-foreground border-border'
-                      }`}
-                    >
-                      <option value="Active">ACTIVE</option>
-                      <option value="Inactive">INACTIVE</option>
-                      <option value="Suspended">SUSPENDED</option>
-                    </select>
-                  </div>
+                    {/* Mobile Primary Actions Row (min-h-[44px] touch targets) */}
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+                      <div className="flex items-center gap-2">
+                        {fullUserRecord && (
+                          <button
+                            onClick={() => setPerformanceModalUser(fullUserRecord)}
+                            className="btn-secondary text-2xs min-h-[44px] px-3 gap-1.5"
+                            aria-label={`View performance metrics for ${u.name}`}
+                          >
+                            <Icon name="ChartBarIcon" size={14} />
+                            <span>Metrics</span>
+                          </button>
+                        )}
 
-                  <div className="flex items-center justify-between gap-2 flex-wrap text-2xs pt-1 border-t border-border/50">
-                    <span
-                      className={`badge ${level === 100 ? 'badge-danger' : level === 80 ? 'badge-warning' : 'badge-info'} text-3xs`}
-                    >
-                      Level {level} · {u.role}
-                    </span>
+                        {currentUser.role === 'Super Admin' &&
+                          fullUserRecord &&
+                          (isProtectedSuperAdmin ? (
+                            <span className="badge-danger text-2xs min-h-[44px] px-3 gap-1 font-bold inline-flex items-center">
+                              <Icon name="ShieldCheckIcon" size={13} />
+                              Root Access
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleOpenPermissions(fullUserRecord)}
+                              className="btn-primary text-2xs min-h-[44px] px-3 gap-1.5"
+                              aria-label={`Configure access matrix for ${u.name}`}
+                            >
+                              <Icon name="KeyIcon" size={14} />
+                              <span>Access Matrix</span>
+                            </button>
+                          ))}
+                      </div>
 
-                    <div className="flex items-center gap-1">
-                      <span className="text-3xs text-muted-foreground font-semibold">Stores:</span>
-                      {allowedStores.map((st) => (
-                        <span
-                          key={`st-m-${st}`}
-                          className="badge-secondary text-3xs font-mono font-bold px-1.5 py-0.5"
-                        >
-                          {st}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-2">
-                    <div className="flex items-center gap-1.5">
-                      {fullUserRecord && (
+                      {/* Progressive Disclosure Toggle for Secondary Actions */}
+                      {(canReset || canEdit || canDelete) && (
                         <button
-                          onClick={() => setPerformanceModalUser(fullUserRecord)}
-                          className="btn-secondary text-3xs py-1 px-2 gap-1"
+                          type="button"
+                          onClick={() =>
+                            setExpandedMobileUser((prev) => (prev === u.id ? null : u.id))
+                          }
+                          aria-label={`Toggle actions menu for ${u.name}`}
+                          aria-expanded={isExpanded}
+                          className={`btn-secondary text-2xs min-h-[44px] min-w-[44px] px-2.5 gap-1 ${
+                            isExpanded ? 'bg-primary/15 text-primary border-primary/30' : ''
+                          }`}
                         >
-                          <Icon name="ChartBarIcon" size={13} />
-                          Metrics
+                          <Icon name="EllipsisVerticalIcon" size={16} />
+                          <span className="text-3xs font-bold">Actions</span>
                         </button>
                       )}
-
-                      {currentUser.role === 'Super Admin' &&
-                        fullUserRecord &&
-                        (isProtectedSuperAdmin ? (
-                          <span className="badge-danger text-3xs py-1 px-2 gap-1 font-bold flex items-center">
-                            <Icon name="ShieldCheckIcon" size={12} />
-                            Full Root Access
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleOpenPermissions(fullUserRecord)}
-                            className="btn-primary text-3xs py-1 px-2 gap-1"
-                          >
-                            <Icon name="KeyIcon" size={13} />
-                            Access Matrix
-                          </button>
-                        ))}
                     </div>
+
+                    {/* Mobile Secondary Actions (Progressive Disclosure) */}
+                    {isExpanded && (canReset || canEdit || canDelete) && (
+                      <div className="p-2.5 rounded-xl bg-muted/40 border border-border flex items-center justify-end gap-2 flex-wrap">
+                        {canReset && fullUserRecord && (
+                          <button
+                            onClick={() => handleSendResetLink(fullUserRecord)}
+                            disabled={sendingResetUserId === u.id}
+                            className="btn-secondary text-2xs min-h-[44px] px-3 gap-1.5 text-amber-600 dark:text-amber-400"
+                            aria-label={`Send password reset link to ${u.name}`}
+                          >
+                            {sendingResetUserId === u.id ? (
+                              <Icon
+                                name="ArrowPathIcon"
+                                size={14}
+                                className="animate-spin text-amber-500"
+                              />
+                            ) : (
+                              <Icon name="EnvelopeIcon" size={14} />
+                            )}
+                            <span>Reset Link</span>
+                          </button>
+                        )}
+
+                        {canEdit && fullUserRecord && (
+                          <button
+                            onClick={() => openEdit(fullUserRecord)}
+                            className="btn-secondary text-2xs min-h-[44px] px-3 gap-1.5 text-primary"
+                            aria-label={`Edit user ${u.name}`}
+                          >
+                            <Icon name="PencilSquareIcon" size={14} />
+                            <span>Edit</span>
+                          </button>
+                        )}
+
+                        {canDelete && fullUserRecord && (
+                          <button
+                            onClick={() => handleDeleteClick(fullUserRecord)}
+                            className="btn-secondary text-2xs min-h-[44px] px-3 gap-1.5 text-danger border-danger/20 hover:bg-danger/10"
+                            aria-label={`Delete user ${u.name}`}
+                          >
+                            <Icon name="TrashIcon" size={14} />
+                            <span>Delete</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           {/* Desktop User Table (>=md) */}
@@ -497,7 +572,16 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60 text-xs">
-                {visibleUsers.map((u) => {
+                {visibleUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 px-4 text-center text-muted-foreground">
+                      <Icon name="UserGroupIcon" size={32} className="mx-auto opacity-40 mb-2" />
+                      <p className="font-semibold text-sm">No accounts found</p>
+                      <p className="text-2xs">Try adjusting your search criteria or status filter.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  visibleUsers.map((u) => {
                   const level =
                     u.securityLevel ||
                     (u.role === 'Super Admin' ? 100 : u.role === 'Store Manager' ? 80 : 40);
@@ -652,7 +736,7 @@ export default function UsersPage() {
                       </td>
                     </tr>
                   );
-                })}
+                }))}
               </tbody>
             </table>
           </div>

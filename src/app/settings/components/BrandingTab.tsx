@@ -3,37 +3,101 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 import AppLogo from '@/components/ui/AppLogo';
-import { FIXED_RISMOS_PALETTE } from '@/lib/colorUtils';
+
+export type BrandingUploadStatus =
+  | 'idle'
+  | 'uploading'
+  | 'uploaded'
+  | 'saving'
+  | 'saved'
+  | 'upload_failed'
+  | 'save_failed';
 
 interface BrandingTabProps {
   appName: string;
   setAppName: (name: string) => void;
   tagline: string;
   setTagline: (tagline: string) => void;
-  supportEmailBranding: string;
-  setSupportEmailBranding: (email: string) => void;
-  supportPhone: string;
-  setSupportPhone: (phone: string) => void;
+  logoUrl: string | null;
+  setLogoUrl: (url: string | null) => void;
+  faviconUrl: string | null;
+  setFaviconUrl: (url: string | null) => void;
+  handleLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleFaviconUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleRemoveLogo?: () => void;
+  handleRemoveFavicon?: () => void;
+  logoStatus?: BrandingUploadStatus;
+  faviconStatus?: BrandingUploadStatus;
+  handleResetBrandingTab: () => void;
+  isSuperAdmin: boolean;
+  // Optional legacy props maintained for interface compatibility
+  supportEmailBranding?: string;
+  setSupportEmailBranding?: (email: string) => void;
+  supportPhone?: string;
+  setSupportPhone?: (phone: string) => void;
   primaryColor?: string;
   setPrimaryColor?: (color: string) => void;
   secondaryColor?: string;
   setSecondaryColor?: (color: string) => void;
   accentColor?: string;
   setAccentColor?: (color: string) => void;
-  logoUrl: string | null;
-  setLogoUrl: (url: string | null) => void;
-  logoDarkUrl: string | null;
-  setLogoDarkUrl: (url: string | null) => void;
-  appIconUrl: string | null;
-  setAppIconUrl: (url: string | null) => void;
-  faviconUrl: string | null;
-  setFaviconUrl: (url: string | null) => void;
-  handleLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleLogoDarkUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleAppIconUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleFaviconUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleResetBrandingTab: () => void;
-  isSuperAdmin: boolean;
+  logoDarkUrl?: string | null;
+  setLogoDarkUrl?: (url: string | null) => void;
+  appIconUrl?: string | null;
+  setAppIconUrl?: (url: string | null) => void;
+  handleLogoDarkUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleAppIconUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+function renderStatusBadge(status?: BrandingUploadStatus) {
+  if (!status || status === 'idle') return null;
+
+  switch (status) {
+    case 'uploading':
+      return (
+        <span className="badge-warning text-3xs font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-full">
+          <Icon name="ArrowPathIcon" size={11} className="animate-spin text-amber-500" />
+          Uploading...
+        </span>
+      );
+    case 'uploaded':
+      return (
+        <span className="badge-info text-3xs font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-full">
+          <Icon name="CheckIcon" size={11} />
+          Uploaded
+        </span>
+      );
+    case 'saving':
+      return (
+        <span className="badge-warning text-3xs font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-full">
+          <Icon name="ArrowPathIcon" size={11} className="animate-spin text-amber-500" />
+          Saving to Database...
+        </span>
+      );
+    case 'saved':
+      return (
+        <span className="badge-success text-3xs font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-full">
+          <Icon name="CheckCircleIcon" size={11} />
+          Saved & Synced
+        </span>
+      );
+    case 'upload_failed':
+      return (
+        <span className="badge-danger text-3xs font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-full">
+          <Icon name="ExclamationCircleIcon" size={11} />
+          Upload Failed
+        </span>
+      );
+    case 'save_failed':
+      return (
+        <span className="badge-danger text-3xs font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-full">
+          <Icon name="ExclamationCircleIcon" size={11} />
+          Save Failed
+        </span>
+      );
+    default:
+      return null;
+  }
 }
 
 export const BrandingTab: React.FC<BrandingTabProps> = ({
@@ -41,22 +105,16 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
   setAppName,
   tagline,
   setTagline,
-  supportEmailBranding,
-  setSupportEmailBranding,
-  supportPhone,
-  setSupportPhone,
   logoUrl,
   setLogoUrl,
-  logoDarkUrl,
-  setLogoDarkUrl,
-  appIconUrl,
-  setAppIconUrl,
   faviconUrl,
   setFaviconUrl,
   handleLogoUpload,
-  handleLogoDarkUpload,
-  handleAppIconUpload,
   handleFaviconUpload,
+  handleRemoveLogo,
+  handleRemoveFavicon,
+  logoStatus = 'idle',
+  faviconStatus = 'idle',
   handleResetBrandingTab,
   isSuperAdmin,
 }) => {
@@ -64,75 +122,79 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
     <div className="space-y-6">
       <div className="border-b border-border pb-3">
         <h3 className="text-base font-bold text-foreground">
-          White-Label Branding & Global Visual Identity
+          Brand Identity & Visual Appearance
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Fully white-label your retail terminal. Changes to brand name, logos, app icons, and contact details
-          propagate instantaneously across all stores, receipts, and terminals with our fixed enterprise design system.
+          Configure your canonical retail brand identity. The brand name, tagline, universal logo,
+          and favicon propagate in real-time across all sales terminals, receipts, invoices, and reports.
         </p>
       </div>
 
-      {/* Live Preview Card */}
+      {/* Live Brand Preview Card */}
       <div className="p-5 rounded-2xl bg-muted/30 border border-border space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">
             Live Brand & Terminal Preview
           </span>
           <span className="text-3xs text-emerald-500 font-mono font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-            Real-time MySQL sync active
+            Real-time Database Sync Active
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Light Surface Preview */}
           <div className="p-4 bg-card rounded-xl border border-border shadow-xs flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt="Custom Brand Logo"
-                  className="w-10 h-10 object-contain rounded-lg border border-border bg-white"
-                />
+                <div className="w-10 h-10 rounded-lg border border-border bg-white flex items-center justify-center p-1 flex-shrink-0 shadow-2xs">
+                  <img
+                    src={logoUrl}
+                    alt={appName || 'Brand Logo'}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
               ) : (
                 <AppLogo size={32} showText={false} />
               )}
-              <div>
-                <h4 className="text-sm font-bold text-foreground">{appName || 'RISMOS'}</h4>
-                <p className="text-2xs text-muted-foreground">
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold text-foreground truncate">{appName || 'RISMOS'}</h4>
+                <p className="text-2xs text-muted-foreground truncate">
                   {tagline || 'Run Retail. Smarter.'}
                 </p>
               </div>
             </div>
-            <span className="text-2xs font-bold px-2.5 py-1 rounded-lg bg-primary text-white shadow-xs">
+            <span className="text-2xs font-bold px-2.5 py-1 rounded-lg bg-primary text-white shadow-xs flex-shrink-0">
               Light Surface
             </span>
           </div>
 
-          {/* Dark Surface Preview */}
+          {/* Dark Surface Preview (Enterprise Navy Header) */}
           <div className="p-4 rounded-xl shadow-xs flex items-center justify-between text-white bg-primary">
-            <div className="flex items-center gap-3">
-              {logoDarkUrl ? (
-                <img
-                  src={logoDarkUrl}
-                  alt="Dark Brand Logo"
-                  className="w-10 h-10 object-contain rounded-lg"
-                />
+            <div className="flex items-center gap-3 min-w-0">
+              {logoUrl ? (
+                <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center p-1 flex-shrink-0">
+                  <img
+                    src={logoUrl}
+                    alt={appName || 'Brand Logo'}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
               ) : (
                 <AppLogo size={32} variant="blue-bg" showText={false} />
               )}
-              <div>
-                <h4 className="text-sm font-bold text-white">{appName || 'RISMOS'}</h4>
-                <p className="text-2xs text-slate-300">{tagline || 'Run Retail. Smarter.'}</p>
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold text-white truncate">{appName || 'RISMOS'}</h4>
+                <p className="text-2xs text-slate-300 truncate">{tagline || 'Run Retail. Smarter.'}</p>
               </div>
             </div>
-            <span className="text-2xs font-bold px-2.5 py-1 rounded-lg bg-white/15 text-white border border-white/20">
+            <span className="text-2xs font-bold px-2.5 py-1 rounded-lg bg-white/15 text-white border border-white/20 flex-shrink-0">
               Fixed Navy Header
             </span>
           </div>
         </div>
       </div>
 
-      {/* Brand Identity Fields */}
+      {/* Brand Identity Fields (Strictly Visual Identity) */}
       <div className="space-y-4 text-xs">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -146,8 +208,12 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
               value={appName}
               onChange={(e) => setAppName(e.target.value)}
               placeholder="e.g. RISMOS"
-              className="input-field text-xs font-bold"
+              aria-label="Application Brand Name"
+              className="input-field text-xs font-bold min-h-[40px]"
             />
+            <p className="text-3xs text-muted-foreground mt-1">
+              Displayed in the navigation bar, login screen, invoices, and browser tab.
+            </p>
           </div>
 
           <div>
@@ -158,176 +224,128 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
               placeholder="e.g. Run Retail. Smarter."
-              className="input-field text-xs"
+              aria-label="Brand Tagline"
+              className="input-field text-xs min-h-[40px]"
             />
+            <p className="text-3xs text-muted-foreground mt-1">
+              Appears on POS billing terminal headers, login banner, and public documents.
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="font-bold text-foreground block mb-1">Brand Support Email</label>
-            <input
-              type="email"
-              disabled={!isSuperAdmin}
-              value={supportEmailBranding}
-              onChange={(e) => setSupportEmailBranding(e.target.value)}
-              placeholder="support@yourbrand.com"
-              className="input-field text-xs"
-            />
-          </div>
-
-          <div>
-            <label className="font-bold text-foreground block mb-1">Support Contact Phone</label>
-            <input
-              type="text"
-              disabled={!isSuperAdmin}
-              value={supportPhone}
-              onChange={(e) => setSupportPhone(e.target.value)}
-              placeholder="+1 800 555 0199"
-              className="input-field text-xs"
-            />
-          </div>
-        </div>
-
-        {/* Upload Assets Grid */}
+        {/* Upload Assets Grid: ONLY Universal Logo + Browser Favicon */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          {/* Main Logo (Light Backgrounds) */}
+          {/* 1. Universal Brand Logo */}
           <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-foreground">Main Logo (Light Backgrounds)</span>
-              {logoUrl && (
-                <button
-                  type="button"
-                  disabled={!isSuperAdmin}
-                  onClick={() => setLogoUrl(null)}
-                  className="text-2xs text-danger hover:underline"
-                >
-                  Remove
-                </button>
-              )}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="font-bold text-foreground">Universal Brand Logo</span>
+              <div className="flex items-center gap-2">
+                {renderStatusBadge(logoStatus)}
+                {logoUrl && isSuperAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (handleRemoveLogo) {
+                        handleRemoveLogo();
+                      } else {
+                        setLogoUrl(null);
+                      }
+                    }}
+                    className="text-2xs text-danger hover:underline font-semibold"
+                    aria-label="Remove brand logo"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
             </div>
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Main Logo"
-                className="h-12 object-contain rounded-lg border border-border p-1 bg-white"
-              />
-            ) : (
-              <p className="text-2xs text-muted-foreground">
-                Using default dynamic AppLogo vector mark.
-              </p>
-            )}
+
+            <div className="flex items-center gap-3">
+              {logoUrl ? (
+                <div className="h-14 w-28 rounded-lg border border-border p-1 bg-white flex items-center justify-center shadow-2xs">
+                  <img
+                    src={logoUrl}
+                    alt="Brand Logo"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="h-14 w-28 rounded-lg border border-dashed border-border p-2 bg-muted/30 flex items-center justify-center text-center">
+                  <span className="text-3xs text-muted-foreground font-semibold">
+                    Default Vector Mark
+                  </span>
+                </div>
+              )}
+              <div className="text-3xs text-muted-foreground space-y-0.5">
+                <p className="font-semibold text-foreground">One canonical logo for all screens</p>
+                <p>Supports PNG, JPG, WebP, SVG (Max 5MB).</p>
+                <p>Works in sidebar, header, receipt print, and invoices.</p>
+              </div>
+            </div>
+
             <input
               type="file"
-              accept="image/png,image/jpeg,image/svg+xml,image/webp"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
               disabled={!isSuperAdmin}
               onChange={handleLogoUpload}
-              className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:opacity-90"
+              aria-label="Upload universal brand logo"
+              className="text-xs file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:opacity-90 w-full cursor-pointer"
             />
           </div>
 
-          {/* Dark / Inverted Logo */}
+          {/* 2. Browser Tab Favicon */}
           <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-foreground">Dark Logo (For Dark Backgrounds)</span>
-              {logoDarkUrl && (
-                <button
-                  type="button"
-                  disabled={!isSuperAdmin}
-                  onClick={() => setLogoDarkUrl(null)}
-                  className="text-2xs text-danger hover:underline"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-            {logoDarkUrl ? (
-              <img
-                src={logoDarkUrl}
-                alt="Dark Logo"
-                className="h-12 object-contain rounded-lg border border-border p-1 bg-slate-900"
-              />
-            ) : (
-              <p className="text-2xs text-muted-foreground">
-                Optional inverted logo for dark topbars and auth screens.
-              </p>
-            )}
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/svg+xml,image/webp"
-              disabled={!isSuperAdmin}
-              onChange={handleLogoDarkUpload}
-              className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:opacity-90"
-            />
-          </div>
-
-          {/* Compact App Icon */}
-          <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-foreground">Compact App Icon (Mobile / Favicon)</span>
-              {appIconUrl && (
-                <button
-                  type="button"
-                  disabled={!isSuperAdmin}
-                  onClick={() => setAppIconUrl(null)}
-                  className="text-2xs text-danger hover:underline"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-            {appIconUrl ? (
-              <img
-                src={appIconUrl}
-                alt="App Icon"
-                className="h-10 w-10 object-contain rounded-lg border border-border p-1 bg-white"
-              />
-            ) : (
-              <p className="text-2xs text-muted-foreground">
-                Icon square used on collapsed sidebars and mobile badges.
-              </p>
-            )}
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/svg+xml,image/webp"
-              disabled={!isSuperAdmin}
-              onChange={handleAppIconUpload}
-              className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:opacity-90"
-            />
-          </div>
-
-          {/* Browser Favicon */}
-          <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <span className="font-bold text-foreground">Browser Tab Favicon</span>
-              {faviconUrl && (
-                <button
-                  type="button"
-                  disabled={!isSuperAdmin}
-                  onClick={() => setFaviconUrl(null)}
-                  className="text-2xs text-danger hover:underline"
-                >
-                  Remove
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {renderStatusBadge(faviconStatus)}
+                {faviconUrl && isSuperAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (handleRemoveFavicon) {
+                        handleRemoveFavicon();
+                      } else {
+                        setFaviconUrl(null);
+                      }
+                    }}
+                    className="text-2xs text-danger hover:underline font-semibold"
+                    aria-label="Remove browser favicon"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
             </div>
-            {faviconUrl ? (
-              <img
-                src={faviconUrl}
-                alt="Favicon"
-                className="h-8 w-8 object-contain rounded border border-border p-0.5 bg-white"
-              />
-            ) : (
-              <p className="text-2xs text-muted-foreground">
-                32x32px or 64x64px browser tab icon (.ico, .png, .svg).
-              </p>
-            )}
+
+            <div className="flex items-center gap-3">
+              {faviconUrl ? (
+                <div className="h-12 w-12 rounded-lg border border-border p-1 bg-white flex items-center justify-center shadow-2xs">
+                  <img
+                    src={faviconUrl}
+                    alt="Favicon"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="h-12 w-12 rounded-lg border border-dashed border-border p-1 bg-muted/30 flex items-center justify-center text-center">
+                  <span className="text-3xs text-muted-foreground font-semibold">R</span>
+                </div>
+              )}
+              <div className="text-3xs text-muted-foreground space-y-0.5">
+                <p className="font-semibold text-foreground">Dedicated tab icon</p>
+                <p>32x32px or 64x64px (.ico, .png, .svg).</p>
+                <p>Displayed in the browser tab and bookmarks.</p>
+              </div>
+            </div>
+
             <input
               type="file"
-              accept="image/png,image/x-icon,image/svg+xml"
+              accept="image/png,image/x-icon,image/svg+xml,image/vnd.microsoft.icon"
               disabled={!isSuperAdmin}
               onChange={handleFaviconUpload}
-              className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:opacity-90"
+              aria-label="Upload browser favicon"
+              className="text-xs file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:opacity-90 w-full cursor-pointer"
             />
           </div>
         </div>
@@ -338,7 +356,7 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
             <button
               type="button"
               onClick={handleResetBrandingTab}
-              className="px-3.5 py-2 text-2xs font-semibold rounded-xl text-muted-foreground hover:text-danger hover:bg-danger/10 border border-border hover:border-danger/20 transition-all cursor-pointer"
+              className="px-3.5 py-2.5 text-2xs font-semibold rounded-xl text-muted-foreground hover:text-danger hover:bg-danger/10 border border-border hover:border-danger/20 transition-all cursor-pointer min-h-[44px]"
             >
               Reset to RISMOS Default Brand Identity
             </button>
