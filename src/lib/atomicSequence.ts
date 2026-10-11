@@ -17,8 +17,6 @@ export async function getNextSequenceNumber(
   padLength: number = 6,
   client?: any
 ): Promise<string> {
-  const db = client || prisma;
-
   const executeAtomicIncrement = async (tx: any): Promise<string> => {
     // 1. Lock the specific prefix row exclusively in InnoDB
     const rows: any[] = await tx.$queryRaw`
@@ -155,5 +153,5 @@ export async function initializeSequenceCounters(): Promise<void> {
     }
   }
 
-  console.log('[SEQUENCE] Counters initialized successfully.');
+  console.info('[SEQUENCE] Counters initialized successfully.');
 }

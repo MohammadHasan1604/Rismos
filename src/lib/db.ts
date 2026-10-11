@@ -93,52 +93,6 @@ function createPrismaClient() {
     return originalTransaction(arg, options);
   };
 
-  const origRaw = (extendedClient as any).$queryRaw?.bind(extendedClient);
-  if (origRaw) {
-    (extendedClient as any).$queryRaw = async function (...args: any[]) {
-      let attempts = 0;
-      while (true) {
-        try {
-          return await origRaw(...args);
-        } catch (err: any) {
-          attempts++;
-          const isTransient =
-            err.message?.includes('1040') ||
-            err.message?.includes('Too many connections') ||
-            err.message?.includes('connection_limit');
-          if (isTransient && attempts <= 15) {
-            await new Promise((r) => setTimeout(r, Math.min(2000, 500 * attempts)));
-            continue;
-          }
-          throw err;
-        }
-      }
-    };
-  }
-
-  const origRawUnsafe = (extendedClient as any).$queryRawUnsafe?.bind(extendedClient);
-  if (origRawUnsafe) {
-    (extendedClient as any).$queryRawUnsafe = async function (...args: any[]) {
-      let attempts = 0;
-      while (true) {
-        try {
-          return await origRawUnsafe(...args);
-        } catch (err: any) {
-          attempts++;
-          const isTransient =
-            err.message?.includes('1040') ||
-            err.message?.includes('Too many connections') ||
-            err.message?.includes('connection_limit');
-          if (isTransient && attempts <= 15) {
-            await new Promise((r) => setTimeout(r, Math.min(2000, 500 * attempts)));
-            continue;
-          }
-          throw err;
-        }
-      }
-    };
-  }
-
   return extendedClient;
 }
 
