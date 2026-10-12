@@ -22,14 +22,7 @@ export interface LegacyRepairRecord {
   customerPhone: string;
   normalizedPhone: string;
   deviceType:
-    | 'Mobile'
-    | 'EV'
-    | 'AC'
-    | 'TV'
-    | 'Washing Machine'
-    | 'Refrigerator'
-    | 'Laptop'
-    | 'Other';
+    'Mobile' | 'EV' | 'AC' | 'TV' | 'Washing Machine' | 'Refrigerator' | 'Laptop' | 'Other';
   deviceName: string;
   issueDescription: string;
   status:

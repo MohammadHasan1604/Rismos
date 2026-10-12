@@ -22,8 +22,7 @@ export default function LowStockAlerts() {
       qty: item.qtyOnHand,
       reorder: item.reorderPt || 10,
       severity: (item.qtyOnHand === 0 ? 'out-of-stock' : 'low-stock') as
-        | 'out-of-stock'
-        | 'low-stock',
+        'out-of-stock' | 'low-stock',
     }));
 
   const outOfStockCount = alerts.filter((a) => a.severity === 'out-of-stock').length;
