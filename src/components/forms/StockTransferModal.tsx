@@ -6,7 +6,7 @@ import Icon from '@/components/ui/AppIcon';
 import CustomSelect, { SelectOption } from '@/components/ui/CustomSelect';
 import NumericInput from '@/components/ui/NumericInput';
 import StoreFormModal from './StoreFormModal';
-import { useApp, StoreHub, InventoryItem } from '@/context/AppContext';
+import { useApp, StoreHub } from '@/context/AppContext';
 import { toast } from 'sonner';
 import {
   calculateTransferLineItem,
@@ -134,7 +134,15 @@ export default function StockTransferModal({
     if (!open) {
       prevOpenRef.current = false;
     }
-  }, [open, initialSourceStore, initialDestStore, initialItemId]);
+  }, [
+    open,
+    initialSourceStore,
+    initialDestStore,
+    initialItemId,
+    currentUser.role,
+    currentUser.store,
+    storesList,
+  ]);
 
   const isDirty = React.useMemo(() => {
     return Boolean(transferQty !== '' || notes);

@@ -140,7 +140,7 @@ export default function DataConnectionsPage() {
       if (data.success) {
         setDiscoverModal(data.tables);
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to discover tables');
     }
   };
@@ -170,7 +170,7 @@ export default function DataConnectionsPage() {
         setMappingPreview(data.sampleRecordPreview);
         toast.success('Field mappings updated and saved successfully!');
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to save mappings');
     }
   };
@@ -183,7 +183,7 @@ export default function DataConnectionsPage() {
         setStatus('Disabled');
         toast.info('Legacy database connection has been disabled.');
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to disable connection');
     }
   };

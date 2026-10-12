@@ -3,7 +3,6 @@ import React, { useState, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Modal from '@/components/ui/Modal';
-import ConfirmModal from '@/components/ui/ConfirmModal';
 import EmptyState from '@/components/ui/EmptyState';
 import StockAdjustmentModal from '@/components/forms/StockAdjustmentModal';
 import AddItemModal from './AddItemModal';
@@ -11,7 +10,7 @@ import ProductDetailModal from './ProductDetailModal';
 import StoreStockModal from './StoreStockModal';
 import BottomSheet from '@/components/ui/BottomSheet';
 import { useApp, InventoryItem } from '@/context/AppContext';
-import { toast } from 'sonner';
+import AppImage from '@/components/ui/AppImage';
 
 const StockStatusBadge = StatusBadge;
 
@@ -277,15 +276,6 @@ export default function InventoryTable({
     setSelectedIds(new Set());
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteItemModal) return;
-    setDeleteLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
-    removeInventoryItem(deleteItemModal.id);
-    setDeleteLoading(false);
-    setDeleteItemModal(null);
-  };
-
   const handleStatusChange = (
     itemId: string,
     newStatus: 'active' | 'inactive' | 'discontinued'
@@ -501,7 +491,7 @@ export default function InventoryTable({
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-12 h-12 rounded-xl bg-muted overflow-hidden border border-border flex items-center justify-center flex-shrink-0">
                         {item.primaryImage || (item.images && item.images[0]) ? (
-                          <img
+                          <AppImage
                             src={item.primaryImage || item.images![0]}
                             alt={item.name}
                             className="w-full h-full object-cover"
@@ -679,11 +669,11 @@ export default function InventoryTable({
                                 {item.primaryImage ||
                                 (item.images && item.images[0]) ||
                                 item.imageUrl ? (
-                                  <img
+                                  <AppImage
                                     src={
-                                      item.primaryImage ||
-                                      (item.images && item.images[0]) ||
-                                      item.imageUrl
+                                      (item.primaryImage ||
+                                        (item.images && item.images[0]) ||
+                                        item.imageUrl)!
                                     }
                                     alt={item.name}
                                     className="w-8 h-8 rounded-lg object-cover border border-border flex-shrink-0"
@@ -1120,8 +1110,13 @@ export default function InventoryTable({
                           warningMessage:
                             'Archiving will hide this SKU from the active catalog and POS checkout while preserving historical reports and stock logs.',
                           onConfirm: async () => {
-                            await removeInventoryItem(deleteItemModal.id, false);
-                            setDeleteItemModal(null);
+                            setDeleteLoading(true);
+                            try {
+                              await removeInventoryItem(deleteItemModal.id, false);
+                              setDeleteItemModal(null);
+                            } finally {
+                              setDeleteLoading(false);
+                            }
                           },
                         });
                       }}
@@ -1155,8 +1150,13 @@ export default function InventoryTable({
                             warningMessage:
                               'Warning: This product has zero inventory and zero sales transactions. Deletion cannot be undone.',
                             onConfirm: async () => {
-                              await removeInventoryItem(deleteItemModal.id, true);
-                              setDeleteItemModal(null);
+                              setDeleteLoading(true);
+                              try {
+                                await removeInventoryItem(deleteItemModal.id, true);
+                                setDeleteItemModal(null);
+                              } finally {
+                                setDeleteLoading(false);
+                              }
                             },
                           });
                         }}

@@ -350,7 +350,7 @@ async function runFinancialIntegritySuite() {
       data: [
         {
           entryNo: `JRN-TRF-DEST-${testPrefix}`,
-          storeCode: 'HYD',
+          storeCode: 'CHE',
           accountCategory: 'ASSET',
           accountName: 'Inventory Asset (Inbound)',
           debit: 1200,
@@ -358,7 +358,7 @@ async function runFinancialIntegritySuite() {
           amount: 1200,
           refType: 'TRANSFER',
           refNo: transferRef,
-          description: `Stock Transfer Received from BLR to HYD (${transferRef})`,
+          description: `Stock Transfer Received from BLR to CHE (${transferRef})`,
           createdBy: 'fin-tester',
         },
         {
@@ -371,7 +371,7 @@ async function runFinancialIntegritySuite() {
           amount: 1200,
           refType: 'TRANSFER',
           refNo: transferRef,
-          description: `Stock Transfer Shipped from BLR to HYD (${transferRef})`,
+          description: `Stock Transfer Shipped from BLR to CHE (${transferRef})`,
           createdBy: 'fin-tester',
         },
       ],
@@ -491,11 +491,18 @@ async function runFinancialIntegritySuite() {
         });
       }
       if (productA.id && productB.id) {
+        const prodIds = [productA.id, productB.id];
+        await prisma.inventoryLedger.deleteMany({
+          where: { productId: { in: prodIds } },
+        });
+        await prisma.salesOrderItem.deleteMany({
+          where: { productId: { in: prodIds } },
+        });
         await prisma.inventory.deleteMany({
-          where: { productId: { in: [productA.id, productB.id] } },
+          where: { productId: { in: prodIds } },
         });
         await prisma.product.deleteMany({
-          where: { id: { in: [productA.id, productB.id] } },
+          where: { id: { in: prodIds } },
         });
       }
       console.log('  ✅ Financial test records cleaned up.');

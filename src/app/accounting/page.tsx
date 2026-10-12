@@ -55,7 +55,7 @@ export default function AccountingPage() {
 
   // Drill-Down Modal State
   const [drillDownModalOpen, setDrillDownModalOpen] = useState(false);
-  const [drillDownMetric, setDrillDownMetric] = useState('');
+  const [_drillDownMetric, setDrillDownMetric] = useState('');
   const [drillDownTitle, setDrillDownTitle] = useState('');
   const [drillDownRecords, setDrillDownRecords] = useState<DrillDownRecord[]>([]);
   const [drillDownTotal, setDrillDownTotal] = useState(0);

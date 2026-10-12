@@ -5,7 +5,6 @@ import { broadcastRealtimeEvent, getStoreChannel } from '@/lib/realtime';
 import {
   authenticateRequest,
   hasPermission,
-  createAuditLog,
   requireStoreScope,
   validatePhysicalStore,
 } from '@/lib/authPipeline';
@@ -280,7 +279,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, status, notes, paymentMethod } = body;
+    const { id, status, paymentMethod } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Sales Order ID is required' }, { status: 400 });

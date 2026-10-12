@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 
 // Heartbeat every 15 seconds (within the recommended 10–20s range)

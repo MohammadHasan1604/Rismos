@@ -3,6 +3,7 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 import AppLogo from '@/components/ui/AppLogo';
+import AppImage from '@/components/ui/AppImage';
 
 export type BrandingUploadStatus =
   | 'idle'
@@ -121,12 +122,11 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
   return (
     <div className="space-y-6">
       <div className="border-b border-border pb-3">
-        <h3 className="text-base font-bold text-foreground">
-          Brand Identity & Visual Appearance
-        </h3>
+        <h3 className="text-base font-bold text-foreground">Brand Identity & Visual Appearance</h3>
         <p className="text-xs text-muted-foreground mt-0.5">
           Configure your canonical retail brand identity. The brand name, tagline, universal logo,
-          and favicon propagate in real-time across all sales terminals, receipts, invoices, and reports.
+          and favicon propagate in real-time across all sales terminals, receipts, invoices, and
+          reports.
         </p>
       </div>
 
@@ -147,7 +147,7 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
             <div className="flex items-center gap-3 min-w-0">
               {logoUrl ? (
                 <div className="w-10 h-10 rounded-lg border border-border bg-white flex items-center justify-center p-1 flex-shrink-0 shadow-2xs">
-                  <img
+                  <AppImage
                     src={logoUrl}
                     alt={appName || 'Brand Logo'}
                     className="max-h-full max-w-full object-contain"
@@ -157,7 +157,9 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
                 <AppLogo size={32} showText={false} />
               )}
               <div className="min-w-0">
-                <h4 className="text-sm font-bold text-foreground truncate">{appName || 'RISMOS'}</h4>
+                <h4 className="text-sm font-bold text-foreground truncate">
+                  {appName || 'RISMOS'}
+                </h4>
                 <p className="text-2xs text-muted-foreground truncate">
                   {tagline || 'Run Retail. Smarter.'}
                 </p>
@@ -173,7 +175,7 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
             <div className="flex items-center gap-3 min-w-0">
               {logoUrl ? (
                 <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center p-1 flex-shrink-0">
-                  <img
+                  <AppImage
                     src={logoUrl}
                     alt={appName || 'Brand Logo'}
                     className="max-h-full max-w-full object-contain"
@@ -184,7 +186,9 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
               )}
               <div className="min-w-0">
                 <h4 className="text-sm font-bold text-white truncate">{appName || 'RISMOS'}</h4>
-                <p className="text-2xs text-slate-300 truncate">{tagline || 'Run Retail. Smarter.'}</p>
+                <p className="text-2xs text-slate-300 truncate">
+                  {tagline || 'Run Retail. Smarter.'}
+                </p>
               </div>
             </div>
             <span className="text-2xs font-bold px-2.5 py-1 rounded-lg bg-white/15 text-white border border-white/20 flex-shrink-0">
@@ -263,7 +267,7 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
             <div className="flex items-center gap-3">
               {logoUrl ? (
                 <div className="h-14 w-28 rounded-lg border border-border p-1 bg-white flex items-center justify-center shadow-2xs">
-                  <img
+                  <AppImage
                     src={logoUrl}
                     alt="Brand Logo"
                     className="max-h-full max-w-full object-contain"
@@ -321,7 +325,7 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({
             <div className="flex items-center gap-3">
               {faviconUrl ? (
                 <div className="h-12 w-12 rounded-lg border border-border p-1 bg-white flex items-center justify-center shadow-2xs">
-                  <img
+                  <AppImage
                     src={faviconUrl}
                     alt="Favicon"
                     className="max-h-full max-w-full object-contain"

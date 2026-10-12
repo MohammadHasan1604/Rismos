@@ -77,7 +77,7 @@ export default function ProofViewerModal({ open, onClose, data, proof }: ProofVi
   const filename = url.split('/').pop() || 'payment-proof';
 
   const formattedDate = activeData.paymentDate
-    ? new Date(activeData.paymentDate).toLocaleDateString('en-IN', {
+    ? new Date(activeData.paymentDate).toLocaleDateString(dateLocale || 'en-IN', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -85,7 +85,7 @@ export default function ProofViewerModal({ open, onClose, data, proof }: ProofVi
     : undefined;
 
   const formattedTimestamp = activeData.timestamp
-    ? new Date(activeData.timestamp).toLocaleString('en-IN')
+    ? new Date(activeData.timestamp).toLocaleString(dateLocale || 'en-IN')
     : undefined;
 
   const displayName = activeData.entityName || activeData.payeeOrPayer;

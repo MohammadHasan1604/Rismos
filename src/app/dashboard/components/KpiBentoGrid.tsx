@@ -11,7 +11,6 @@ export default function KpiBentoGrid() {
     sales,
     inventory,
     expenses,
-    vendors,
     purchases,
     customers,
     storesList,
@@ -42,7 +41,6 @@ export default function KpiBentoGrid() {
   const {
     filteredSales,
     totalRevenue,
-    prevRevenue,
     revChange,
     revTrend,
     grossProfit,
@@ -54,7 +52,6 @@ export default function KpiBentoGrid() {
     filteredInv,
     receivablesTotal,
     pendingReceivablesCount,
-    activePendingBills,
     payablesTotal,
     pendingBillsCount,
     activeOutletsCount,
@@ -202,124 +199,120 @@ export default function KpiBentoGrid() {
     invCostMap,
   ]);
 
-  const displayPeriodLabel =
-    datePeriod === 'Custom Range' && customDateRange?.start && customDateRange?.end
-      ? `${customDateRange.start} → ${customDateRange.end}`
-      : datePeriod;
-
-  const kpiCards = [
-    {
-      id: 'kpi-revenue',
-      label: `Total Sales Revenue (${datePeriod})`,
-      value: formatCurrency(totalRevenue),
-      change: revChange,
-      trend: revTrend,
-      subtext: `vs prev period · ${filteredSales.length} orders`,
-      icon: 'CurrencyRupeeIcon',
-      variant: 'hero' as const,
-      color: 'primary' as const,
-    },
-    {
-      id: 'kpi-gross-profit',
-      label: 'Gross Profit',
-      value: formatCurrency(Math.round(grossProfit)),
-      change: grossProfit > 0 ? `${grossMarginPct}% margin` : '0%',
-      trend: grossProfit > 0 ? ('up' as const) : ('neutral' as const),
-      subtext: totalRevenue > 0 ? `Cost of goods deducted` : 'No sales recorded',
-      icon: 'ArrowTrendingUpIcon',
-      variant: 'normal' as const,
-      color: 'positive' as const,
-    },
-    {
-      id: 'kpi-net-profit',
-      label: 'Net Profit',
-      value: formatCurrency(Math.round(netProfit)),
-      change: netProfit > 0 ? 'Profitable' : netProfit < 0 ? 'Operating Loss' : formatCurrency(0),
-      trend: netProfit >= 0 ? ('up' as const) : ('down' as const),
-      subtext: `After ${formatCurrency(totalExp)} store expenses`,
-      icon: 'ChartPieIcon',
-      variant: 'normal' as const,
-      color: netProfit >= 0 ? ('warning' as const) : ('danger' as const),
-    },
-    {
-      id: 'kpi-expenses',
-      label: 'Total Expenses',
-      value: formatCurrency(totalExp),
-      change: `${filteredExpenses.length} entries`,
-      trend: totalExp > 0 ? ('down' as const) : ('neutral' as const),
-      subtext: `Operating costs in ${datePeriod}`,
-      icon: 'ReceiptPercentIcon',
-      variant: 'normal' as const,
-      color: 'danger' as const,
-    },
-    {
-      id: 'kpi-inventory',
-      label: isSalesManager ? 'Stock Status' : 'Inventory Asset Value',
-      value: isSalesManager
-        ? `${filteredInv.reduce((acc: number, i: any) => acc + (i.qtyOnHand || 0), 0)} Units`
-        : formatCurrency(invValue),
-      change: `${filteredInv.length} SKUs`,
-      trend: 'neutral' as const,
-      subtext: isSalesManager
-        ? `${filteredInv.length} active inventory products`
-        : `${filteredInv.reduce((acc: number, i: any) => acc + (i.qtyOnHand || 0), 0)} units on hand`,
-      icon: 'CubeIcon',
-      variant: 'normal' as const,
-      color: 'info' as const,
-    },
-    {
-      id: 'kpi-transactions',
-      label: 'Store Transactions',
-      value: `${filteredSales.length} Orders`,
-      change: `${customers.length} Customers`,
-      trend: 'neutral' as const,
-      subtext: `Operational transactions in ${datePeriod}`,
-      icon: 'ShoppingCartIcon',
-      variant: 'normal' as const,
-      color: 'positive' as const,
-    },
-    {
-      id: 'kpi-receivables',
-      label: 'Receivables',
-      value: formatCurrency(receivablesTotal),
-      change: `${pendingReceivablesCount} pending accounts`,
-      trend: receivablesTotal > 0 ? ('alert' as const) : ('neutral' as const),
-      subtext: `${customers.length} total customer accounts`,
-      icon: 'ClockIcon',
-      variant: 'normal' as const,
-      color: 'warning' as const,
-    },
-    {
-      id: 'kpi-payables',
-      label: 'Vendor Payables',
-      value: formatCurrency(payablesTotal),
-      change: `${pendingBillsCount} pending bill${pendingBillsCount === 1 ? '' : 's'}`,
-      trend: payablesTotal > 0 ? ('alert' as const) : ('neutral' as const),
-      subtext: pendingBillsCount > 0 ? 'Click to view & settle bills' : 'All vendor bills settled',
-      icon: 'BuildingStorefrontIcon',
-      variant: 'normal' as const,
-      color: 'neutral' as const,
-      clickable: true,
-      drillDownLabel: 'Drill down',
-      onClick: () => setVendorModalOpen(true),
-    },
-    {
-      id: 'kpi-stores',
-      label: 'Active Outlets',
-      value: selectedStore === 'All Stores' ? `${activeOutletsCount} Outlets` : selectedStore,
-      change: `${usersList.length} staff`,
-      trend: 'neutral' as const,
-      subtext: storesList
-        .map((s) => s.code)
-        .slice(0, 4)
-        .join(' · '),
-      icon: 'MapPinIcon',
-      variant: 'normal' as const,
-      color: 'info' as const,
-    },
-  ];
-
   const visibleKpiCards = useMemo(() => {
+    const kpiCards = [
+      {
+        id: 'kpi-revenue',
+        label: `Total Sales Revenue (${datePeriod})`,
+        value: formatCurrency(totalRevenue),
+        change: revChange,
+        trend: revTrend,
+        subtext: `vs prev period · ${filteredSales.length} orders`,
+        icon: 'CurrencyRupeeIcon',
+        variant: 'hero' as const,
+        color: 'primary' as const,
+      },
+      {
+        id: 'kpi-gross-profit',
+        label: 'Gross Profit',
+        value: formatCurrency(Math.round(grossProfit)),
+        change: grossProfit > 0 ? `${grossMarginPct}% margin` : '0%',
+        trend: grossProfit > 0 ? ('up' as const) : ('neutral' as const),
+        subtext: totalRevenue > 0 ? `Cost of goods deducted` : 'No sales recorded',
+        icon: 'ArrowTrendingUpIcon',
+        variant: 'normal' as const,
+        color: 'positive' as const,
+      },
+      {
+        id: 'kpi-net-profit',
+        label: 'Net Profit',
+        value: formatCurrency(Math.round(netProfit)),
+        change: netProfit > 0 ? 'Profitable' : netProfit < 0 ? 'Operating Loss' : formatCurrency(0),
+        trend: netProfit >= 0 ? ('up' as const) : ('down' as const),
+        subtext: `After ${formatCurrency(totalExp)} store expenses`,
+        icon: 'ChartPieIcon',
+        variant: 'normal' as const,
+        color: netProfit >= 0 ? ('warning' as const) : ('danger' as const),
+      },
+      {
+        id: 'kpi-expenses',
+        label: 'Total Expenses',
+        value: formatCurrency(totalExp),
+        change: `${filteredExpenses.length} entries`,
+        trend: totalExp > 0 ? ('down' as const) : ('neutral' as const),
+        subtext: `Operating costs in ${datePeriod}`,
+        icon: 'ReceiptPercentIcon',
+        variant: 'normal' as const,
+        color: 'danger' as const,
+      },
+      {
+        id: 'kpi-inventory',
+        label: isSalesManager ? 'Stock Status' : 'Inventory Asset Value',
+        value: isSalesManager
+          ? `${filteredInv.reduce((acc: number, i: any) => acc + (i.qtyOnHand || 0), 0)} Units`
+          : formatCurrency(invValue),
+        change: `${filteredInv.length} SKUs`,
+        trend: 'neutral' as const,
+        subtext: isSalesManager
+          ? `${filteredInv.length} active inventory products`
+          : `${filteredInv.reduce((acc: number, i: any) => acc + (i.qtyOnHand || 0), 0)} units on hand`,
+        icon: 'CubeIcon',
+        variant: 'normal' as const,
+        color: 'info' as const,
+      },
+      {
+        id: 'kpi-transactions',
+        label: 'Store Transactions',
+        value: `${filteredSales.length} Orders`,
+        change: `${customers.length} Customers`,
+        trend: 'neutral' as const,
+        subtext: `Operational transactions in ${datePeriod}`,
+        icon: 'ShoppingCartIcon',
+        variant: 'normal' as const,
+        color: 'positive' as const,
+      },
+      {
+        id: 'kpi-receivables',
+        label: 'Receivables',
+        value: formatCurrency(receivablesTotal),
+        change: `${pendingReceivablesCount} pending accounts`,
+        trend: receivablesTotal > 0 ? ('alert' as const) : ('neutral' as const),
+        subtext: `${customers.length} total customer accounts`,
+        icon: 'ClockIcon',
+        variant: 'normal' as const,
+        color: 'warning' as const,
+      },
+      {
+        id: 'kpi-payables',
+        label: 'Vendor Payables',
+        value: formatCurrency(payablesTotal),
+        change: `${pendingBillsCount} pending bill${pendingBillsCount === 1 ? '' : 's'}`,
+        trend: payablesTotal > 0 ? ('alert' as const) : ('neutral' as const),
+        subtext:
+          pendingBillsCount > 0 ? 'Click to view & settle bills' : 'All vendor bills settled',
+        icon: 'BuildingStorefrontIcon',
+        variant: 'normal' as const,
+        color: 'neutral' as const,
+        clickable: true,
+        drillDownLabel: 'Drill down',
+        onClick: () => setVendorModalOpen(true),
+      },
+      {
+        id: 'kpi-stores',
+        label: 'Active Outlets',
+        value: selectedStore === 'All Stores' ? `${activeOutletsCount} Outlets` : selectedStore,
+        change: `${usersList.length} staff`,
+        trend: 'neutral' as const,
+        subtext: storesList
+          .map((s) => s.code)
+          .slice(0, 4)
+          .join(' · '),
+        icon: 'MapPinIcon',
+        variant: 'normal' as const,
+        color: 'info' as const,
+      },
+    ];
+
     return kpiCards.filter((card) => {
       if (card.id === 'kpi-stores') return isSuperAdmin;
       if (card.id === 'kpi-transactions') return isSalesManager;
@@ -335,7 +328,32 @@ export default function KpiBentoGrid() {
       }
       return true;
     });
-  }, [kpiCards, isSuperAdmin, isSalesManager]);
+  }, [
+    datePeriod,
+    formatCurrency,
+    totalRevenue,
+    revChange,
+    revTrend,
+    filteredSales.length,
+    grossProfit,
+    grossMarginPct,
+    netProfit,
+    totalExp,
+    filteredExpenses.length,
+    isSalesManager,
+    filteredInv,
+    invValue,
+    customers.length,
+    receivablesTotal,
+    pendingReceivablesCount,
+    payablesTotal,
+    pendingBillsCount,
+    selectedStore,
+    activeOutletsCount,
+    usersList.length,
+    storesList,
+    isSuperAdmin,
+  ]);
 
   return (
     <>
@@ -357,9 +375,9 @@ export default function KpiBentoGrid() {
       </div>
 
       {/* Stores KPI (Super Admin only) */}
-      {isSuperAdmin && (
+      {isSuperAdmin && visibleKpiCards.find((kpi) => kpi.id === 'kpi-stores') && (
         <div className="mt-3 md:mt-4">
-          <KpiCard {...kpiCards[kpiCards.length - 1]} />
+          <KpiCard {...visibleKpiCards.find((kpi) => kpi.id === 'kpi-stores')!} />
         </div>
       )}
 

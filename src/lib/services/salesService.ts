@@ -99,8 +99,6 @@ export async function executePOSCheckout(input: CreateSaleInput) {
   const discountAmount = taxResult.discountAmount;
   const grandTotal = taxResult.grandTotal;
   const netSalesRevenue = taxResult.netSalesRevenue;
-  const taxCollected = taxAmount;
-  const discount = discountAmount;
 
   let totalCost = 0;
   const preparedItems = taxResult.lines.map((taxLine) => {

@@ -16,7 +16,6 @@ export default function CategoriesPage() {
     toggleCategoryStatus,
     deleteCategory,
     inventory,
-    branding,
     currentUser,
   } = useApp();
 
@@ -212,9 +211,15 @@ export default function CategoriesPage() {
           <div className="block md:hidden divide-y divide-border">
             {filteredCategories.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground space-y-2">
-                <Icon name="FolderIcon" size={32} className="mx-auto text-muted-foreground/50 mb-1" />
+                <Icon
+                  name="FolderIcon"
+                  size={32}
+                  className="mx-auto text-muted-foreground/50 mb-1"
+                />
                 <p className="font-semibold text-sm">No categories match your search criteria</p>
-                <p className="text-3xs">Try adjusting the filter options or click "Add" to create one.</p>
+                <p className="text-3xs">
+                  Try adjusting the filter options or click "Add" to create one.
+                </p>
               </div>
             ) : (
               filteredCategories.map((cat) => {
@@ -227,7 +232,10 @@ export default function CategoriesPage() {
                 ).length;
 
                 return (
-                  <div key={`m-cat-${cat.id}`} className="p-4 space-y-3 bg-card hover:bg-muted/10 transition-colors">
+                  <div
+                    key={`m-cat-${cat.id}`}
+                    className="p-4 space-y-3 bg-card hover:bg-muted/10 transition-colors"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">

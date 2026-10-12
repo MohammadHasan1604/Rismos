@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateRequest, createAuditLog, validatePhysicalStore } from '@/lib/authPipeline';
+import { authenticateRequest, validatePhysicalStore } from '@/lib/authPipeline';
 import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent } from '@/lib/realtime';
 import { validateTaxRegistrationId } from '@/lib/taxValidation';

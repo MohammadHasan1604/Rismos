@@ -52,7 +52,10 @@ export default function CustomerFormModal({
   const jurProfile = getJurisdictionProfile(countryCode);
   const dialCode = COUNTRY_DIAL_CODES[countryCode] || '+91';
 
-  const cleanPhone = (val: string): string => normalizeMobileNumber(val, countryCode);
+  const cleanPhone = React.useCallback(
+    (val: string): string => normalizeMobileNumber(val, countryCode),
+    [countryCode]
+  );
 
   const isSuperAdmin = currentUser?.role === 'Super Admin';
   const userStoreCode = (
@@ -158,12 +161,13 @@ export default function CustomerFormModal({
     }
   }, [
     open,
-    customer?.id,
+    customer,
     initialPhone,
     initialName,
     isSuperAdmin,
     userStoreCode,
     defaultSuperAdminStore,
+    cleanPhone,
   ]);
 
   const isDirty = React.useMemo(() => {
@@ -176,7 +180,7 @@ export default function CustomerFormModal({
       );
     }
     return Boolean(name || phone || email || address || gstin || city);
-  }, [isEdit, customer, name, phone, email, address, gstin, city]);
+  }, [isEdit, customer, name, phone, email, address, gstin, city, cleanPhone]);
 
   const handleSafeClose = () => {
     if (isDirty && !isSubmitting) {
@@ -261,7 +265,7 @@ export default function CustomerFormModal({
     setIsSubmitting(true);
     try {
       if (isEdit && customer) {
-        const res = await updateCustomer(customer.id, {
+        await updateCustomer(customer.id, {
           name: cleanName,
           phone: formattedPhone,
           email: email.trim() || undefined,

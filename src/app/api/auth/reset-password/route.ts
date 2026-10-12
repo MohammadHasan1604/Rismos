@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
 import { validatePasswordAgainstPolicy } from '@/lib/passwordPolicyServer';
 import { invalidateUserSessions } from '@/lib/authPipeline';
-import { checkDurableRateLimit, recordDurableRateLimitAttempt, clearDurableRateLimit, getClientIp } from '@/lib/rateLimit';
+import { checkDurableRateLimit, recordDurableRateLimitAttempt, getClientIp } from '@/lib/rateLimit';
 
 /**
  * POST /api/auth/reset-password

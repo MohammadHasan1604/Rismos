@@ -2,13 +2,13 @@ export * from './types';
 
 /**
  * Domain-Oriented State Architecture Manifest
- * 
+ *
  * Each domain encapsulates:
  * 1. Server Data Fetching (via authoritative DB/REST API)
  * 2. Client UI State & optimistic updates
  * 3. Domain Mutation Logic
  * 4. Business Invariants & Validations
- * 
+ *
  * Authoritative source of truth remains MySQL Database V2.
  * localStorage is strictly used for offline cache and UI display preferences.
  */

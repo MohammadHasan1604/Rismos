@@ -6,7 +6,7 @@ import Modal from '@/components/ui/Modal';
 import CustomSelect from '@/components/ui/CustomSelect';
 import StoreFormModal from '@/components/forms/StoreFormModal';
 import NumericInput from '@/components/ui/NumericInput';
-import { useApp, StockTransferRecord, InventoryItem } from '@/context/AppContext';
+import { useApp, StockTransferRecord } from '@/context/AppContext';
 import { toast } from 'sonner';
 import SuperAdminGuard from '@/components/SuperAdminGuard';
 import {
@@ -146,7 +146,7 @@ export default function CentralProfitPage() {
         t.sku.toLowerCase().includes(searchRef.toLowerCase());
       return matchStore && matchStatus && matchSearch;
     });
-  }, [stockTransfers, storeFilter, statusFilter, searchRef]);
+  }, [stockTransfers, storeFilter, statusFilter, searchRef, currentUser.role, currentUser.store]);
 
   // High-Level Central Profit KPIs (Authoritative Stored Totals)
   const isCompletedTransfer = (status: string) => status === 'Completed' || status === 'Received';

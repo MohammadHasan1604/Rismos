@@ -2,6 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
+import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import { useApp } from '@/context/AppContext';
 import { getAuthoritativeNavGroups } from '@/lib/rbacEngine';
@@ -20,12 +21,6 @@ interface NavItem {
   href: string;
   badge?: number;
   badgeVariant?: 'danger' | 'warning' | 'info';
-}
-
-interface NavGroup {
-  id: string;
-  label: string;
-  items: NavItem[];
 }
 
 const badgeColorMap: Record<string, string> = {
@@ -236,9 +231,11 @@ export default function Sidebar({
             aria-label="User profile"
           >
             {currentUser.avatarUrl ? (
-              <img
+              <AppImage
                 src={currentUser.avatarUrl}
                 alt={currentUser.name}
+                width={32}
+                height={32}
                 className="w-8 h-8 rounded-full object-cover"
               />
             ) : (
@@ -254,9 +251,11 @@ export default function Sidebar({
             aria-label="User profile"
           >
             {currentUser.avatarUrl ? (
-              <img
+              <AppImage
                 src={currentUser.avatarUrl}
                 alt={currentUser.name}
+                width={32}
+                height={32}
                 className="w-8 h-8 rounded-full object-cover border border-border flex-shrink-0"
               />
             ) : (

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import AppLayout from '@/components/AppLayout';
 import DashboardFilters from './components/DashboardFilters';
@@ -19,8 +19,6 @@ const DashboardCharts = dynamic(() => import('./components/DashboardCharts'), {
 });
 
 export default function DashboardPage() {
-  const [showAllMetrics, setShowAllMetrics] = useState(false);
-
   return (
     <AppLayout activeRoute="/">
       <div className="space-y-4 md:space-y-6 fade-in">

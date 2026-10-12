@@ -26,7 +26,6 @@ import {
   recordFailedAttempt,
   signSessionToken,
   verifySessionToken,
-  hashToken,
 } from './auth';
 import { RBACEngine, RBACUser, ResourceRequest } from './rbacEngine';
 import { normalizeMobileNumber } from '../context/AppContext';
@@ -362,6 +361,7 @@ export async function runSecurityAuditTestSuite(): Promise<{
   const consolidatedGrossProfitTest = consolidatedRevenueTest - consolidatedCOGSTest; // ₹1000 == ₹400 + ₹600
 
   const isAccountingEliminationCorrect =
+    centralTransferRevenueTest === storeCOGSTest &&
     consolidatedGrossProfitTest === centralGrossProfitTest + storeGrossProfitTest &&
     consolidatedGrossProfitTest === 1000;
 
@@ -649,7 +649,7 @@ export async function runSecurityAuditTestSuite(): Promise<{
   }));
   const searchResult = searchItems.find((it) => it.barcode === '89012345500');
   const searchTimeMs = performance.now() - startSearch;
-  const isFastSearch = searchTimeMs < 100.0;
+  const isFastSearch = searchTimeMs < 100.0 && !!searchResult;
 
   assertTest(
     '14. Performance / Load',
@@ -1050,9 +1050,9 @@ export async function runSecurityAuditTestSuite(): Promise<{
   // CATEGORY 29: PHASE 54 LEGACY DATABASE IMMUTABILITY VERIFICATION
   // =========================================================================
   const legacyRecordBefore = { ...sampleLegacyCustomer, ...sampleLegacyRepair };
-  // Simulate retail checkout transaction in COSKO database
-  const coskoSaleSnapshot = {
-    orderNo: 'CS26BLR0001',
+  // Simulate retail checkout transaction in RISMOS database
+  const rismosSaleSnapshot = {
+    orderNo: 'RS26BLR0001',
     customerNameSnapshot: 'Ahmed',
     customerPhoneSnapshot: '9876543210',
     externalCustomerLinkId: 'LEG-CUST-1001',
@@ -1060,6 +1060,7 @@ export async function runSecurityAuditTestSuite(): Promise<{
   };
   const legacyRecordAfter = { ...sampleLegacyCustomer, ...sampleLegacyRepair };
   const isLegacyUntouched =
+    !!rismosSaleSnapshot &&
     JSON.stringify(legacyRecordBefore) === JSON.stringify(legacyRecordAfter);
   assertTest(
     '12. Financial Accuracy',
@@ -1198,7 +1199,7 @@ export async function runSecurityAuditTestSuite(): Promise<{
   );
 
   // Print Summary
-  console.log('\n====================================================================');
+  console.info('\n====================================================================');
   const passedCount = results.filter((r) => r.passed).length;
   const failedCount = results.length - passedCount;
 

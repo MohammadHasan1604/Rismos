@@ -70,7 +70,7 @@ export default function StoreFormModal({
       prevOpenRef.current = false;
       editStoreIdRef.current = null;
     }
-  }, [open, store?.id]);
+  }, [open, store, branding.city]);
 
   const isDirty = React.useMemo(() => {
     if (isEdit) {

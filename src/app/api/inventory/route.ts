@@ -5,7 +5,6 @@ import { executeWithIdempotency } from '@/lib/idempotency';
 import {
   authenticateRequest,
   hasPermission,
-  createAuditLog,
   requireStoreScope,
   validatePhysicalStore,
 } from '@/lib/authPipeline';

@@ -1,7 +1,6 @@
 'use client';
 import React, { useState } from 'react';
 import AppLayout from '@/components/AppLayout';
-import Icon from '@/components/ui/AppIcon';
 import { useApp } from '@/context/AppContext';
 import SuperAdminGuard from '@/components/SuperAdminGuard';
 

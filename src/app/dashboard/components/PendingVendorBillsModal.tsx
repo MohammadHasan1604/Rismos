@@ -7,7 +7,6 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import Link from 'next/link';
 import { useApp, PurchaseOrder } from '@/context/AppContext';
 import SupplierPaymentModal from '@/components/forms/SupplierPaymentModal';
-import { toast } from 'sonner';
 
 interface PendingVendorBillsModalProps {
   open: boolean;
@@ -15,16 +14,8 @@ interface PendingVendorBillsModalProps {
 }
 
 export default function PendingVendorBillsModal({ open, onClose }: PendingVendorBillsModalProps) {
-  const {
-    purchases,
-    vendors,
-    selectedStore,
-    datePeriod,
-    recordPurchasePayment,
-    refreshAllData,
-    formatCurrency,
-    dateLocale,
-  } = useApp();
+  const { purchases, vendors, selectedStore, refreshAllData, formatCurrency, dateLocale } =
+    useApp();
 
   // Fresh authoritative sync whenever modal opens
   React.useEffect(() => {

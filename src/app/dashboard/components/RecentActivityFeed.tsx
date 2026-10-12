@@ -18,7 +18,6 @@ export default function RecentActivityFeed() {
     dateLocale,
   } = useApp();
   const isSuperAdmin = currentUser.role === 'Super Admin';
-  const isStoreManager = currentUser.role === 'Store Manager';
   const isSalesManager = currentUser.role === 'Sales Manager';
 
   const assignedStore =

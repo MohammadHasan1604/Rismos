@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateRequest, hasPermission, createAuditLog } from '@/lib/authPipeline';
+import { authenticateRequest } from '@/lib/authPipeline';
 import { prisma } from '@/lib/db';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -8,7 +8,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!auth.user) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-    const user = auth.user;
 
     const { id } = await params;
     const repair = await prisma.repairEnquiry.findFirst({

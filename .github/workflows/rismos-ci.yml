@@ -49,55 +49,35 @@ jobs:
       - name: 3. Install Dependencies (Clean State)
         run: npm ci
 
-      - name: 4. Generate Prisma Client
+      - name: 4. Install Playwright Chromium Browser
+        run: npx playwright install --with-deps chromium
+
+      - name: 5. Generate Prisma Client
         run: npx prisma generate
 
-      - name: 5. Apply Authoritative Database Migrations
+      - name: 6. Apply Authoritative Database Migrations & Seed
         run: |
           npx prisma db push --skip-generate
           npm run db:migrate
           npm run seed
 
-      - name: 6. Type-Check App, Tests & Scripts
+      - name: 7. Format & Code Style Verification
+        run: npx prettier --check "src/**/*.{ts,tsx,css,md,json}"
+
+      - name: 8. Type-Check App, Tests & Scripts
         run: npm run type-check:all
 
-      - name: 7. Run ESLint Code Analysis
+      - name: 9. Run ESLint Code Analysis (Zero-Warning Target)
         run: npm run lint
 
-      - name: 8. Execute Unit Regression Suite
-        run: npm run test:unit
+      - name: 10. Execute Comprehensive Production Test Suites (22 Suites via test:all)
+        run: npm run test:all
 
-      - name: 9. Execute Integration Suite
-        run: npm run test:integration
+      - name: 11. Execute Playwright Real Chromium Browser E2E Suite
+        run: npm run test:playwright
 
-      - name: 10. Execute Security Suite
-        run: npm run test:security
-
-      - name: 11. Execute RISMOS White-Label Suite
-        run: npm run test:rismos
-
-      - name: 12. Execute Localization Matrix Suite
-        run: npm run test:localization
-
-      - name: 13. Execute Invoice & Financial Hotfix Suite
-        run: npm run test:invoice
-
-      - name: 14. Execute Database & Ledger Security Suite
-        run: npm run test:database
-
-      - name: 15. Execute Responsive & Viewport Overflow Suite
-        run: npm run test:responsive
-
-      - name: 16. Execute Responsive Form & Modal Primitives Suite
-        run: npm run test:responsive-modal
-
-      - name: 17. Execute Password Recovery Security Matrix Suite
-        run: npm run test:password-matrix
-
-      - name: 18. Execute End-to-End Production Journey Suite
-        run: npm run test:e2e
-
-      - name: 19. Execute Production Next.js Build Gate
+      - name: 12. Execute Production Next.js Build Gate
         run: npm run build
         env:
           NODE_ENV: production
+

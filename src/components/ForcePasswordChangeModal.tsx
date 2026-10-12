@@ -83,9 +83,8 @@ export default function ForcePasswordChangeModal() {
           </div>
           <h2 className="text-xl font-bold text-foreground">Password Update Required</h2>
           <p className="text-xs text-muted-foreground">
-            Welcome to {appName}. As a security requirement for newly provisioned and
-            bootstrapped accounts, you must replace your temporary password before accessing the
-            system.
+            Welcome to {appName}. As a security requirement for newly provisioned and bootstrapped
+            accounts, you must replace your temporary password before accessing the system.
           </p>
         </div>
 

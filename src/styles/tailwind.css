@@ -6,58 +6,59 @@
 
 :root {
   /* FIXED RISMOS ENTERPRISE BRAND PALETTE */
-  --brand-navy: #0B1F3A;
-  --navy-action: #123A63;
-  --app-bg: #F8FAFC;
-  --card-surface: #FFFFFF;
-  --main-text: #0F172A;
-  --muted-text: #64748B;
-  --border-color: #E2E8F0;
+  --brand-navy: #0b1f3a;
+  --navy-action: #123a63;
+  --app-bg: #f8fafc;
+  --card-surface: #ffffff;
+  --main-text: #0f172a;
+  --muted-text: #64748b;
+  --border-color: #e2e8f0;
 
-  --background: #F8FAFC;
-  --foreground: #0F172A;
-  --primary: #0B1F3A;
-  --primary-foreground: #FFFFFF;
-  --primary-hover: #123A63;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --primary: #0b1f3a;
+  --primary-foreground: #ffffff;
+  --primary-hover: #123a63;
   --primary-soft: rgba(11, 31, 58, 0.08);
 
-  --secondary: #123A63;
-  --secondary-foreground: #FFFFFF;
-  --secondary-hover: #0B1F3A;
+  --secondary: #123a63;
+  --secondary-foreground: #ffffff;
+  --secondary-hover: #0b1f3a;
   --secondary-soft: rgba(18, 58, 99, 0.08);
 
-  --accent: #123A63;
-  --accent-foreground: #FFFFFF;
-  --accent-hover: #0B1F3A;
+  --accent: #123a63;
+  --accent-foreground: #ffffff;
+  --accent-hover: #0b1f3a;
   --accent-soft: rgba(18, 58, 99, 0.1);
 
-  --muted: #F1F5F9;
-  --muted-foreground: #64748B;
-  --card: #FFFFFF;
-  --card-foreground: #0F172A;
-  --border: #E2E8F0;
-  --input: #E2E8F0;
-  --ring: #123A63;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #123a63;
   --radius: 0.5rem;
   --font-plus-jakarta-sans:
-    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
   --font-sans:
     'General Sans', var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI',
     Roboto, sans-serif;
 
   /* Standard Semantic Status Tokens */
-  --positive: #10B981;
-  --positive-bg: #ECFDF5;
-  --positive-border: #A7F3D0;
-  --warning: #F59E0B;
-  --warning-bg: #FFFBEB;
-  --warning-border: #FDE68A;
-  --danger: #EF4444;
-  --danger-bg: #FEF2F2;
-  --danger-border: #FECACA;
-  --info: #123A63;
-  --info-bg: #F0F4F8;
-  --info-border: #CBD5E1;
+  --positive: #10b981;
+  --positive-bg: #ecfdf5;
+  --positive-border: #a7f3d0;
+  --warning: #f59e0b;
+  --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+  --danger: #ef4444;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --info: #123a63;
+  --info-bg: #f0f4f8;
+  --info-border: #cbd5e1;
 
   --sidebar-width: 232px;
   --sidebar-collapsed-width: 60px;
@@ -210,7 +211,7 @@
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, #0B1F3A 0%, #123A63 100%);
+    background: linear-gradient(135deg, #0b1f3a 0%, #123a63 100%);
   }
 
   .gradient-card-positive {
@@ -537,7 +538,7 @@
     transition: all var(--duration-normal) var(--ease-default);
   }
   .input-field::placeholder {
-    color: var(--muted-foreground, #64748B);
+    color: var(--muted-foreground, #64748b);
     opacity: 0.6;
   }
   .input-field:hover {

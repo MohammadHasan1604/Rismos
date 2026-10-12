@@ -86,7 +86,8 @@ export default function ForgotPasswordPage() {
                   <span>Link expires in 15 minutes</span>
                 </p>
                 <p className="text-muted-foreground dark:text-emerald-300/80">
-                  Please check your spam or junk folder if you don&apos;t see the email within 1 minute.
+                  Please check your spam or junk folder if you don&apos;t see the email within 1
+                  minute.
                 </p>
               </div>
             </div>

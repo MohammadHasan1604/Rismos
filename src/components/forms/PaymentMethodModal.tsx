@@ -87,7 +87,7 @@ export default function PaymentMethodModal({
       prevOpenRef.current = false;
       editMethodIdRef.current = null;
     }
-  }, [open, paymentMethod?.id, initialName]);
+  }, [open, paymentMethod, paymentMethods.length, initialName]);
 
   const isDirty = React.useMemo(() => {
     if (paymentMethod) {

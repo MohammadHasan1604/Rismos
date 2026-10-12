@@ -195,9 +195,15 @@ export default function ReportsPage() {
   };
 
   const fmt = (v: number | undefined | null) =>
-    (v ?? 0).toLocaleString(dateLocale || 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    (v ?? 0).toLocaleString(dateLocale || 'en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
   const fmtDec = (v: number | undefined | null) =>
-    (v ?? 0).toLocaleString(dateLocale || 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    (v ?? 0).toLocaleString(dateLocale || 'en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
   const openDrilldown = (
     type: 'product-sales' | 'supplier-purchases' | 'employee-sales' | 'overview-sales',

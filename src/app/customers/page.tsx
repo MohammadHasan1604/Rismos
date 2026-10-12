@@ -1,6 +1,5 @@
 'use client';
-import React, { useState, useMemo, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
 import Modal from '@/components/ui/Modal';
@@ -130,7 +129,7 @@ export default function CustomersPage() {
         }
       }
     }
-  }, [customers]);
+  }, [customers, branding.city]);
 
   const crmSegments = [
     'All Customers',
@@ -143,28 +142,31 @@ export default function CustomersPage() {
   ];
 
   // Helper to determine customer segment tag dynamically
-  const getCustomerSegmentTag = (cust: Customer) => {
-    const custNormPhone = normalizeMobileNumber(cust.phone);
-    const custSales = sales.filter(
-      (s) =>
-        normalizeMobileNumber(s.customerPhone) === custNormPhone || s.customerName === cust.name
-    );
-    const custRepairs = repairsEnquiries.filter(
-      (r) =>
-        normalizeMobileNumber(r.customerPhone) === custNormPhone || r.customerName === cust.name
-    );
+  const getCustomerSegmentTag = useCallback(
+    (cust: Customer) => {
+      const custNormPhone = normalizeMobileNumber(cust.phone);
+      const custSales = sales.filter(
+        (s) =>
+          normalizeMobileNumber(s.customerPhone) === custNormPhone || s.customerName === cust.name
+      );
+      const custRepairs = repairsEnquiries.filter(
+        (r) =>
+          normalizeMobileNumber(r.customerPhone) === custNormPhone || r.customerName === cust.name
+      );
 
-    const hasSales = custSales.length > 0;
-    const hasRepairs = custRepairs.length > 0;
-    const isHighValue = cust.totalSpend >= 50000;
+      const hasSales = custSales.length > 0;
+      const hasRepairs = custRepairs.length > 0;
+      const isHighValue = cust.totalSpend >= 50000;
 
-    if (hasSales && hasRepairs) return 'Repair + Purchase Customer';
-    if (hasRepairs) return 'Repair Customer';
-    if (isHighValue) return 'High Value Customer';
-    if (custSales.length > 1) return 'Returning Customer';
-    if (cust.tier === 'New' || custSales.length === 0) return 'New Customer';
-    return 'Returning Customer';
-  };
+      if (hasSales && hasRepairs) return 'Repair + Purchase Customer';
+      if (hasRepairs) return 'Repair Customer';
+      if (isHighValue) return 'High Value Customer';
+      if (custSales.length > 1) return 'Returning Customer';
+      if (cust.tier === 'New' || custSales.length === 0) return 'New Customer';
+      return 'Returning Customer';
+    },
+    [sales, repairsEnquiries]
+  );
 
   // Filtered Customer List based on Segment & Deep Search
   const filteredCustomers = useMemo(() => {
@@ -197,7 +199,7 @@ export default function CustomersPage() {
 
       return matchSegment && matchSearch;
     });
-  }, [customers, sales, repairsEnquiries, selectedSegment, deepSearchQuery]);
+  }, [customers, sales, repairsEnquiries, selectedSegment, deepSearchQuery, getCustomerSegmentTag]);
 
   const openEdit = (c: Customer) => {
     setEditCustomerModal(c);
@@ -464,7 +466,6 @@ export default function CustomersPage() {
               </div>
             ) : (
               filteredCustomers.map((cust) => {
-                const tag = getCustomerSegmentTag(cust);
                 return (
                   <div
                     key={`m-${cust.id}`}

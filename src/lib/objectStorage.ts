@@ -34,7 +34,7 @@ const S3_ENDPOINT =
     ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
     : '');
 const S3_REGION = process.env.STORAGE_REGION || process.env.R2_REGION || 'auto';
-const S3_BUCKET = process.env.STORAGE_BUCKET || process.env.R2_BUCKET_NAME || 'cosko-assets';
+const S3_BUCKET = process.env.STORAGE_BUCKET || process.env.R2_BUCKET_NAME || 'rismos-assets';
 const S3_ACCESS_KEY =
   process.env.STORAGE_ACCESS_KEY ||
   process.env.R2_ACCESS_KEY_ID ||
@@ -124,6 +124,13 @@ export function validateFile(
     return {
       valid: false,
       error: `Invalid file format (${mimeType}). Allowed: JPEG, PNG, WebP, PDF.`,
+    };
+  }
+
+  if ((category === 'branding' || category === 'product-images') && !isImage) {
+    return {
+      valid: false,
+      error: `Category '${category}' strictly requires image formats (JPEG, PNG, WebP).`,
     };
   }
 

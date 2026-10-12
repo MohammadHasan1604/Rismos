@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { authenticateRequest, hasPermission, createAuditLog } from '@/lib/authPipeline';
+import { authenticateRequest } from '@/lib/authPipeline';
 import { broadcastRealtimeEvent } from '@/lib/realtime';
 
 const DEFAULT_CATEGORY_TYPES = [

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
 import CustomSelect, { SelectOption } from '@/components/ui/CustomSelect';
@@ -159,7 +159,7 @@ export default function UserFormModal({
       prevOpenRef.current = false;
       editUserIdRef.current = null;
     }
-  }, [open, user?.id]);
+  }, [open, user, permittedRoles, isCallerSuperAdmin, callerAccessibleStores, currentUser.store]);
 
   // Dirty form protection
   const isDirty = useMemo(() => {
@@ -189,11 +189,6 @@ export default function UserFormModal({
 
   // Rule 11: Sales Manager must not access user creation
   if (!open || currentUser.role === 'Sales Manager') return null;
-
-  // Enforce exactly one operational store for Store Manager / Sales Manager
-  const selectSingleStore = (code: string) => {
-    setAssignedStores([code]);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

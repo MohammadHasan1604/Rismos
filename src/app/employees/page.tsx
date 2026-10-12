@@ -3,21 +3,11 @@ import React, { useState } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
 import Modal from '@/components/ui/Modal';
-import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import { useApp, UserAccount } from '@/context/AppContext';
 import UserFormModal from '@/components/forms/UserFormModal';
-import { toast } from 'sonner';
 
 export default function EmployeesPage() {
-  const {
-    currentUser,
-    selectedStore,
-    usersList,
-    storesList,
-    addUserAccount,
-    updateUserAccount,
-    deleteUserAccount,
-  } = useApp();
+  const { currentUser, selectedStore, usersList, deleteUserAccount } = useApp();
 
   const [addModal, setAddModal] = useState(false);
   const [editModal, setEditModal] = useState<UserAccount | null>(null);

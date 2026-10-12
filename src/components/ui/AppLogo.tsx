@@ -3,6 +3,7 @@
 import React, { memo, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import CoskoLogo from './CoskoLogo';
+import AppImage from './AppImage';
 
 interface AppLogoProps {
   src?: string;
@@ -49,10 +50,12 @@ export const AppLogo = memo(function AppLogo({
     <div className={containerClassName} onClick={onClick} style={{ height: size }}>
       {activeSrc ? (
         <div className="flex items-center gap-2.5">
-          <img
+          <AppImage
             src={activeSrc}
             alt={appName}
-            style={{ height: size, maxHeight: size, objectFit: 'contain' }}
+            width={size}
+            height={size}
+            style={{ height: size, maxHeight: size, width: 'auto', objectFit: 'contain' }}
             className="rounded flex-shrink-0"
           />
           {showText && (

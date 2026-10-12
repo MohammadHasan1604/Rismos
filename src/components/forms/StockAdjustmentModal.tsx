@@ -96,7 +96,7 @@ export default function StockAdjustmentModal({
       prevOpenRef.current = false;
       editItemIdRef.current = null;
     }
-  }, [open, item?.id, reset]);
+  }, [open, item?.id, item?.store, reset]);
 
   const isDirty = Boolean(quantity !== '' || watch('notes'));
   const handleSafeClose = () => {

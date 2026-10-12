@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
-import Icon from '@/components/ui/AppIcon';
 import { isWithinDatePeriod } from '@/lib/dateUtils';
 
 export default function StoreSalesRanking() {
@@ -144,7 +143,7 @@ export default function StoreSalesRanking() {
     });
 
     return Object.values(custMap).sort((a, b) => b.totalSpend - a.totalSpend);
-  }, [filteredSales, customers]);
+  }, [filteredSales, customers, dateLocale]);
 
   const quickFilters = [
     'Today',

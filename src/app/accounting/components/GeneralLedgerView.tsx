@@ -127,7 +127,10 @@ export const GeneralLedgerView: React.FC<GeneralLedgerViewProps> = ({
             {/* Mobile Ledger Cards (<md) */}
             <div className="block md:hidden divide-y divide-border">
               {ledgerEntries.map((le) => (
-                <div key={`m-le-${le.id}`} className="p-4 space-y-2.5 bg-card hover:bg-muted/10 transition-colors">
+                <div
+                  key={`m-le-${le.id}`}
+                  className="p-4 space-y-2.5 bg-card hover:bg-muted/10 transition-colors"
+                >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono font-bold text-xs text-primary">{le.entryNo}</span>
                     <div className="flex items-center gap-1.5">
@@ -165,13 +168,17 @@ export const GeneralLedgerView: React.FC<GeneralLedgerViewProps> = ({
                     <div className="flex items-center gap-3">
                       <div>
                         <span className="text-3xs text-muted-foreground block">Debit</span>
-                        <span className={`font-bold ${le.debit > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        <span
+                          className={`font-bold ${le.debit > 0 ? 'text-foreground' : 'text-muted-foreground'}`}
+                        >
                           {le.debit > 0 ? formatCurrency(le.debit) : '—'}
                         </span>
                       </div>
                       <div>
                         <span className="text-3xs text-muted-foreground block">Credit</span>
-                        <span className={`font-bold ${le.credit > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        <span
+                          className={`font-bold ${le.credit > 0 ? 'text-foreground' : 'text-muted-foreground'}`}
+                        >
                           {le.credit > 0 ? formatCurrency(le.credit) : '—'}
                         </span>
                       </div>
@@ -238,7 +245,9 @@ export const GeneralLedgerView: React.FC<GeneralLedgerViewProps> = ({
                       </td>
                       <td className="px-4 py-3 font-semibold text-foreground">{le.storeCode}</td>
                       <td className="px-4 py-3">
-                        <span className="badge-neutral text-3xs font-bold">{le.accountCategory}</span>
+                        <span className="badge-neutral text-3xs font-bold">
+                          {le.accountCategory}
+                        </span>
                       </td>
                       <td className="px-4 py-3 font-bold text-foreground">{le.accountName}</td>
                       <td className="px-4 py-3 font-mono text-muted-foreground">{le.refNo}</td>

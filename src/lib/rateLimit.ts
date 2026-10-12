@@ -133,6 +133,10 @@ export function clearRateLimit(key: string): void {
   memoryRateLimitStore.delete(key);
 }
 
+export function clearAllMemoryRateLimits(): void {
+  memoryRateLimitStore.clear();
+}
+
 /**
  * Serverless-Durable Rate Limiter (Backed by MySQL `security_rate_limits`)
  * Hashes key with SHA-256 for privacy.

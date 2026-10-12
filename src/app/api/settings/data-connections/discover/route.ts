@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateRequest, hasPermission, createAuditLog } from '@/lib/authPipeline';
+import { authenticateRequest } from '@/lib/authPipeline';
 
 /**
  * POST /api/settings/data-connections/discover - Discover tables and schema columns

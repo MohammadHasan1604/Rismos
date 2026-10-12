@@ -1,5 +1,4 @@
 import { prisma } from '../db';
-import { Prisma } from '@prisma/client';
 
 export interface LedgerEntryInput {
   entryNo: string;
@@ -135,7 +134,6 @@ export async function getConsolidatedPnL(filters: AccountingFilterParams) {
     const saleSubtotal = Number(s.subtotal) || 0;
     const saleDiscount = Number(s.discountAmount) || 0;
     const saleTax = Number(s.taxAmount) || 0;
-    const saleGrandTotal = Number(s.grandTotal) || 0;
 
     grossRevenue += saleSubtotal;
     totalDiscounts += saleDiscount;

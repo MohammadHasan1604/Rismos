@@ -6,6 +6,7 @@ import Modal from '@/components/ui/Modal';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import { useApp, UserAccount } from '@/context/AppContext';
 import UserFormModal from '@/components/forms/UserFormModal';
+import AppImage from '@/components/ui/AppImage';
 import {
   RBACEngine,
   RBACUser,
@@ -38,11 +39,15 @@ export default function UsersPage() {
 
   const handleSendResetLink = async (targetUser: UserAccount) => {
     if (targetUser.role === 'Super Admin') {
-      toast.error('Super Admin account recovery is self-service only and cannot be triggered via external invitations.');
+      toast.error(
+        'Super Admin account recovery is self-service only and cannot be triggered via external invitations.'
+      );
       return;
     }
     if (targetUser.status !== 'Active') {
-      toast.error(`Cannot send reset invitation: account is currently ${targetUser.status.toLowerCase()}.`);
+      toast.error(
+        `Cannot send reset invitation: account is currently ${targetUser.status.toLowerCase()}.`
+      );
       return;
     }
 
@@ -141,34 +146,33 @@ export default function UsersPage() {
     }
   };
 
-  // Convert context users to RBACUser format for engine evaluation
-  const rbacCurrentUser: RBACUser = {
-    id: currentUser.id,
-    name: currentUser.name,
-    email: currentUser.email,
-    role: currentUser.role,
-    securityLevel: (ROLE_SECURITY_LEVELS as any)[currentUser.role] || 20,
-    storeScope: currentUser.store,
-    status: 'Active',
-    permissions: ['ALL_PERMISSIONS'],
-  };
-
-  const rbacUsers: RBACUser[] = usersList.map((u) => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    role: u.role,
-    securityLevel: (u.securityLevel as any) || (ROLE_SECURITY_LEVELS as any)[u.role] || 20,
-    storeScope: u.store,
-    allowedStores: u.allowedStores || [u.store],
-    status: u.status,
-    permissions: u.permissions || [],
-    overrides: u.overrides || [],
-    avatarUrl: u.avatarUrl,
-  }));
-
   // Server-Side Visibility Protection: Filter protected accounts based on caller security level
   const visibleUsers = useMemo(() => {
+    const rbacCurrentUser: RBACUser = {
+      id: currentUser.id,
+      name: currentUser.name,
+      email: currentUser.email,
+      role: currentUser.role,
+      securityLevel: (ROLE_SECURITY_LEVELS as any)[currentUser.role] || 20,
+      storeScope: currentUser.store,
+      status: 'Active',
+      permissions: ['ALL_PERMISSIONS'],
+    };
+
+    const rbacUsers: RBACUser[] = usersList.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      securityLevel: (u.securityLevel as any) || (ROLE_SECURITY_LEVELS as any)[u.role] || 20,
+      storeScope: u.store,
+      allowedStores: u.allowedStores || [u.store],
+      status: u.status,
+      permissions: u.permissions || [],
+      overrides: u.overrides || [],
+      avatarUrl: u.avatarUrl,
+    }));
+
     let users = RBACEngine.filterVisibleUsers(rbacCurrentUser, rbacUsers);
     if (currentUser.role === 'Store Manager') {
       users = users.filter(
@@ -193,7 +197,7 @@ export default function UsersPage() {
       );
     }
     return users;
-  }, [rbacCurrentUser, rbacUsers, currentUser.role, currentUser.store, statusFilter, searchQuery]);
+  }, [currentUser, usersList, statusFilter, searchQuery]);
 
   const toggleCategoryCollapse = (cat: string) => {
     setCollapsedCategories((prev) => ({ ...prev, [cat]: !prev[cat] }));
@@ -391,9 +395,11 @@ export default function UsersPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         {u.avatarUrl ? (
-                          <img
+                          <AppImage
                             src={u.avatarUrl}
                             alt={u.name}
+                            width={40}
+                            height={40}
                             className="w-10 h-10 rounded-full object-cover border border-border flex-shrink-0"
                           />
                         ) : (
@@ -441,7 +447,9 @@ export default function UsersPage() {
                       </span>
 
                       <div className="flex items-center gap-1 flex-wrap">
-                        <span className="text-3xs text-muted-foreground font-semibold">Stores:</span>
+                        <span className="text-3xs text-muted-foreground font-semibold">
+                          Stores:
+                        </span>
                         {allowedStores.map((st) => (
                           <span
                             key={`st-m-${st}`}
@@ -577,166 +585,172 @@ export default function UsersPage() {
                     <td colSpan={5} className="py-12 px-4 text-center text-muted-foreground">
                       <Icon name="UserGroupIcon" size={32} className="mx-auto opacity-40 mb-2" />
                       <p className="font-semibold text-sm">No accounts found</p>
-                      <p className="text-2xs">Try adjusting your search criteria or status filter.</p>
+                      <p className="text-2xs">
+                        Try adjusting your search criteria or status filter.
+                      </p>
                     </td>
                   </tr>
                 ) : (
                   visibleUsers.map((u) => {
-                  const level =
-                    u.securityLevel ||
-                    (u.role === 'Super Admin' ? 100 : u.role === 'Store Manager' ? 80 : 40);
-                  const isProtectedSuperAdmin = u.role === 'Super Admin';
-                  const fullUserRecord = usersList.find((usr) => usr.id === u.id);
-                  const allowedStores = u.allowedStores || [u.storeScope];
+                    const level =
+                      u.securityLevel ||
+                      (u.role === 'Super Admin' ? 100 : u.role === 'Store Manager' ? 80 : 40);
+                    const isProtectedSuperAdmin = u.role === 'Super Admin';
+                    const fullUserRecord = usersList.find((usr) => usr.id === u.id);
+                    const allowedStores = u.allowedStores || [u.storeScope];
 
-                  return (
-                    <tr key={`usr-row-${u.id}`} className="table-row">
-                      <td className="py-3 px-4 font-medium text-foreground sticky left-0 z-10 bg-card border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
-                        <div className="flex items-center gap-2.5">
-                          {u.avatarUrl ? (
-                            <img
-                              src={u.avatarUrl}
-                              alt={u.name}
-                              className="w-8 h-8 rounded-full object-cover border border-border flex-shrink-0"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs flex-shrink-0">
-                              {u.name.substring(0, 2).toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <p className="font-semibold text-foreground">{u.name}</p>
-                              {isProtectedSuperAdmin && (
-                                <span className="text-3xs bg-danger/10 text-danger border border-danger/20 px-1.5 py-0.2 rounded-full font-bold flex items-center gap-0.5">
-                                  <Icon name="LockClosedIcon" size={10} /> Level 100
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-3xs text-muted-foreground">{u.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`badge ${level === 100 ? 'badge-danger' : level === 80 ? 'badge-warning' : 'badge-info'} text-3xs`}
-                        >
-                          Level {level} · {u.role}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {allowedStores.map((st) => (
-                            <span
-                              key={`st-badge-${st}`}
-                              className="badge-secondary text-3xs font-mono font-bold"
-                            >
-                              {st}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <select
-                          value={u.status}
-                          disabled={isProtectedSuperAdmin && currentUser.role !== 'Super Admin'}
-                          onChange={(e) => toggleUserStatus(u.id, e.target.value as any)}
-                          className={`text-3xs font-bold px-2 py-1 rounded-lg border ${
-                            u.status === 'Active'
-                              ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
-                              : u.status === 'Suspended'
-                                ? 'bg-rose-500/10 text-rose-600 border-rose-500/30'
-                                : 'bg-muted text-muted-foreground border-border'
-                          }`}
-                        >
-                          <option value="Active">ACTIVE</option>
-                          <option value="Inactive">INACTIVE</option>
-                          <option value="Suspended">SUSPENDED</option>
-                        </select>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {fullUserRecord && (
-                            <button
-                              onClick={() => setPerformanceModalUser(fullUserRecord)}
-                              className="btn-secondary h-7 text-3xs py-1 px-2.5 gap-1"
-                              title="Employee Performance Metrics"
-                            >
-                              <Icon name="ChartBarIcon" size={12} />
-                              Metrics
-                            </button>
-                          )}
-
-                          {currentUser.role === 'Super Admin' &&
-                            fullUserRecord &&
-                            (isProtectedSuperAdmin ? (
-                              <span
-                                className="inline-flex items-center gap-1 text-3xs font-extrabold px-2 py-1 rounded-lg bg-danger/10 text-danger border border-danger/20"
-                                title="Super Admin holds unrestricted root-level access to all modules, pages, stores, and actions."
-                              >
-                                <Icon name="ShieldCheckIcon" size={12} />
-                                Full Root Access
-                              </span>
+                    return (
+                      <tr key={`usr-row-${u.id}`} className="table-row">
+                        <td className="py-3 px-4 font-medium text-foreground sticky left-0 z-10 bg-card border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
+                          <div className="flex items-center gap-2.5">
+                            {u.avatarUrl ? (
+                              <AppImage
+                                src={u.avatarUrl}
+                                alt={u.name}
+                                width={32}
+                                height={32}
+                                className="w-8 h-8 rounded-full object-cover border border-border flex-shrink-0"
+                              />
                             ) : (
-                              <button
-                                onClick={() => handleOpenPermissions(fullUserRecord)}
-                                className="btn-primary h-7 text-3xs py-1 px-2.5 gap-1"
-                                title="Config Granular Permissions"
-                              >
-                                <Icon name="KeyIcon" size={12} />
-                                Access Matrix
-                              </button>
-                            ))}
-
-                          {(!isProtectedSuperAdmin || currentUser.role === 'Super Admin') &&
-                            fullUserRecord && (
-                              <>
-                                {((currentUser.role === 'Super Admin' && u.role !== 'Super Admin') ||
-                                  (currentUser.role === 'Store Manager' &&
-                                    u.role === 'Sales Manager' &&
-                                    (u.storeScope === currentUser.store ||
-                                      (currentUser.allowedStores &&
-                                        currentUser.allowedStores.includes(u.storeScope))))) && (
-                                  <button
-                                    onClick={() => handleSendResetLink(fullUserRecord)}
-                                    disabled={sendingResetUserId === u.id}
-                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 transition-colors disabled:opacity-50"
-                                    title="Send Password Reset Link via Email (15m expiry)"
-                                  >
-                                    {sendingResetUserId === u.id ? (
-                                      <Icon
-                                        name="ArrowPathIcon"
-                                        size={14}
-                                        className="animate-spin text-amber-500"
-                                      />
-                                    ) : (
-                                      <Icon name="EnvelopeIcon" size={14} />
-                                    )}
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => openEdit(fullUserRecord)}
-                                  className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                                  title="Edit User"
-                                >
-                                  <Icon name="PencilSquareIcon" size={14} />
-                                </button>
-                                {u.id !== currentUser.id && (
-                                  <button
-                                    onClick={() => handleDeleteClick(fullUserRecord)}
-                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-danger hover:bg-danger/10 transition-colors"
-                                    title="Delete User"
-                                  >
-                                    <Icon name="TrashIcon" size={14} />
-                                  </button>
-                                )}
-                              </>
+                              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                {u.name.substring(0, 2).toUpperCase()}
+                              </div>
                             )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }))}
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-semibold text-foreground">{u.name}</p>
+                                {isProtectedSuperAdmin && (
+                                  <span className="text-3xs bg-danger/10 text-danger border border-danger/20 px-1.5 py-0.2 rounded-full font-bold flex items-center gap-0.5">
+                                    <Icon name="LockClosedIcon" size={10} /> Level 100
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-3xs text-muted-foreground">{u.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`badge ${level === 100 ? 'badge-danger' : level === 80 ? 'badge-warning' : 'badge-info'} text-3xs`}
+                          >
+                            Level {level} · {u.role}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {allowedStores.map((st) => (
+                              <span
+                                key={`st-badge-${st}`}
+                                className="badge-secondary text-3xs font-mono font-bold"
+                              >
+                                {st}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <select
+                            value={u.status}
+                            disabled={isProtectedSuperAdmin && currentUser.role !== 'Super Admin'}
+                            onChange={(e) => toggleUserStatus(u.id, e.target.value as any)}
+                            className={`text-3xs font-bold px-2 py-1 rounded-lg border ${
+                              u.status === 'Active'
+                                ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
+                                : u.status === 'Suspended'
+                                  ? 'bg-rose-500/10 text-rose-600 border-rose-500/30'
+                                  : 'bg-muted text-muted-foreground border-border'
+                            }`}
+                          >
+                            <option value="Active">ACTIVE</option>
+                            <option value="Inactive">INACTIVE</option>
+                            <option value="Suspended">SUSPENDED</option>
+                          </select>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {fullUserRecord && (
+                              <button
+                                onClick={() => setPerformanceModalUser(fullUserRecord)}
+                                className="btn-secondary h-7 text-3xs py-1 px-2.5 gap-1"
+                                title="Employee Performance Metrics"
+                              >
+                                <Icon name="ChartBarIcon" size={12} />
+                                Metrics
+                              </button>
+                            )}
+
+                            {currentUser.role === 'Super Admin' &&
+                              fullUserRecord &&
+                              (isProtectedSuperAdmin ? (
+                                <span
+                                  className="inline-flex items-center gap-1 text-3xs font-extrabold px-2 py-1 rounded-lg bg-danger/10 text-danger border border-danger/20"
+                                  title="Super Admin holds unrestricted root-level access to all modules, pages, stores, and actions."
+                                >
+                                  <Icon name="ShieldCheckIcon" size={12} />
+                                  Full Root Access
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleOpenPermissions(fullUserRecord)}
+                                  className="btn-primary h-7 text-3xs py-1 px-2.5 gap-1"
+                                  title="Config Granular Permissions"
+                                >
+                                  <Icon name="KeyIcon" size={12} />
+                                  Access Matrix
+                                </button>
+                              ))}
+
+                            {(!isProtectedSuperAdmin || currentUser.role === 'Super Admin') &&
+                              fullUserRecord && (
+                                <>
+                                  {((currentUser.role === 'Super Admin' &&
+                                    u.role !== 'Super Admin') ||
+                                    (currentUser.role === 'Store Manager' &&
+                                      u.role === 'Sales Manager' &&
+                                      (u.storeScope === currentUser.store ||
+                                        (currentUser.allowedStores &&
+                                          currentUser.allowedStores.includes(u.storeScope))))) && (
+                                    <button
+                                      onClick={() => handleSendResetLink(fullUserRecord)}
+                                      disabled={sendingResetUserId === u.id}
+                                      className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 transition-colors disabled:opacity-50"
+                                      title="Send Password Reset Link via Email (15m expiry)"
+                                    >
+                                      {sendingResetUserId === u.id ? (
+                                        <Icon
+                                          name="ArrowPathIcon"
+                                          size={14}
+                                          className="animate-spin text-amber-500"
+                                        />
+                                      ) : (
+                                        <Icon name="EnvelopeIcon" size={14} />
+                                      )}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => openEdit(fullUserRecord)}
+                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                                    title="Edit User"
+                                  >
+                                    <Icon name="PencilSquareIcon" size={14} />
+                                  </button>
+                                  {u.id !== currentUser.id && (
+                                    <button
+                                      onClick={() => handleDeleteClick(fullUserRecord)}
+                                      className="p-1.5 rounded-lg text-muted-foreground hover:text-danger hover:bg-danger/10 transition-colors"
+                                      title="Delete User"
+                                    >
+                                      <Icon name="TrashIcon" size={14} />
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

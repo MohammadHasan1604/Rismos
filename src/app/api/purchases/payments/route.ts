@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateRequest, hasPermission, createAuditLog } from '@/lib/authPipeline';
+import { authenticateRequest } from '@/lib/authPipeline';
 import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent, getStoreChannel, persistOutboxEvent } from '@/lib/realtime';
 import { generateDateSequenceNo } from '@/lib/sequenceUtils';

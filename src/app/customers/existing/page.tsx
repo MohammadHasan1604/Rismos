@@ -1,9 +1,8 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
-import { useApp } from '@/context/AppContext';
 
 interface LegacyCustomerRow {
   id: string;
@@ -19,70 +18,14 @@ interface LegacyCustomerRow {
   linkStatus: string;
 }
 
-const INITIAL_LEGACY_CUSTOMERS: LegacyCustomerRow[] = [
-  {
-    id: 'LEG-CUST-1001',
-    name: 'Ahmed Khan',
-    phone: '+91 98765 43210',
-    normalizedPhone: '9876543210',
-    email: 'ahmed.khan@gmail.com',
-    city: 'Bengaluru',
-    firstSeenDate: '15 Aug 2025',
-    repairsCount: 2,
-    coskoPurchasesCount: 1,
-    coskoCustomerId: 'cust-ahmed-01',
-    linkStatus: 'VERIFIED',
-  },
-  {
-    id: 'LEG-CUST-1002',
-    name: 'Priya Sharma',
-    phone: '+91 98450 11223',
-    normalizedPhone: '9845011223',
-    email: 'priya.s@yahoo.co.in',
-    city: 'Hyderabad',
-    firstSeenDate: '10 Mar 2026',
-    repairsCount: 1,
-    coskoPurchasesCount: 0,
-    coskoCustomerId: null,
-    linkStatus: 'AUTO_MATCHED',
-  },
-  {
-    id: 'LEG-CUST-1003',
-    name: 'Vikram Mehta',
-    phone: '+91 98111 22334',
-    normalizedPhone: '9811122334',
-    email: 'vikram.m@outlook.com',
-    city: 'Delhi',
-    firstSeenDate: '02 May 2026',
-    repairsCount: 1,
-    coskoPurchasesCount: 0,
-    coskoCustomerId: null,
-    linkStatus: 'AUTO_MATCHED',
-  },
-  {
-    id: 'LEG-CUST-1004',
-    name: 'Rajesh Patil',
-    phone: '+91 98200 33445',
-    normalizedPhone: '9820033445',
-    email: 'rajesh.patil@corp.in',
-    city: 'Mumbai',
-    firstSeenDate: '15 Jul 2026',
-    repairsCount: 1,
-    coskoPurchasesCount: 0,
-    coskoCustomerId: null,
-    linkStatus: 'AUTO_MATCHED',
-  },
-];
-
 export default function ExistingCustomersPage() {
-  const { currentUser } = useApp();
   const [customers, setCustomers] = useState<LegacyCustomerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -99,11 +42,11 @@ export default function ExistingCustomersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, searchQuery]);
 
   useEffect(() => {
     fetchCustomers();
-  }, [statusFilter, searchQuery]);
+  }, [fetchCustomers]);
 
   const handleLinkAction = async (legacyId: string, action: 'verify' | 'unlink') => {
     try {

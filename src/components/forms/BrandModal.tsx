@@ -73,7 +73,7 @@ export default function BrandModal({
       prevOpenRef.current = false;
       editBrandIdRef.current = null;
     }
-  }, [open, brand?.id, initialName]);
+  }, [open, brand, initialName]);
 
   const isDirty = React.useMemo(() => {
     if (brand) {

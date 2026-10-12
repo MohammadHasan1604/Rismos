@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
-import AppLogo from '@/components/ui/AppLogo';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import {
   InvoiceTemplateConfig,

@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { verifyV2Schema } from './verify-v2-schema';
 import { verifyIndexes } from './verify-indexes';
 
+const OLD_DB_URL = process.env.OLD_DATABASE_URL || process.env.V1_DATABASE_URL;
 const NEW_DB_URL = process.env.NEW_DATABASE_URL || process.env.DATABASE_URL;
 if (!NEW_DB_URL) {
   throw new Error('CRITICAL: NEW_DATABASE_URL or DATABASE_URL must be set in environment.');
@@ -14,11 +15,11 @@ async function applyBaselineToNewDb() {
   console.log('🚀 [DATABASE V2 CUTOVER] APPLYING BASELINE DDL TO NEW AIVEN DB');
   console.log('============================================================\n');
 
-  if (NEW_DB_URL === OLD_DB_URL) {
+  if (OLD_DB_URL && NEW_DB_URL === OLD_DB_URL) {
     throw new Error('CRITICAL SAFETY ABORT: Target database URL matches old DATABASE_URL! Refusing to run.');
   }
 
-  if (!NEW_DB_URL.includes('rismos-rismos.b.aivencloud.com')) {
+  if (NEW_DB_URL && !NEW_DB_URL.includes('rismos-rismos.b.aivencloud.com')) {
     console.warn('⚠️ Warning: Target host does not match expected new Aiven host.');
   }
 

@@ -13,16 +13,11 @@ import { toast } from 'sonner';
 export default function PurchasesPage() {
   const {
     purchases,
-    vendors,
-    inventory,
-    addPurchase,
     updatePurchase,
     deletePurchase,
     selectedStore,
-    storesList,
     currentUser,
     refreshAllData,
-    recordPurchasePayment,
     formatCurrency,
     systemSettings,
     branding,

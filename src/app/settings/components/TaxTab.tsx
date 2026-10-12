@@ -36,7 +36,7 @@ interface TaxTabProps {
 export const TaxTab: React.FC<TaxTabProps> = ({
   countryCode = 'IN',
   setCountryCode,
-  taxRegime,
+  taxRegime: _taxRegime,
   setTaxRegime,
   taxRegistrationNumber,
   setTaxRegistrationNumber,
@@ -81,7 +81,9 @@ export const TaxTab: React.FC<TaxTabProps> = ({
       }
       // Incompatible jurisdiction-specific data: do NOT retain old tax ID (e.g. GSTIN -> UAE TRN)
       if (taxRegistrationNumber) {
-        const isValidForNewJur = j.taxIdRegex ? j.taxIdRegex.test(taxRegistrationNumber.trim()) : false;
+        const isValidForNewJur = j.taxIdRegex
+          ? j.taxIdRegex.test(taxRegistrationNumber.trim())
+          : false;
         if (!isValidForNewJur) {
           setTaxRegistrationNumber('');
         }
@@ -211,7 +213,10 @@ export const TaxTab: React.FC<TaxTabProps> = ({
                 ) : (
                   <span className="text-danger font-semibold flex items-center gap-1">
                     <Icon name="ExclamationCircleIcon" size={13} />
-                    <span>Invalid format for {currentJurisdiction.countryName} (Format: {currentJurisdiction.taxIdPlaceholder})</span>
+                    <span>
+                      Invalid format for {currentJurisdiction.countryName} (Format:{' '}
+                      {currentJurisdiction.taxIdPlaceholder})
+                    </span>
                   </span>
                 )}
               </div>

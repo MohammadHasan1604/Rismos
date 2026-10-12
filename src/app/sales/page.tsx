@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef, useDeferredValue } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useDeferredValue, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
-import Modal from '@/components/ui/Modal';
+import AppImage from '@/components/ui/AppImage';
 import { formatMoney, formatTaxLabel } from '@/lib/localization';
 import { getJurisdictionProfile } from '@/lib/localization/jurisdictions';
-import { COUNTRY_DIAL_CODES, formatDisplayPhone } from '@/lib/phoneUtils';
+import { COUNTRY_DIAL_CODES } from '@/lib/phoneUtils';
 import { validateTaxRegistrationId } from '@/lib/taxValidation';
 import TaxRegistrationField from '@/components/ui/TaxRegistrationField';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
@@ -15,7 +15,6 @@ import {
   Customer,
   InventoryItem,
   SalePhoto,
-  RepairEnquiry,
   normalizeMobileNumber,
 } from '@/context/AppContext';
 import CustomerFormModal from '@/components/forms/CustomerFormModal';
@@ -50,8 +49,6 @@ export default function SalesPage() {
     categoriesList,
     addSale,
     updateSale,
-    voidSale,
-    addCustomer,
     selectedStore,
     branding,
     systemSettings,
@@ -107,8 +104,8 @@ export default function SalesPage() {
   }>({ purchases: [], repairs: [] });
 
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [lookupDone, setLookupDone] = useState(false);
-  const [customerNotFound, setCustomerNotFound] = useState(false);
+  const [_lookupDone, setLookupDone] = useState(false);
+  const [_customerNotFound, setCustomerNotFound] = useState(false);
 
   // Customer Modal
   const [quickRegModal, setQuickRegModal] = useState(false);
@@ -150,14 +147,17 @@ export default function SalesPage() {
   const [historySearch, setHistorySearch] = useState('');
   const [historyStoreFilter, setHistoryStoreFilter] = useState('All');
 
-  const [historyDateFilter, setHistoryDateFilter] = useState('');
+  const [historyDateFilter] = useState('');
 
   // International phone normalization & display helpers
   const dialCode = COUNTRY_DIAL_CODES[countryCode] || '+91';
 
-  const cleanPhone = (val: string): string => {
-    return normalizeMobileNumber(val, countryCode);
-  };
+  const cleanPhone = useCallback(
+    (val: string): string => {
+      return normalizeMobileNumber(val, countryCode);
+    },
+    [countryCode]
+  );
 
   const formatCustomerPhone = (phoneRaw: string): string => {
     const norm = cleanPhone(phoneRaw);
@@ -353,7 +353,7 @@ export default function SalesPage() {
       }
     }
     return result;
-  }, [customers, customerSearchQuery, countryCode]);
+  }, [customers, customerSearchQuery, cleanPhone]);
 
   // Inventory Filtering
   const dynamicCategories = useMemo(() => {
@@ -996,11 +996,9 @@ export default function SalesPage() {
                     <div>
                       <div className="aspect-video w-full rounded-xl bg-muted/40 mb-2 overflow-hidden flex items-center justify-center relative border border-border/40">
                         {item.imageUrl ? (
-                          <img
+                          <AppImage
                             src={item.imageUrl}
                             alt={item.name}
-                            loading="lazy"
-                            decoding="async"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (

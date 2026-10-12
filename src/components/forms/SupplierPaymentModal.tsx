@@ -5,7 +5,6 @@ import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
 import NumericInput from '@/components/ui/NumericInput';
 import PaymentProofUpload from '@/components/ui/PaymentProofUpload';
-import CustomSelect, { SelectOption } from '@/components/ui/CustomSelect';
 import PaymentMethodSelect from '@/components/ui/PaymentMethodSelect';
 import { useApp, PurchaseOrder } from '@/context/AppContext';
 import { toast } from 'sonner';
@@ -90,7 +89,7 @@ export default function SupplierPaymentModal({
       prevOpenRef.current = false;
       editPurchaseIdRef.current = null;
     }
-  }, [open, purchase?.id]);
+  }, [open, purchase, remaining, defaultPayMethod]);
 
   const isDirty = React.useMemo(() => {
     return Boolean(

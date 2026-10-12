@@ -4,13 +4,14 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Icon from '@/components/ui/AppIcon';
 import AppLogo from '@/components/ui/AppLogo';
+import AppImage from '@/components/ui/AppImage';
 import { useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
 
 interface TopbarProps {
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
-  onMobileMenuOpen: () => void;
+  onMobileMenuOpen?: () => void;
 }
 
 function formatHHMM(totalSeconds: number): string {
@@ -19,7 +20,10 @@ function formatHHMM(totalSeconds: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-export default function Topbar({ onToggleSidebar, onMobileMenuOpen }: TopbarProps) {
+export default function Topbar({
+  onToggleSidebar,
+  onMobileMenuOpen: _onMobileMenuOpen,
+}: TopbarProps) {
   const {
     setSearchOpen,
     setNotificationsOpen,
@@ -295,9 +299,11 @@ export default function Topbar({ onToggleSidebar, onMobileMenuOpen }: TopbarProp
         >
           <div className="relative">
             {currentUser.avatarUrl ? (
-              <img
+              <AppImage
                 src={currentUser.avatarUrl}
                 alt={currentUser.name}
+                width={28}
+                height={28}
                 className="w-7 h-7 rounded-full object-cover border border-border flex-shrink-0"
               />
             ) : (

@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  authenticateRequest,
-  hasPermission,
-  createAuditLog,
-  requireStoreScope,
-} from '@/lib/authPipeline';
+import { authenticateRequest, requireStoreScope } from '@/lib/authPipeline';
 import { getGeneralLedgerEntries } from '@/lib/services/accountingService';
 import { getDateRange, parseDate } from '@/lib/dateUtils';
 

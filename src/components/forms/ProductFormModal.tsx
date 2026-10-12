@@ -13,6 +13,7 @@ import NumericInput from '@/components/ui/NumericInput';
 import { toast } from 'sonner';
 import { StorageService } from '@/lib/storageService';
 import { getJurisdictionProfile } from '@/lib/localization/jurisdictions';
+import AppImage from '@/components/ui/AppImage';
 
 interface ProductFormModalProps {
   open: boolean;
@@ -50,7 +51,6 @@ export default function ProductFormModal({
   const taxLabel = jurProfile?.taxLabel || 'Tax';
 
   const isSuperAdmin = currentUser?.role === 'Super Admin';
-  const isStoreManager = currentUser?.role === 'Store Manager';
   const isSalesManager = currentUser?.role === 'Sales Manager';
   const userStoreCode =
     currentUser?.store && currentUser.store !== 'All Stores' && currentUser.store !== 'ALL'
@@ -257,7 +257,7 @@ export default function ProductFormModal({
       prevOpenRef.current = false;
       editItemIdRef.current = null;
     }
-  }, [open, editItem?.id]);
+  }, [open, editItem, activeCategories, isSuperAdmin, userStoreCode]);
 
   const isDirty = React.useMemo(() => {
     if (editItem) {
@@ -959,7 +959,13 @@ export default function ProductFormModal({
                     key={`img-${idx}`}
                     className="relative group w-14 h-14 rounded-lg overflow-hidden border border-border shrink-0"
                   >
-                    <img src={img} alt="Product" className="w-full h-full object-cover" />
+                    <AppImage
+                      src={img}
+                      alt="Product"
+                      width={56}
+                      height={56}
+                      className="w-full h-full object-cover"
+                    />
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(img)}

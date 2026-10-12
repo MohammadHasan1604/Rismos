@@ -2,6 +2,7 @@
 
 import React from 'react';
 import AppLogo from '@/components/ui/AppLogo';
+import AppImage from '@/components/ui/AppImage';
 import { formatMoney, formatTaxLabel } from '@/lib/localization';
 import {
   InvoiceTemplateConfig,
@@ -239,9 +240,11 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
               switch (field.key) {
                 case 'logo':
                   content = logoUrl ? (
-                    <img
+                    <AppImage
                       src={logoUrl}
                       alt={appName}
+                      width={120}
+                      height={Math.round(field.fontSize * 2.5)}
                       style={{ maxHeight: `${Math.round(field.fontSize * 2.5)}px` }}
                       className="object-contain"
                     />
@@ -476,7 +479,13 @@ export const InvoicePrintRenderer: React.FC<InvoicePrintRendererProps> = ({
               <div className="space-y-1 max-w-sm">
                 <div className="flex items-center gap-2.5 mb-2">
                   {logoUrl ? (
-                    <img src={logoUrl} alt={appName} className="max-h-9 object-contain" />
+                    <AppImage
+                      src={logoUrl}
+                      alt={appName}
+                      width={120}
+                      height={36}
+                      className="max-h-9 object-contain"
+                    />
                   ) : (
                     <AppLogo size={36} showText={true} />
                   )}

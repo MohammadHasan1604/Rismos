@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Icon from '@/components/ui/AppIcon';
 import StoreStockModal from './StoreStockModal';
+import AppImage from '@/components/ui/AppImage';
 
 interface ProductDetailModalProps {
   item: InventoryItem | null;
@@ -32,8 +33,8 @@ export default function ProductDetailModal({ item, onClose }: ProductDetailModal
           <div className="p-4 rounded-xl bg-muted/40 border border-border flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0 flex-1">
               {item.primaryImage || (item.images && item.images[0]) || item.imageUrl ? (
-                <img
-                  src={item.primaryImage || (item.images && item.images[0]) || item.imageUrl}
+                <AppImage
+                  src={(item.primaryImage || (item.images && item.images[0]) || item.imageUrl)!}
                   alt={item.name}
                   className="w-14 h-14 rounded-xl object-cover border border-border flex-shrink-0"
                 />

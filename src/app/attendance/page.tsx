@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
-import StatusBadge from '@/components/ui/StatusBadge';
 import { useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
 import SuperAdminGuard from '@/components/SuperAdminGuard';

@@ -14,14 +14,22 @@ export default function SuperAdminGuard({
   children: React.ReactNode;
   moduleName?: string;
 }) {
-  const { currentUser } = useApp();
+  const { currentUser, authStatus } = useApp();
   const router = useRouter();
 
   useEffect(() => {
-    if (currentUser.role !== 'Super Admin') {
+    if (authStatus === 'AUTHENTICATED' && currentUser.role !== 'Super Admin') {
       router.replace('/sales');
     }
-  }, [currentUser.role, router]);
+  }, [authStatus, currentUser.role, router]);
+
+  if (authStatus === 'AUTH_LOADING') {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   if (currentUser.role !== 'Super Admin') {
     return (

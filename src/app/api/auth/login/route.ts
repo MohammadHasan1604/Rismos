@@ -1,13 +1,7 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import {
-  comparePassword,
-  signSessionToken,
-  isValidAuthOrigin,
-  hashToken,
-  hashSessionToken,
-} from '@/lib/auth';
+import { comparePassword, signSessionToken, isValidAuthOrigin, hashSessionToken } from '@/lib/auth';
 import {
   checkRateLimit,
   recordFailedAttempt,
@@ -22,7 +16,6 @@ import { createSecurityAlertNotification } from '@/lib/services/alertService';
 const DEFAULT_MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes temporary lockout
 const DEFAULT_SESSION_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days default in seconds
-const DEFAULT_SESSION_MS = 30 * 24 * 60 * 60 * 1000; // 30-day session expiry constant in ms
 
 export async function POST(req: NextRequest) {
   // 1. Origin / CSRF validation
@@ -59,7 +52,11 @@ export async function POST(req: NextRequest) {
     const ipRateLimit = checkRateLimit(`ip:${clientIp}`, 50);
     const durableIpCheck = await checkDurableRateLimit(`login:ip:${clientIp}`, 50, 900);
     if (!ipRateLimit.allowed || !durableIpCheck.allowed) {
-      const retryAfter = Math.max(ipRateLimit.retryAfterSeconds || 0, durableIpCheck.retryAfterSeconds || 0, 900);
+      const retryAfter = Math.max(
+        ipRateLimit.retryAfterSeconds || 0,
+        durableIpCheck.retryAfterSeconds || 0,
+        900
+      );
       return NextResponse.json(
         {
           error: `Too many login attempts from this network. Please try again in ${retryAfter} seconds.`,
@@ -258,7 +255,9 @@ export async function POST(req: NextRequest) {
     // Generate session ID -> Sign final JWT containing session ID -> Hash final JWT -> Create DB UserSession in MySQL
     // ONLY THEN set HttpOnly cookie and return success. NO JWT-only fallback.
     const sessionId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + sessionCookieMaxAgeSecs * 1000);
+    const expiresAt = new Date(
+      Date.now() + (sessionTimeoutMins ? sessionCookieMaxAgeSecs * 1000 : 30 * 24 * 60 * 60 * 1000)
+    );
     const finalToken = signSessionToken({ ...sessionUser, sessionId }, sessionId);
     const finalTokenHash = hashSessionToken(finalToken);
 

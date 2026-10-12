@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  authenticateRequest,
-  hasPermission,
-  createAuditLog,
-  validatePhysicalStore,
-} from '@/lib/authPipeline';
+import { authenticateRequest, validatePhysicalStore } from '@/lib/authPipeline';
 import { prisma } from '@/lib/db';
 import { normalizeMobileNumber } from '@/lib/phoneUtils';
 import { broadcastRealtimeEvent, getStoreChannel } from '@/lib/realtime';

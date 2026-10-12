@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent } from '@/lib/realtime';
 import { ensureStoredImage } from '@/lib/objectStorage';
 import { DEFAULT_BRANDING, invalidateBrandingCache } from '@/lib/branding';
-import { getJurisdictionProfile, LAUNCH_JURISDICTIONS } from '@/lib/localization/jurisdictions';
+import { getJurisdictionProfile } from '@/lib/localization/jurisdictions';
 import { validateTaxRegistrationId } from '@/lib/taxValidation';
 import { verifySensitiveAction } from '@/lib/sensitiveAction';
 

@@ -65,6 +65,7 @@
     "test:responsive": "npx tsx tests/responsive-automated.test.ts",
     "test:responsive-modal": "npx tsx tests/responsive-form-modal.test.ts",
     "test:e2e": "npx tsx tests/e2e/production-journey.test.ts",
+    "test:playwright": "playwright test",
     "test:rehearsal": "npx tsx tests/migration-rehearsal.test.ts",
     "test:country-matrix": "npx tsx tests/country-matrix-e2e.test.ts",
     "test:theme-matrix": "npx tsx tests/theme-matrix.test.ts",
@@ -117,6 +118,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@netlify/plugin-nextjs": "^5.11.1",
+    "@playwright/test": "^1.64.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",

@@ -82,7 +82,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
   setState,
   pincode,
   setPincode,
-  country,
+  country: _country,
   setCountry,
   countryCode,
   setCountryCode,
@@ -270,7 +270,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
               </div>
             </div>
             <p className="text-3xs text-muted-foreground pt-0.5">
-              * Note: Corporate headquarters address, phone, and registration numbers are preserved for manual client entry.
+              * Note: Corporate headquarters address, phone, and registration numbers are preserved
+              for manual client entry.
             </p>
           </div>
         )}

@@ -173,12 +173,12 @@ async function runTests() {
     });
   }
 
-  const createdPO = await prisma.$transaction(async (tx) => {
+  const createdPO: any = await prisma.$transaction(async (tx: any) => {
     const po = await tx.purchaseOrder.create({
       data: {
         poNo: testPoNo,
         storeCode: 'BLR',
-        vendor: { connect: { id: testVendor.id } },
+        vendorId: testVendor.id,
         status: 'Ordered',
         paymentStatus: 'Partial',
         totalCost: 800000,
@@ -234,7 +234,9 @@ async function runTests() {
     createdPO.payments[0].paymentMethod === 'UPI'
   );
 
-  // Clean up test PO (cascade deletes items and payments)
+  // Clean up test PO items, payments, then PO (schema enforces onDelete: Restrict for financial integrity)
+  await prisma.purchaseOrderItem.deleteMany({ where: { poId: createdPO.id } });
+  await prisma.purchasePayment.deleteMany({ where: { purchaseId: createdPO.id } });
   await prisma.purchaseOrder.delete({ where: { id: createdPO.id } });
 
   // ─────────────────────────────────────────────────────────────
@@ -312,6 +314,7 @@ async function runTests() {
     include: { storeProfiles: true },
   });
   if (existingTestCust) {
+    await prisma.customerStoreProfile.deleteMany({ where: { customerId: existingTestCust.id } });
     await prisma.customer.delete({ where: { id: existingTestCust.id } });
   }
 
@@ -378,7 +381,8 @@ async function runTests() {
     allTestProfiles.some(p => p.storeCode === 'CHE')
   );
 
-  // Clean up test customer
+  // Clean up test customer profiles then customer (schema enforces onDelete: Restrict)
+  await prisma.customerStoreProfile.deleteMany({ where: { customerId: custBLR.id } });
   await prisma.customer.delete({ where: { id: custBLR.id } });
 
   // ─────────────────────────────────────────────────────────────

@@ -2,9 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import Icon from '@/components/ui/AppIcon';
-import AppLogo from '@/components/ui/AppLogo';
+import AppImage from '@/components/ui/AppImage';
 import Modal from '@/components/ui/Modal';
-import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { StorageService } from '@/lib/storageService';
@@ -15,12 +14,10 @@ export default function UserProfileModal() {
     setUserProfileOpen,
     currentUser,
     logoutUser,
-    toggleCurrentUserShift,
     updateProfileAvatar,
     changeUserPassword,
     updateUserProfile,
     branding,
-    selectedStore,
     addAuditLog,
     usersList,
   } = useApp();
@@ -199,9 +196,11 @@ export default function UserProfileModal() {
                 <div className="relative group">
                   <div className="w-14 h-14 rounded-2xl bg-primary/20 border-2 border-primary/30 flex items-center justify-center text-primary font-extrabold text-lg shadow-sm overflow-hidden">
                     {currentUser.avatarUrl ? (
-                      <img
+                      <AppImage
                         src={currentUser.avatarUrl}
                         alt={currentUser.name}
+                        width={56}
+                        height={56}
                         className="w-full h-full object-cover"
                       />
                     ) : (

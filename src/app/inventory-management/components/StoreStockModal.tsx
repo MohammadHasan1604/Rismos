@@ -2,9 +2,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
-import StatusBadge from '@/components/ui/StatusBadge';
+import AppImage from '@/components/ui/AppImage';
 import { InventoryItem, useApp } from '@/context/AppContext';
-import { toast } from 'sonner';
 
 export interface StoreStockItem {
   storeId: string;
@@ -119,7 +118,7 @@ export default function StoreStockModal({
         setRefreshing(false);
       }
     },
-    [item, storesList]
+    [item, storesList, currentUser.role, currentUser.store]
   );
 
   // Trigger load whenever a new item is selected or modal opens
@@ -187,8 +186,8 @@ export default function StoreStockModal({
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-12 h-12 rounded-xl bg-muted overflow-hidden border border-border flex items-center justify-center flex-shrink-0">
               {item.primaryImage || (item.images && item.images[0]) || item.imageUrl ? (
-                <img
-                  src={item.primaryImage || (item.images && item.images[0]) || item.imageUrl}
+                <AppImage
+                  src={(item.primaryImage || (item.images && item.images[0]) || item.imageUrl)!}
                   alt={item.name}
                   className="w-full h-full object-cover"
                 />

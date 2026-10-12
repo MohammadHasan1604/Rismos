@@ -108,7 +108,7 @@ export default function VendorFormModal({
       prevOpenRef.current = false;
       editVendorIdRef.current = null;
     }
-  }, [open, vendor?.id]);
+  }, [open, vendor, categoryOptions]);
 
   const isDirty = useMemo(() => {
     if (isEdit) {

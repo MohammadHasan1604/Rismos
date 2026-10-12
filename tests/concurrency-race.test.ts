@@ -236,6 +236,12 @@ async function runConcurrencyRaceSuite() {
         });
       }
       if (limitedProduct.id) {
+        await prisma.inventoryLedger.deleteMany({
+          where: { productId: limitedProduct.id },
+        });
+        await prisma.salesOrderItem.deleteMany({
+          where: { productId: limitedProduct.id },
+        });
         await prisma.inventory.deleteMany({
           where: { productId: limitedProduct.id },
         });

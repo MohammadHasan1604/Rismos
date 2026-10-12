@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateRequest, hasPermission, createAuditLog } from '@/lib/authPipeline';
+import { authenticateRequest } from '@/lib/authPipeline';
 import { prisma } from '@/lib/db';
 import { getLegacyCustomersList } from '@/lib/services/legacyCustomerService';
 
@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
     if (!auth.user) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-    const user = auth.user;
 
     const { searchParams } = new URL(req.url);
     const linkStatus = searchParams.get('linkStatus') || 'All';

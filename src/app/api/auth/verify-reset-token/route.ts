@@ -94,7 +94,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         valid: false,
         reason: 'EXPIRED',
-        error: 'This password reset link has expired (15-minute window). Please request a new link.',
+        error:
+          'This password reset link has expired (15-minute window). Please request a new link.',
       });
     }
 

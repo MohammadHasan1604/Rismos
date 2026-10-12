@@ -10,24 +10,35 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const appBaseUrl =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  process.env.APP_URL ||
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'https://app.rismos.com';
+
 export const metadata: Metadata = {
   title: 'RISMOS — Run Retail. Smarter.',
   description:
     'RISMOS is an enterprise multi-store retail and point-of-sale platform. Run Retail. Smarter.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4028'),
+  metadataBase: new URL(appBaseUrl),
   openGraph: {
     title: 'RISMOS — Run Retail. Smarter.',
     description:
       'Enterprise multi-store retail POS billing, inventory, procurement, CRM, and accounting platform.',
-    url: 'http://localhost:4028',
+    url: appBaseUrl,
     siteName: 'RISMOS',
     locale: 'en_US',
     type: 'website',
   },
   robots: {
-    index: true,
-    follow: true,
-    nocache: false,
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
   },
   icons: {
     icon: [

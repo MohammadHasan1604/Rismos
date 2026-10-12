@@ -3,41 +3,19 @@ import React, { useState } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
 import Modal from '@/components/ui/Modal';
-import { useApp, StoreHub, InventoryItem } from '@/context/AppContext';
+import { useApp, StoreHub } from '@/context/AppContext';
 import StoreFormModal from '@/components/forms/StoreFormModal';
 import StockTransferModal from '@/components/forms/StockTransferModal';
 import { toast } from 'sonner';
 import SuperAdminGuard from '@/components/SuperAdminGuard';
 
 export default function StoresPage() {
-  const {
-    storesList,
-    addStoreHub,
-    updateStoreHub,
-    deleteStoreHub,
-    setSelectedStore,
-    inventory,
-    transferStock,
-    currentUser,
-  } = useApp();
+  const { storesList, deleteStoreHub, setSelectedStore, inventory, currentUser } = useApp();
 
   const [addStoreModal, setAddStoreModal] = useState(false);
   const [editStoreModal, setEditStoreModal] = useState<StoreHub | null>(null);
   const [deleteStoreModal, setDeleteStoreModal] = useState<StoreHub | null>(null);
   const [transferModal, setTransferModal] = useState(false);
-
-  const handleDeleteStore = (id: string) => {
-    const target = storesList.find((s) => s.id === id || s.code === id);
-    if (target?.code === 'CENTRAL' || id === 'CENTRAL') {
-      toast.error(
-        'The default Central Warehouse & Owner Store (CENTRAL) is permanent and cannot be deleted.'
-      );
-      setDeleteStoreModal(null);
-      return;
-    }
-    deleteStoreHub(id);
-    setDeleteStoreModal(null);
-  };
 
   const openEdit = (s: StoreHub) => {
     setEditStoreModal(s);

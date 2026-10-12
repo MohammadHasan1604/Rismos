@@ -39,6 +39,8 @@ Thumbs.db
 *.tsbuildinfo
 coverage/
 jest-test-results.json
+test-results/
+playwright-report/
 
 # IDEs
 .vscode/

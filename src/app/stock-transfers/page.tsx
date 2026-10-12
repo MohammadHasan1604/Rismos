@@ -5,28 +5,16 @@ import Icon from '@/components/ui/AppIcon';
 import Modal from '@/components/ui/Modal';
 import StockTransferModal from '@/components/forms/StockTransferModal';
 import { useApp } from '@/context/AppContext';
-import { toast } from 'sonner';
 import SuperAdminGuard from '@/components/SuperAdminGuard';
-import {
-  calculateTransferLineItem,
-  formatTransferAmount,
-  formatTransferMargin,
-  getTransferProfitColorClass,
-  validateTransferHeader,
-  validateTransferItem,
-  round2,
-} from '@/lib/stockTransferCalculations';
+import { formatTransferAmount, getTransferProfitColorClass } from '@/lib/stockTransferCalculations';
 
 export default function StockTransfersPage() {
   const {
-    inventory,
     storesList,
     stockTransfers,
     currentUser,
-    selectedStore,
     refreshAllData,
     updateTransferStatus,
-    deleteTransfer,
     branding,
     systemSettings,
   } = useApp();

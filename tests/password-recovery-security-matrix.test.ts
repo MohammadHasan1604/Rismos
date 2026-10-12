@@ -6,6 +6,7 @@ import { POST as postSendResetLink } from '../src/app/api/auth/send-reset-link/r
 import { GET as getVerifyResetToken } from '../src/app/api/auth/verify-reset-token/route';
 import { POST as postResetPassword } from '../src/app/api/auth/reset-password/route';
 import { POST as postSendResetInvitation } from '../src/app/api/users/send-reset-invitation/route';
+import { clearAllMemoryRateLimits } from '../src/lib/rateLimit';
 
 async function runPasswordSecurityMatrix() {
   console.log('========================================================================================');
@@ -53,10 +54,11 @@ async function runPasswordSecurityMatrix() {
       },
     });
 
+    const assignmentStore = ['BLR', 'CHE', 'CENTRAL'].includes(storeScope) ? storeScope : 'BLR';
     await prisma.userStoreAssignment.create({
       data: {
         userId: user.id,
-        storeCode: storeScope,
+        storeCode: assignmentStore,
       },
     });
 
@@ -64,11 +66,17 @@ async function runPasswordSecurityMatrix() {
     return { user, email, initialPass };
   }
 
+  async function resetAllRateLimits() {
+    clearAllMemoryRateLimits();
+    await (prisma as any).$executeRawUnsafe('DELETE FROM security_rate_limits;').catch(() => null);
+  }
+
   try {
     // ─────────────────────────────────────────────────────────────────────────────
     // TEST SECTION 1: ROLE-BASED SELF-SERVICE RECOVERY (SUPER ADMIN, STORE MGR, SALES MGR)
     // ─────────────────────────────────────────────────────────────────────────────
     console.log('\n--- SECTION 1: Role-Based Self-Service Recovery ---');
+    await resetAllRateLimits();
 
     for (const role of ['Super Admin', 'Store Manager', 'Sales Manager'] as const) {
       const store = role === 'Super Admin' ? 'All Stores' : role === 'Store Manager' ? 'BLR' : 'MUM';
@@ -126,6 +134,7 @@ async function runPasswordSecurityMatrix() {
     // TEST SECTION 2: ANTI-ENUMERATION & ACCOUNT STATUS DEFENSES
     // ─────────────────────────────────────────────────────────────────────────────
     console.log('\n--- SECTION 2: Anti-Enumeration & Inactive/Suspended Defenses ---');
+    await resetAllRateLimits();
 
     // Non-existent email
     const unknownEmail = `nonexistent.${Date.now()}@rismos-unknown.com`;
@@ -204,6 +213,7 @@ async function runPasswordSecurityMatrix() {
     // TEST SECTION 4: REPLAY ATTACK PREVENTION
     // ─────────────────────────────────────────────────────────────────────────────
     console.log('\n--- SECTION 4: Replay Attack (Token Reuse) Prevention ---');
+    await resetAllRateLimits();
 
     const { user: replayUser, email: replayEmail } = await createTestUser('Sales Manager', 'BLR', 'replay.staff');
     const reqReplayLink = new NextRequest('http://localhost:4028/api/auth/send-reset-link', {
@@ -242,6 +252,7 @@ async function runPasswordSecurityMatrix() {
     // TEST SECTION 5: CONCURRENCY RACE CONDITION (ATOMIC REDEMPTION)
     // ─────────────────────────────────────────────────────────────────────────────
     console.log('\n--- SECTION 5: Concurrency Race Condition (Atomic Redemption) ---');
+    await resetAllRateLimits();
 
     const { user: raceUser, email: raceEmail } = await createTestUser('Store Manager', 'DEL', 'concurrency.test');
     const reqRaceLink = new NextRequest('http://localhost:4028/api/auth/send-reset-link', {
@@ -275,6 +286,7 @@ async function runPasswordSecurityMatrix() {
     // TEST SECTION 6: ACTIVE SESSION REVOCATION
     // ─────────────────────────────────────────────────────────────────────────────
     console.log('\n--- SECTION 6: Session Invalidation Across All Devices ---');
+    await resetAllRateLimits();
 
     const { user: sessionUser, email: sessionEmail } = await createTestUser('Sales Manager', 'BLR', 'session.revocation');
 

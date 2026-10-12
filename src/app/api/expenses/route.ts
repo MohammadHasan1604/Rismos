@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  authenticateRequest,
-  hasPermission,
-  createAuditLog,
-  requireStoreScope,
-  validatePhysicalStore,
-} from '@/lib/authPipeline';
+import { authenticateRequest, requireStoreScope, validatePhysicalStore } from '@/lib/authPipeline';
 import { prisma } from '@/lib/db';
 import { broadcastRealtimeEvent, getStoreChannel } from '@/lib/realtime';
 import { generateSafeSequenceNo } from '@/lib/sequenceUtils';

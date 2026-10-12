@@ -39,49 +39,9 @@ function getInitialTaxRegistrationNumber(settings: any): string {
   return raw;
 }
 
-const INDIAN_STATES: Record<string, string> = {
-  '01': 'Jammu & Kashmir',
-  '02': 'Himachal Pradesh',
-  '03': 'Punjab',
-  '04': 'Chandigarh',
-  '05': 'Uttarakhand',
-  '06': 'Haryana',
-  '07': 'Delhi',
-  '08': 'Rajasthan',
-  '09': 'Uttar Pradesh',
-  '10': 'Bihar',
-  '11': 'Sikkim',
-  '12': 'Arunachal Pradesh',
-  '13': 'Nagaland',
-  '14': 'Manipur',
-  '15': 'Mizoram',
-  '16': 'Tripura',
-  '17': 'Meghalaya',
-  '18': 'Assam',
-  '19': 'West Bengal',
-  '20': 'Jharkhand',
-  '21': 'Odisha',
-  '22': 'Chhattisgarh',
-  '23': 'Madhya Pradesh',
-  '24': 'Gujarat',
-  '26': 'Dadra & Nagar Haveli and Daman & Diu',
-  '27': 'Maharashtra',
-  '29': 'Karnataka',
-  '30': 'Goa',
-  '31': 'Lakshadweep',
-  '32': 'Kerala',
-  '33': 'Tamil Nadu',
-  '34': 'Puducherry',
-  '35': 'Andaman & Nicobar Islands',
-  '36': 'Telangana',
-  '37': 'Andhra Pradesh',
-  '38': 'Ladakh',
-};
-
 export default function SettingsPage() {
   const {
     branding,
-    updateBranding,
     resetBranding,
     systemSettings,
     updateSystemSettings,
@@ -109,16 +69,8 @@ export default function SettingsPage() {
   // ─── Tab 1: Branding State ───
   const [appName, setAppName] = useState(branding.appName || 'RISMOS');
   const [logoUrl, setLogoUrl] = useState<string | null>(branding.logoUrl || null);
-  const [logoDarkUrl, setLogoDarkUrl] = useState<string | null>(branding.logoDarkUrl || null);
-  const [appIconUrl, setAppIconUrl] = useState<string | null>(branding.appIconUrl || null);
   const [faviconUrl, setFaviconUrl] = useState<string | null>(branding.faviconUrl || null);
   const [tagline, setTagline] = useState(branding.tagline || 'Run Retail. Smarter.');
-  const [primaryColor, setPrimaryColor] = useState(branding.primaryColor || '#002E86');
-  const [secondaryColor, setSecondaryColor] = useState(branding.secondaryColor || '#009ADF');
-  const [accentColor, setAccentColor] = useState(branding.accentColor || '#2563EB');
-  const [supportEmailBranding, setSupportEmailBranding] = useState(
-    branding.supportEmail || 'support@rismos.com'
-  );
   const [logoStatus, setLogoStatus] = useState<BrandingUploadStatus>('idle');
   const [faviconStatus, setFaviconStatus] = useState<BrandingUploadStatus>('idle');
 
@@ -148,7 +100,8 @@ export default function SettingsPage() {
     systemSettings.taxInclusivePricing !== undefined ? systemSettings.taxInclusivePricing : true
   );
   const [taxJurisdictionState, setTaxJurisdictionState] = useState(
-    systemSettings.taxJurisdictionState || (systemSettings.countryCode === 'IN' ? systemSettings.gstStateCode || '' : '')
+    systemSettings.taxJurisdictionState ||
+      (systemSettings.countryCode === 'IN' ? systemSettings.gstStateCode || '' : '')
   );
   const [legalBusinessName, setLegalBusinessName] = useState(
     systemSettings.legalBusinessName || ''
@@ -237,14 +190,8 @@ export default function SettingsPage() {
     if (branding) {
       setAppName(branding.appName || 'RISMOS');
       setLogoUrl(branding.logoUrl || null);
-      setLogoDarkUrl(branding.logoDarkUrl || null);
-      setAppIconUrl(branding.appIconUrl || null);
       setFaviconUrl(branding.faviconUrl || null);
       setTagline(branding.tagline || 'Run Retail. Smarter.');
-      setPrimaryColor(branding.primaryColor || '#002E86');
-      setSecondaryColor(branding.secondaryColor || '#009ADF');
-      setAccentColor(branding.accentColor || '#2563EB');
-      setSupportEmailBranding(branding.supportEmail || 'support@rismos.com');
       setBusinessName(branding.businessName || 'RISMOS Retail Enterprise');
       setSupportEmail(branding.supportEmail || 'support@rismos.com');
       setSupportPhone(branding.supportPhone || '');
@@ -269,19 +216,16 @@ export default function SettingsPage() {
         systemSettings.taxInclusivePricing !== undefined ? systemSettings.taxInclusivePricing : true
       );
       setTaxJurisdictionState(
-        systemSettings.taxJurisdictionState || (systemSettings.countryCode === 'IN' ? systemSettings.gstStateCode || '' : '')
+        systemSettings.taxJurisdictionState ||
+          (systemSettings.countryCode === 'IN' ? systemSettings.gstStateCode || '' : '')
       );
-      setLegalBusinessName(
-        systemSettings.legalBusinessName || ''
-      );
+      setLegalBusinessName(systemSettings.legalBusinessName || '');
       setTradeName(systemSettings.tradeName || '');
       setDefaultTaxRate(systemSettings.defaultTaxRate ?? 18);
       setHsnMandatory(systemSettings.hsnMandatory ?? true);
       setEnableReverseCharge(systemSettings.enableReverseCharge ?? false);
       setGstRegistrationType(systemSettings.gstRegistrationType || 'Regular');
-      setGstBusinessAddress(
-        systemSettings.gstBusinessAddress || ''
-      );
+      setGstBusinessAddress(systemSettings.gstBusinessAddress || '');
 
       setInvoiceHeader(systemSettings.invoiceHeader || 'RISMOS Retail Enterprise');
       setInvoiceFooter(
@@ -304,9 +248,7 @@ export default function SettingsPage() {
         systemSettings.showPaymentQr !== undefined ? systemSettings.showPaymentQr : true
       );
       setPaymentUpiId(systemSettings.paymentUpiId || '');
-      setPaymentBankDetails(
-        systemSettings.paymentBankDetails || ''
-      );
+      setPaymentBankDetails(systemSettings.paymentBankDetails || '');
       setInvoiceFieldMapping(systemSettings.invoiceFieldMapping || null);
 
       setSessionTimeoutMins(systemSettings.sessionTimeoutMins ?? 43200);
@@ -580,14 +522,8 @@ export default function SettingsPage() {
     resetBranding();
     setAppName('RISMOS');
     setLogoUrl(null);
-    setLogoDarkUrl(null);
-    setAppIconUrl(null);
     setFaviconUrl(null);
     setTagline('Run Retail. Smarter.');
-    setPrimaryColor('#0B1F3A');
-    setSecondaryColor('#123A63');
-    setAccentColor('#123A63');
-    setSupportEmailBranding('support@rismos.com');
   };
 
   return (
@@ -853,7 +789,10 @@ export default function SettingsPage() {
                       <span>
                         {activeTab === 'branding' && 'Save Branding Settings'}
                         {activeTab === 'profile' && 'Save Business Profile'}
-                        {activeTab === 'tax' && (taxCountryCode === 'IN' ? 'Save GST & Compliance' : `Save ${taxRegime || 'Tax'} & Compliance`)}
+                        {activeTab === 'tax' &&
+                          (taxCountryCode === 'IN'
+                            ? 'Save GST & Compliance'
+                            : `Save ${taxRegime || 'Tax'} & Compliance`)}
                         {activeTab === 'invoice' && 'Save Invoice Template'}
                         {activeTab === 'security' && 'Save Security Policies'}
                         {activeTab === 'alerts' && 'Save Alert Settings'}

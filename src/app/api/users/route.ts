@@ -7,18 +7,11 @@ import {
   createAuditLog,
   invalidateUserSessions,
   hasPermission,
-  generateSecureTemporaryPassword,
 } from '@/lib/authPipeline';
 import { ensureStoredImage } from '@/lib/objectStorage';
-import { validatePassword } from '@/lib/passwordPolicy';
 import { validatePasswordAgainstPolicy } from '@/lib/passwordPolicyServer';
 import { verifySensitiveAction } from '@/lib/sensitiveAction';
-import {
-  ROLE_SECURITY_LEVELS,
-  SUPER_ADMIN_PROTECTED_PERMISSIONS,
-  getEffectivePermissions,
-  type UserRole,
-} from '@/lib/rbacEngine';
+import { SUPER_ADMIN_PROTECTED_PERMISSIONS, getEffectivePermissions } from '@/lib/rbacEngine';
 
 // Whitelist allowed roles and map to security levels — prevent mass assignment
 // Super Admin (100) is a SINGLETON and cannot be created via this API

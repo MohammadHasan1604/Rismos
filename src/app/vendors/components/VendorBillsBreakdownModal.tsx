@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Modal from '@/components/ui/Modal';
 import Icon from '@/components/ui/AppIcon';
-import { Vendor, useApp } from '@/context/AppContext';
+import { useApp } from '@/context/AppContext';
 
 interface VendorBillsBreakdownModalProps {
   vendor: any | null;

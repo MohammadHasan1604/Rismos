@@ -75,7 +75,7 @@ export default function UnitModal({
       prevOpenRef.current = false;
       editUnitIdRef.current = null;
     }
-  }, [open, unit?.id, initialName]);
+  }, [open, unit, initialName]);
 
   const isDirty = React.useMemo(() => {
     if (unit) {

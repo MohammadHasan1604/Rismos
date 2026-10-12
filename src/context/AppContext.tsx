@@ -1,19 +1,10 @@
 'use client';
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useMemo,
-  useEffect,
-  useCallback,
-  useRef,
-} from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { MySQLDataService } from '@/lib/mysqlSync';
 import { realtimeClient } from '@/lib/realtimeClient';
 import {
   round2,
-  calculateTransferTotals,
   validateTransferHeader,
   validateTransferItem,
 } from '@/lib/stockTransferCalculations';
@@ -767,7 +758,7 @@ interface AppContextType {
   usersList: UserAccount[];
   addUserAccount: (user: Omit<UserAccount, 'id' | 'lastLogin' | 'permissions'>) => Promise<any>;
   updateUserAccount: (id: string, updated: Partial<UserAccount>) => Promise<any>;
-
+  toggleUserShiftStatus: (id: string) => Promise<void>;
   toggleUserStatus: (id: string, nextStatus: 'Active' | 'Inactive' | 'Suspended') => void;
   setUserPermissionOverride: (
     userId: string,
@@ -831,6 +822,12 @@ interface AppContextType {
   stockTransfers: StockTransferRecord[];
   inventoryLedger: InventoryLedgerEntry[];
   repairsEnquiries: RepairEnquiry[];
+  addRepairEnquiry: (repairData: any) => Promise<{ success: boolean; message?: string }>;
+  updateRepairEnquiry: (
+    id: string,
+    updated: any
+  ) => Promise<{ success: boolean; message?: string }>;
+  deleteRepairEnquiry: (id: string) => Promise<{ success: boolean; message?: string }>;
   sales: SalesOrder[];
   addSale: (
     sale: Omit<SalesOrder, 'id' | 'orderNo' | 'createdAt' | 'period'>
@@ -942,13 +939,25 @@ interface AppContextType {
   dateLocale: string;
 }
 
+const UNAUTHENTICATED_USER = {
+  id: '',
+  name: 'Unauthenticated User',
+  email: '',
+  role: 'Sales Manager' as const,
+  store: '',
+  avatar: 'UN',
+  permissions: [] as string[],
+  overrides: [] as UserPermissionOverride[],
+};
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [branding, setBranding] = useState<AppBranding>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('cosko_branding');
+        const saved =
+          localStorage.getItem('rismos_branding') || localStorage.getItem('cosko_branding');
         if (saved) return { ...defaultBranding, ...JSON.parse(saved) };
       } catch {}
     }
@@ -958,7 +967,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('cosko_system_settings');
+        const saved =
+          localStorage.getItem('rismos_system_settings') ||
+          localStorage.getItem('cosko_system_settings');
         if (saved) return { ...defaultSystemSettings, ...JSON.parse(saved) };
       } catch {}
     }
@@ -968,12 +979,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Cross-tab live synchronization for white-label branding & system settings updates
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'cosko_branding' && e.newValue) {
+      if ((e.key === 'rismos_branding' || e.key === 'cosko_branding') && e.newValue) {
         try {
           setBranding(JSON.parse(e.newValue));
         } catch {}
       }
-      if (e.key === 'cosko_system_settings' && e.newValue) {
+      if ((e.key === 'rismos_system_settings' || e.key === 'cosko_system_settings') && e.newValue) {
         try {
           setSystemSettings(JSON.parse(e.newValue));
         } catch {}
@@ -1042,7 +1053,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [units, setUnits] = useState<UnitItem[]>(initialUnits);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(initialAuditLogs);
   const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [_dataLoaded, setDataLoaded] = useState(false);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -1123,19 +1134,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [confirmationModalState.config, confirmationModalState.isProcessing]);
 
-  // Invoice sequence is now handled server-side in salesService.ts via DB count
-
-  const unauthenticatedUser = {
-    id: '',
-    name: 'Unauthenticated User',
-    email: '',
-    role: 'Sales Manager' as const,
-    store: '',
-    avatar: 'UN',
-    permissions: [] as string[],
-    overrides: [] as UserPermissionOverride[],
-  };
-
   const [authStatus, setAuthStatus] = useState<
     'AUTH_LOADING' | 'AUTHENTICATED' | 'UNAUTHENTICATED'
   >('AUTH_LOADING');
@@ -1151,7 +1149,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     mustChangePassword?: boolean;
     permissions?: string[];
     overrides?: UserPermissionOverride[];
-  }>(unauthenticatedUser);
+  }>(UNAUTHENTICATED_USER);
 
   // Restore active user session from server-authoritative /api/auth/me
   useEffect(() => {
@@ -1181,14 +1179,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (isMounted) {
-          setCurrentUserState(unauthenticatedUser);
+          setCurrentUserState(UNAUTHENTICATED_USER);
           setAuthStatus('UNAUTHENTICATED');
           setDataLoaded(true);
         }
       } catch (err) {
-        console.warn('[COSKO] Session init check:', err);
+        console.warn('[RISMOS] Session init check:', err);
         if (isMounted) {
-          setCurrentUserState(unauthenticatedUser);
+          setCurrentUserState(UNAUTHENTICATED_USER);
           setAuthStatus('UNAUTHENTICATED');
           setDataLoaded(true);
         }
@@ -1201,6 +1199,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const logoutUser = useCallback(async () => {
+    try {
+      if (typeof window !== 'undefined') {
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      }
+    } catch {}
+    setCurrentUserState(UNAUTHENTICATED_USER);
+    setAuthStatus('UNAUTHENTICATED');
+    setSelectedStoreState('All Stores');
+  }, []);
+
   // ─── INACTIVITY SESSION MONITOR (30 DAYS ENFORCEMENT) ────────────────────
   useEffect(() => {
     if (authStatus !== 'AUTHENTICATED' || typeof window === 'undefined') return;
@@ -1210,13 +1219,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const recordActivity = () => {
       try {
-        localStorage.setItem('cosko_last_active_time', String(Date.now()));
+        localStorage.setItem('rismos_last_active_time', String(Date.now()));
       } catch {}
     };
 
     const checkExpiry = () => {
       try {
-        const lastStr = localStorage.getItem('cosko_last_active_time');
+        const lastStr =
+          localStorage.getItem('rismos_last_active_time') ||
+          localStorage.getItem('cosko_last_active_time');
         if (lastStr) {
           const lastTime = parseInt(lastStr, 10);
           if (Date.now() - lastTime > maxInactivityMs) {
@@ -1250,7 +1261,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       events.forEach((evt) => window.removeEventListener(evt, handleInteraction));
       clearInterval(interval);
     };
-  }, [authStatus, systemSettings.sessionTimeoutMins]);
+  }, [authStatus, systemSettings.sessionTimeoutMins, logoutUser]);
 
   // ─── LOAD ALL DATA FROM MySQL API ON MOUNT & REFRESH ─────────────────────
   // Authoritative persistence: fetch real data from MySQL database with connection starvation protection
@@ -1948,9 +1959,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ]);
 
         setDataLoaded(true);
-        console.log('[COSKO] Authoritative data loaded from MySQL database');
+        console.info('[RISMOS] Authoritative data loaded from MySQL database');
       } catch (err) {
-        console.warn('[COSKO] Data loading error:', err);
+        console.warn('[RISMOS] Data loading error:', err);
         setDataLoaded(true);
       } finally {
         refreshInFlightRef.current = null;
@@ -2046,7 +2057,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             // Unrecognized domain: do NOT reload whole app to avoid resetting open forms
           }
         } catch (err) {
-          console.warn(`[COSKO] Domain refresh error (${c}):`, err);
+          console.warn(`[RISMOS] Domain refresh error (${c}):`, err);
         } finally {
           domainRefreshInFlightRef.current[c] = null;
         }
@@ -2072,7 +2083,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       fetchCategoriesData,
       fetchCategoryTypesData,
       fetchStoresData,
-      refreshAllData,
+      fetchBrandsData,
+      fetchPaymentMethodsData,
+      fetchUnitsData,
     ]
   );
 
@@ -2187,17 +2200,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setAuthStatus('AUTHENTICATED');
 
     refreshAllData();
-  };
-
-  const logoutUser = async () => {
-    try {
-      if (typeof window !== 'undefined') {
-        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-      }
-    } catch {}
-    setCurrentUserState(unauthenticatedUser);
-    setAuthStatus('UNAUTHENTICATED');
-    setSelectedStoreState('All Stores');
   };
 
   const updateBranding = useCallback(
@@ -2684,7 +2686,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           prev.map((u) => (u.id === userId ? { ...u, allowedStores: currentAllowed } : u))
         );
       }
-    } catch (err: any) {
+    } catch (_err: any) {
       toast.error('Network error saving store scope access');
       setUsersList((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, allowedStores: currentAllowed } : u))
@@ -3605,6 +3607,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           sourceStore: fromStore,
           destStore: toStore,
+          status,
           notes: notes || `Transfer from ${fromStore} to ${toStore}`,
           items: [
             {
@@ -4396,165 +4399,123 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     toast.success('All notifications marked as read');
   };
 
-  const contextValue = useMemo(
-    () => ({
-      branding,
-      updateBranding,
-      resetBranding,
-      systemSettings,
-      updateSystemSettings,
-      reloadSettings,
-      selectedStore,
-      setSelectedStore,
-      datePeriod,
-      setDatePeriod,
-      customDateRange,
-      setCustomDateRange,
-      authStatus,
-      currentUser,
-      setCurrentUser,
-      logoutUser,
-      toggleCurrentUserShift,
-      updateProfileAvatar,
-      storesList,
-      addStoreHub,
-      updateStoreHub,
-      deleteStoreHub,
-      usersList,
-      addUserAccount,
-      updateUserAccount,
-      toggleUserShiftStatus,
-      toggleUserStatus,
-      setUserPermissionOverride,
-      toggleUserStoreAccess,
-      deleteUserAccount,
-      categoriesList,
-      categoryTypes,
-      addCategoryType,
-      updateCategoryType,
-      deleteCategoryType,
-      refreshCategoryTypes,
-      addCategory,
-      updateCategory,
-      toggleCategoryStatus,
-      deleteCategory,
-      changeUserPassword,
-      updateUserProfile,
-      inventory,
-      addItem,
-      updateItem,
-      deleteItem,
-      adjustStock,
-      transferStock,
-      updateTransferStatus,
-      deleteTransfer,
-      defaultStoreTransferPrices,
-      setDefaultStoreTransferPrice,
-      stockTransfers,
-      inventoryLedger,
-      repairsEnquiries,
-      addRepairEnquiry,
-      updateRepairEnquiry,
-      deleteRepairEnquiry,
-      sales,
-      addSale,
-      updateSale,
-      voidSale,
-      purchases,
-      addPurchase,
-      updatePurchase,
-      deletePurchase,
-      recordPurchasePayment,
-      customers,
-      addCustomer,
-      updateCustomer,
-      deleteCustomer,
-      vendors,
-      addVendor,
-      updateVendor,
-      deleteVendor,
-      expenses,
-      addExpense,
-      updateExpense,
-      deleteExpense,
-      paymentMethods,
-      addPaymentMethod,
-      updatePaymentMethod,
-      deletePaymentMethod,
-      refreshPaymentMethods,
-      brands,
-      addBrand,
-      updateBrand,
-      deleteBrand,
-      refreshBrands,
-      units,
-      addUnit,
-      updateUnit,
-      deleteUnit,
-      refreshUnits,
-      auditLogs,
-      addAuditLog,
-      refreshAllData,
-      refreshDomainData,
-      notifications,
-      markNotificationRead,
-      markAllNotificationsRead,
-      searchOpen,
-      setSearchOpen,
-      notificationsOpen,
-      setNotificationsOpen,
-      storeSelectorOpen,
-      setStoreSelectorOpen,
-      userProfileOpen,
-      setUserProfileOpen,
-      confirmAction,
-      confirmationModalState,
-      closeConfirmationModal,
-      executeConfirmationAction,
-      formatCurrency,
-      dateLocale,
-    }),
-    [
-      branding,
-      systemSettings,
-      dateLocale,
-      selectedStore,
-      datePeriod,
-      customDateRange,
-      authStatus,
-      currentUser,
-      storesList,
-      usersList,
-      categoriesList,
-      categoryTypes,
-      inventory,
-      defaultStoreTransferPrices,
-      stockTransfers,
-      inventoryLedger,
-      repairsEnquiries,
-      sales,
-      purchases,
-      customers,
-      vendors,
-      expenses,
-      paymentMethods,
-      brands,
-      units,
-      auditLogs,
-      refreshAllData,
-      refreshDomainData,
-      notifications,
-      searchOpen,
-      notificationsOpen,
-      storeSelectorOpen,
-      userProfileOpen,
-      confirmAction,
-      confirmationModalState,
-      closeConfirmationModal,
-      executeConfirmationAction,
-      formatCurrency,
-    ]
-  );
+  const contextValue: AppContextType = {
+    branding,
+    updateBranding,
+    resetBranding,
+    systemSettings,
+    updateSystemSettings,
+    reloadSettings,
+    selectedStore,
+    setSelectedStore,
+    datePeriod,
+    setDatePeriod,
+    customDateRange,
+    setCustomDateRange,
+    authStatus,
+    currentUser,
+    setCurrentUser,
+    logoutUser,
+    toggleCurrentUserShift,
+    updateProfileAvatar,
+    storesList,
+    addStoreHub,
+    updateStoreHub,
+    deleteStoreHub,
+    usersList,
+    addUserAccount,
+    updateUserAccount,
+    toggleUserShiftStatus,
+    toggleUserStatus,
+    setUserPermissionOverride,
+    toggleUserStoreAccess,
+    deleteUserAccount,
+    categoriesList,
+    categoryTypes,
+    addCategoryType,
+    updateCategoryType,
+    deleteCategoryType,
+    refreshCategoryTypes,
+    addCategory,
+    updateCategory,
+    toggleCategoryStatus,
+    deleteCategory,
+    changeUserPassword,
+    updateUserProfile,
+    inventory,
+    addItem,
+    updateItem,
+    deleteItem,
+    adjustStock,
+    transferStock,
+    updateTransferStatus,
+    deleteTransfer,
+    defaultStoreTransferPrices,
+    setDefaultStoreTransferPrice,
+    stockTransfers,
+    inventoryLedger,
+    repairsEnquiries,
+    addRepairEnquiry,
+    updateRepairEnquiry,
+    deleteRepairEnquiry,
+    sales,
+    addSale,
+    updateSale,
+    voidSale,
+    purchases,
+    addPurchase,
+    updatePurchase,
+    deletePurchase,
+    recordPurchasePayment,
+    customers,
+    addCustomer,
+    updateCustomer,
+    deleteCustomer,
+    vendors,
+    addVendor,
+    updateVendor,
+    deleteVendor,
+    expenses,
+    addExpense,
+    updateExpense,
+    deleteExpense,
+    paymentMethods,
+    addPaymentMethod,
+    updatePaymentMethod,
+    deletePaymentMethod,
+    refreshPaymentMethods,
+    brands,
+    addBrand,
+    updateBrand,
+    deleteBrand,
+    refreshBrands,
+    units,
+    addUnit,
+    updateUnit,
+    deleteUnit,
+    refreshUnits,
+    auditLogs,
+    addAuditLog,
+    refreshAllData,
+    refreshDomainData,
+    notifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    searchOpen,
+    setSearchOpen,
+    notificationsOpen,
+    setNotificationsOpen,
+    storeSelectorOpen,
+    setStoreSelectorOpen,
+    userProfileOpen,
+    setUserProfileOpen,
+    confirmAction,
+    confirmationModalState,
+    closeConfirmationModal,
+    executeConfirmationAction,
+    formatCurrency,
+    dateLocale,
+  };
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
 }

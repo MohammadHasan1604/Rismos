@@ -126,7 +126,7 @@ export default function CategoryFormModal({
       prevOpenRef.current = false;
       editCategoryIdRef.current = null;
     }
-  }, [open, category?.id, initialCategoryType, initialName]);
+  }, [open, category, categoryTypes, categoriesList.length, initialCategoryType, initialName]);
 
   const isDirty = React.useMemo(() => {
     if (category) {

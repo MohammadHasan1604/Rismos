@@ -52,7 +52,7 @@ export default function DeleteRequestsPage() {
       } else {
         toast.error(data.error || 'Failed to load delete requests');
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Network error loading delete requests');
     } finally {
       setLoading(false);

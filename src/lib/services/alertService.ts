@@ -305,17 +305,17 @@ export async function evaluateSystemAlerts(): Promise<AlertEvaluationSummary> {
         } else {
           failedCount++;
         }
-      } catch (err) {
+      } catch (_err) {
         failedCount++;
       }
     }
 
-    if (failedCount > 0 && dispatched === 0) {
+    if (dispatched > 0) {
+      emailStatus = 'SENT';
+      emailMessage = `Outbound email notifications confirmed delivered to ${dispatched} recipient(s)${failedCount > 0 ? ` (${failedCount} failed)` : ''}.`;
+    } else {
       emailStatus = 'FAILED';
       emailMessage = 'Provider failed to deliver outbound notification emails.';
-    } else {
-      emailStatus = 'SENT';
-      emailMessage = `Outbound email notifications confirmed delivered to ${dispatched} recipient(s).`;
     }
   }
 

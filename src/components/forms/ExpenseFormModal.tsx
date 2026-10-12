@@ -9,7 +9,7 @@ import PaymentProofUpload from '@/components/ui/PaymentProofUpload';
 import CategoryFormModal from './CategoryFormModal';
 import StoreFormModal from './StoreFormModal';
 import PaymentMethodSelect from '@/components/ui/PaymentMethodSelect';
-import { useApp, Expense, CategoryItem, StoreHub } from '@/context/AppContext';
+import { useApp, Expense, StoreHub } from '@/context/AppContext';
 import { toast } from 'sonner';
 
 export interface ExpenseFormModalProps {
@@ -33,7 +33,6 @@ export default function ExpenseFormModal({
     selectedStore,
     storesList,
     categoriesList,
-    paymentMethods,
     confirmAction,
     formatCurrency,
     systemSettings,
@@ -147,7 +146,7 @@ export default function ExpenseFormModal({
       prevOpenRef.current = false;
       editExpenseIdRef.current = null;
     }
-  }, [open, expense?.id]);
+  }, [open, expense, expenseCategoryOptions, selectedStore]);
 
   const isDirty = React.useMemo(() => {
     if (expense) {

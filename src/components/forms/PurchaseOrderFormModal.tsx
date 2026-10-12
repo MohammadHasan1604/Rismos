@@ -294,7 +294,7 @@ export default function PurchaseOrderFormModal({
       prevOpenRef.current = false;
       editPurchaseIdRef.current = null;
     }
-  }, [open, purchase?.id]);
+  }, [open, purchase, inventory, vendors, defaultStore]);
 
   const isDirty = React.useMemo(() => {
     if (purchase) {

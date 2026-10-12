@@ -5,7 +5,6 @@ import Icon from '@/components/ui/AppIcon';
 import Modal from '@/components/ui/Modal';
 import ExpenseFormModal from '@/components/forms/ExpenseFormModal';
 import { useApp, Expense } from '@/context/AppContext';
-import { toast } from 'sonner';
 import ProofViewerModal, { PaymentProofData } from '@/components/ui/ProofViewerModal';
 
 export default function ExpensesPage() {

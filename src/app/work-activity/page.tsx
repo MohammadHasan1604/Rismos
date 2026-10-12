@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
 import Modal from '@/components/ui/Modal';
+import AppImage from '@/components/ui/AppImage';
 import { useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
 import SuperAdminGuard from '@/components/SuperAdminGuard';
@@ -610,9 +611,11 @@ export default function WorkActivityPage() {
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
                               {u.avatarUrl ? (
-                                <img
+                                <AppImage
                                   src={u.avatarUrl}
                                   alt={u.name}
+                                  width={32}
+                                  height={32}
                                   className="w-8 h-8 rounded-full object-cover border border-border flex-shrink-0"
                                 />
                               ) : (

@@ -37,7 +37,7 @@ export async function ensureIndexes(): Promise<void> {
 
       if (Number(existing?.[0]?.count ?? 0) === 0) {
         await prisma.$executeRawUnsafe(spec.sql);
-        console.log(`[QUERY-OPTIMIZER] Created index ${spec.indexName} on ${spec.table}`);
+        console.info(`[QUERY-OPTIMIZER] Created index ${spec.indexName} on ${spec.table}`);
       }
     } catch (err: any) {
       // Non-fatal if index exists or table structure differs
@@ -47,5 +47,5 @@ export async function ensureIndexes(): Promise<void> {
     }
   }
 
-  console.log('[QUERY-OPTIMIZER] Database index optimizations verified.');
+  console.info('[QUERY-OPTIMIZER] Database index optimizations verified.');
 }

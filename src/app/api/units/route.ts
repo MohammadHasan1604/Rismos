@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { authenticateRequest, hasPermission, createAuditLog } from '@/lib/authPipeline';
+import { authenticateRequest } from '@/lib/authPipeline';
 import { broadcastRealtimeEvent } from '@/lib/realtime';
 
 export const dynamic = 'force-dynamic';
@@ -44,7 +44,7 @@ const DEFAULT_UNITS = [
   { name: 'Pack', code: 'pack', symbol: 'pk', description: 'Multipack unit', status: 'Active' },
 ];
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     let items = await prisma.unit.findMany({
       orderBy: [{ name: 'asc' }],
@@ -84,7 +84,6 @@ export async function POST(req: NextRequest) {
     if (!_ar.user) {
       return NextResponse.json({ error: _ar.error }, { status: _ar.status });
     }
-    const authUser = _ar.user;
     const body = await req.json();
 
     const name = body?.name?.trim();
@@ -151,7 +150,6 @@ export async function PUT(req: NextRequest) {
     if (!_ar.user) {
       return NextResponse.json({ error: _ar.error }, { status: _ar.status });
     }
-    const authUser = _ar.user;
     const body = await req.json();
 
     const id = body?.id?.trim();

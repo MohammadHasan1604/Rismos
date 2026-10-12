@@ -91,11 +91,11 @@ class RealtimeClientManager {
         await this.initPusher(config.key, config.cluster, authorizedChannels);
       } else {
         this.currentMode = 'DB-Authoritative Fallback Sync (Pusher not configured in env)';
-        console.log(`[COSKO Realtime] ${this.currentMode}`);
+        console.info(`[RISMOS Realtime] ${this.currentMode}`);
         this.startFallbackSync();
       }
     } catch (err) {
-      console.warn('[COSKO Realtime] Init error, starting fallback sync:', err);
+      console.warn('[RISMOS Realtime] Init error, starting fallback sync:', err);
       this.startFallbackSync();
     }
   }
@@ -121,23 +121,23 @@ class RealtimeClientManager {
       this.pusherInstance.connection.bind('connected', () => {
         this.isConnected = true;
         this.reconnectAttempts = 0;
-        console.log('[COSKO Realtime] Connected to distributed realtime cluster');
+        console.info('[RISMOS Realtime] Connected to distributed realtime cluster');
         // Recover any events missed during disconnection
         this.catchUpMissedEvents();
       });
 
       this.pusherInstance.connection.bind('disconnected', () => {
         this.isConnected = false;
-        console.warn('[COSKO Realtime] WebSocket disconnected. Attempting auto-reconnect...');
+        console.warn('[RISMOS Realtime] WebSocket disconnected. Attempting auto-reconnect...');
         this.handleReconnect();
       });
 
       this.pusherInstance.connection.bind('error', (err: any) => {
-        console.warn('[COSKO Realtime] WebSocket connection warning:', err?.message || err);
+        console.warn('[RISMOS Realtime] WebSocket connection warning:', err?.message || err);
       });
 
       // Subscribe strictly to server-authorized channels
-      channels.forEach((channelName) => {
+      channels.forEach((channelName: string) => {
         if (!this.subscribedChannels.has(channelName)) {
           const channel = this.pusherInstance.subscribe(channelName);
           this.subscribedChannels.add(channelName);

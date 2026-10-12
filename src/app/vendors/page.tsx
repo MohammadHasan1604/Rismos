@@ -1,15 +1,12 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Icon from '@/components/ui/AppIcon';
-import Modal from '@/components/ui/Modal';
-import { useApp, Vendor, PurchaseOrder } from '@/context/AppContext';
+import { useApp, Vendor } from '@/context/AppContext';
 import VendorFormModal from '@/components/forms/VendorFormModal';
 import SupplierPaymentModal from '@/components/forms/SupplierPaymentModal';
 import ProofViewerModal, { ProofViewerData } from '@/components/ui/ProofViewerModal';
-import { toast } from 'sonner';
-import { validateAndNormalizeGstin } from '@/lib/gstUtils';
 import { VendorBillsBreakdownModal } from './components/VendorBillsBreakdownModal';
 import { VendorPaymentVoucherModal } from './components/VendorPaymentVoucherModal';
 import { DeleteVendorModal } from './components/DeleteVendorModal';
@@ -17,21 +14,16 @@ import { DeleteVendorModal } from './components/DeleteVendorModal';
 export default function VendorsPage() {
   const {
     vendors,
-    addVendor,
-    updateVendor,
     deleteVendor,
     purchases,
-    recordPurchasePayment,
     refreshAllData,
     currentUser,
     formatCurrency,
-    dateLocale,
     systemSettings,
     branding,
   } = useApp();
 
-  const countryCode =
-    systemSettings?.countryCode || branding?.countryCode || 'IN';
+  const countryCode = systemSettings?.countryCode || branding?.countryCode || 'IN';
   const taxIdLabel =
     countryCode === 'IN'
       ? 'GSTIN'
@@ -234,16 +226,6 @@ export default function VendorsPage() {
 
   const openEdit = (v: Vendor) => {
     setEditVendorModal(v);
-  };
-
-  // Open Pay Now Modal
-  const openPayNow = (bill: any) => {
-    setPayModalPo(bill);
-  };
-
-  // Print voucher
-  const handlePrintReceipt = () => {
-    window.print();
   };
 
   return (
