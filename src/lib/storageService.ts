@@ -54,11 +54,7 @@ export class StorageService {
    */
   static async uploadFile(
     bucket:
-      | 'product-images'
-      | 'sale-attachments'
-      | 'branding'
-      | 'payment-proofs'
-      | 'expense-receipts',
+      'product-images' | 'sale-attachments' | 'branding' | 'payment-proofs' | 'expense-receipts',
     file: File | Blob,
     filename: string
   ): Promise<StorageUploadResult> {
